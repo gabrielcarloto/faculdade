@@ -6,7 +6,7 @@
 #define GREEN "\033[0;32m"
 #define DEFAULT "\033[0m"
 
-void preencheVetor(int *v, int n, int min, int max);
+void preencheVetor(int v[], int n, int min, int max);
 int mediaPares(int v[], int n, int *maior, int *menor);
 
 int main()
@@ -32,7 +32,7 @@ int main()
   return 0;
 }
 
-void preencheVetor(int *v, int n, int min, int max)
+void preencheVetor(int v[], int n, int min, int max)
 {
   int i;
 

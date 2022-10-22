@@ -6,7 +6,7 @@
 #define GREEN "\033[0;32m"
 #define DEFAULT "\033[0m"
 
-void preencheVetor(int *v, int n, int lim);
+void preencheVetor(int v[], int n, int lim);
 
 int main()
 {
@@ -26,7 +26,7 @@ int main()
   return 0;
 }
 
-void preencheVetor(int *v, int n, int lim)
+void preencheVetor(int v[], int n, int lim)
 {
   int i;
 

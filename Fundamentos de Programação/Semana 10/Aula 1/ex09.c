@@ -6,7 +6,7 @@
 #define GREEN "\033[0;32m"
 #define DEFAULT "\033[0m"
 
-void preencheVetor(int *v, int n, int min, int max);
+void preencheVetor(int v[], int n, int min, int max);
 void intercalaVetores(int v1[], int v2[], int *v3, int n);
 
 int main()
@@ -45,7 +45,7 @@ int main()
   return 0;
 }
 
-void preencheVetor(int *v, int n, int min, int max)
+void preencheVetor(int v[], int n, int min, int max)
 {
   int i;
 
