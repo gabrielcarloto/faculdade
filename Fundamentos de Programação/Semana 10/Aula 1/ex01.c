@@ -13,7 +13,7 @@ int main()
     scanf("%d", &aux);
     ehIgual = 0;
 
-    for (j = 0; j < TAM && !ehIgual; j++)
+    for (j = 0; j < i && !ehIgual; j++)
       if (aux == vetor[j])
       {
         printf("Sao permitidos apenas valores distintos. Digite outro valor.\n");
