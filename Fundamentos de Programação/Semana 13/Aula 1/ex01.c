@@ -19,10 +19,10 @@ int main()
     mat[i][0] = rand() % 2;
 
   for (i = 1; i < n; i++)
-  {
-    contBrancas = 0;
     for (j = 1; j < n; j++)
     {
+      contBrancas = 0;
+
       vizinhas[0] = mat[i][j - 1];
       vizinhas[1] = mat[i - 1][j];
       vizinhas[2] = mat[i - 1][j - 1];
@@ -32,7 +32,6 @@ int main()
 
       mat[i][j] = !(contBrancas > 1);
     }
-  }
 
   imprimeMatriz(mat, n, n);
 
