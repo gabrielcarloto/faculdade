@@ -5,20 +5,27 @@
 // https://stackoverflow.com/a/35706345
 #define printTable(...) printT(__VA_ARGS__, NULL)
 
-void printT(const char *str, ...);
+typedef enum
+{
+  LEFT,
+  CENTER,
+  RIGHT
+} Alignment;
+
+void printT(Alignment alignment, const char *str, ...);
 int maxChars(const char *firstArg, va_list args);
 
 int main()
 {
-  printTable("asdasdasdasdasda", "Opaaa", "Testando", "Muy buenooooo!!! :)");
+  printTable(CENTER, "asdasdasdasdasda", "Opaaa", "Testando", "Muy buenooooo!!! :)");
 
   return 0;
 }
 
-void printT(const char *str, ...)
+void printT(Alignment alignment, const char *str, ...)
 {
   va_list list, list2;
-  int i, len, tableLen, strMaxChars;
+  int i, len, tableLen, strMaxChars, centerAlignSpaces;
 
   va_start(list, str);
   va_copy(list2, list);
@@ -36,7 +43,16 @@ void printT(const char *str, ...)
 
   while (str)
   {
-    printf("= %s%*s =\n", str, strMaxChars - strlen(str), "");
+    if (alignment == LEFT)
+      printf("= %s%*s =\n", str, strMaxChars - strlen(str), "");
+    else if (alignment == CENTER)
+    {
+      centerAlignSpaces = (strMaxChars - strlen(str)) / 2;
+      printf("= %*s%s%*s =\n", centerAlignSpaces, "", str, centerAlignSpaces * 2 + strlen(str) == strMaxChars ? centerAlignSpaces : centerAlignSpaces + 1, "");
+    }
+    else if (alignment == RIGHT)
+      printf("= %*s%s =\n", strMaxChars - strlen(str), "", str);
+
     str = va_arg(list2, char *);
   }
 
