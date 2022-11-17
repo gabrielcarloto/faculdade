@@ -39,7 +39,7 @@ void printT(Alignment alignment, const char *str, ...)
   for (i = 0; i < tableLen; i++)
     printf("=");
 
-  printf("\n");
+  printf("\n| %*s |\n", strMaxChars, "");
 
   while (str)
   {
@@ -48,7 +48,7 @@ void printT(Alignment alignment, const char *str, ...)
     else if (alignment == CENTER)
     {
       centerAlignSpaces = (strMaxChars - strlen(str)) / 2;
-      printf("= %*s%s%*s =\n", centerAlignSpaces, "", str, centerAlignSpaces * 2 + strlen(str) == strMaxChars ? centerAlignSpaces : centerAlignSpaces + 1, "");
+      printf("| %*s%s%*s |\n", centerAlignSpaces, "", str, centerAlignSpaces * 2 + strlen(str) == strMaxChars ? centerAlignSpaces : centerAlignSpaces + 1, "");
     }
     else if (alignment == RIGHT)
       printf("= %*s%s =\n", strMaxChars - strlen(str), "", str);
@@ -57,6 +57,8 @@ void printT(Alignment alignment, const char *str, ...)
   }
 
   va_end(list2);
+
+  printf("| %*s |\n", strMaxChars, "");
 
   for (i = 0; i < tableLen; i++)
     printf("=");
