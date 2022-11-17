@@ -3,7 +3,7 @@
 #include <string.h>
 
 // https://stackoverflow.com/a/35706345
-#define printTable(...) printT(__VA_ARGS__, NULL)
+#define printTable(alignment, ...) printT(alignment, __VA_ARGS__, NULL)
 
 typedef enum
 {
@@ -12,7 +12,7 @@ typedef enum
   RIGHT
 } Alignment;
 
-void printT(Alignment alignment, const char *str, ...);
+// void printT(Alignment alignment, const char *str, ...);
 int maxChars(const char *firstArg, va_list args);
 
 int main()
@@ -26,6 +26,12 @@ void printT(Alignment alignment, const char *str, ...)
 {
   va_list list, list2;
   int i, len, tableLen, strMaxChars, centerAlignSpaces;
+
+  if (alignment < 0 || alignment > 2)
+  {
+    fprintf(stderr, "Alignment %d does not exist\n", alignment);
+    exit(1);
+  }
 
   va_start(list, str);
   va_copy(list2, list);
