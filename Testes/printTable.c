@@ -17,7 +17,7 @@ int maxChars(const char *firstArg, va_list args);
 
 int main()
 {
-  printTable(CENTER, "asdasdasdasdasda", "Opaaa", "Testando", "Muy buenooooo!!! :)");
+  printTable(RIGHT, "asdasdasdasdasda", "Opaaa", "Testando", "Muy buenooooo!!! :)");
 
   return 0;
 }
@@ -44,14 +44,14 @@ void printT(Alignment alignment, const char *str, ...)
   while (str)
   {
     if (alignment == LEFT)
-      printf("= %s%*s =\n", str, strMaxChars - strlen(str), "");
+      printf("| %s%*s |\n", str, strMaxChars - strlen(str), "");
     else if (alignment == CENTER)
     {
       centerAlignSpaces = (strMaxChars - strlen(str)) / 2;
       printf("| %*s%s%*s |\n", centerAlignSpaces, "", str, centerAlignSpaces * 2 + strlen(str) == strMaxChars ? centerAlignSpaces : centerAlignSpaces + 1, "");
     }
     else if (alignment == RIGHT)
-      printf("= %*s%s =\n", strMaxChars - strlen(str), "", str);
+      printf("| %*s%s |\n", strMaxChars - strlen(str), "", str);
 
     str = va_arg(list2, char *);
   }
