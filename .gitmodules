@@ -1,0 +1,3 @@
+[submodule "Fundamentos de Programação/jogo-da-vida"]
+	path = Fundamentos de Programação/jogo-da-vida
+	url = https://github.com/gabrielcarloto/jogo-da-vida.git
