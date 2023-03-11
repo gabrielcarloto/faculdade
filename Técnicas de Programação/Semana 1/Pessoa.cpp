@@ -23,3 +23,12 @@ void Pessoa::calculaIdade() {
 int Pessoa::getIdade() { return idade; }
 std::string Pessoa::getNome() { return nome; }
 DataNascimento Pessoa::getDataNascimento() { return dataNascimento; }
+void Pessoa::imprimeDados() {
+  char buf[1024];
+
+  sprintf(buf, "%s nasceu em %.2d/%.2d/%.4d e possui %d anos de idade",
+          nome.c_str(), dataNascimento.dia, dataNascimento.mes,
+          dataNascimento.ano, idade);
+
+  std::cout << std::string(buf) << std::endl;
+}

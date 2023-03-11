@@ -17,4 +17,5 @@ public:
   int getIdade();
   std::string getNome();
   DataNascimento getDataNascimento();
+  void imprimeDados();
 };
