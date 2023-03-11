@@ -2,12 +2,15 @@
 #include <stdio.h>
 
 #define ANO_ATUAL 2023
+#define MES_ATUAL 3
+#define DIA_ATUAL 11
 
 typedef struct {
   int dia, mes, ano, idade;
 } Pessoa;
 
-int calculaIdade(Pessoa *pessoa, int ano);
+void calculaIdade(Pessoa *pessoa, const int anoAtual, const int mesAtual,
+                  const int diaAtual);
 void imprimeDados(Pessoa *pessoa, char *nome);
 
 int main(void) {
@@ -21,8 +24,8 @@ int main(void) {
   newton.mes = 01;
   newton.ano = 1643;
 
-  einstein.idade = calculaIdade(&einstein, ANO_ATUAL);
-  newton.idade = calculaIdade(&newton, ANO_ATUAL);
+  calculaIdade(&einstein, ANO_ATUAL, MES_ATUAL, DIA_ATUAL);
+  calculaIdade(&newton, ANO_ATUAL, MES_ATUAL, DIA_ATUAL);
 
   imprimeDados(&einstein, "Einstein");
   imprimeDados(&newton, "Newton");
@@ -30,8 +33,15 @@ int main(void) {
   return 0;
 }
 
-int calculaIdade(Pessoa *pessoa, int anoAtual) {
-  return anoAtual - pessoa->ano;
+void calculaIdade(Pessoa *pessoa, const int anoAtual, const int mesAtual,
+                  const int diaAtual) {
+  int diffIdade = anoAtual - pessoa->ano;
+
+  if (mesAtual < pessoa->mes ||
+      mesAtual == pessoa->mes && diaAtual < pessoa->dia)
+    diffIdade--;
+
+  pessoa->idade = diffIdade;
 }
 
 void imprimeDados(Pessoa *pessoa, char *nome) {
