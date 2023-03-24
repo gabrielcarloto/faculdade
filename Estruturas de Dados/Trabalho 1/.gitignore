@@ -1,1 +1,3 @@
 arquivos/
+objects/
+*.o
