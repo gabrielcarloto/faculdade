@@ -28,7 +28,7 @@ public:
   void registerItemReleaseCallback();
 
   virtual T &operator[](size_t index) = 0;
-  virtual size_t getLength() = 0;
+  size_t getLength();
 
   virtual T &at(size_t index) = 0;
   virtual void push(const T &item) = 0;
@@ -77,6 +77,8 @@ template <typename T>
 void BaseList<T>::registerItemReleaseCallback(void (*fn)(T &)) {
   itemReleaseCallback = fn;
 }
+
+template <typename T> size_t BaseList<T>::getLength() { return length; }
 
 template <typename T> void defaultItemRelease(T &item) { delete item; }
 

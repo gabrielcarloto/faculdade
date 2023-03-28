@@ -27,7 +27,6 @@ public:
   T &operator[](size_t index) override;
 
   size_t getCapacity();
-  size_t getLength() override;
   void reserve(size_t capacity);
   void shrink();
 
@@ -60,8 +59,6 @@ template <typename T> Vector<T>::~Vector() {
 
   delete[] data;
 }
-
-template <typename T> size_t Vector<T>::getLength() { return this->length; }
 
 template <typename T> void Vector<T>::commonConstructor(size_t length) {
   this->length = length;
