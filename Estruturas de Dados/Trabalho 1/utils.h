@@ -1,5 +1,8 @@
+#pragma once
 #include <functional>
 #include <iostream>
-using namespace std;
 
-void readFile(string path, const function<void(string)> &forEachLineCallback);
+namespace utils {
+void readFile(std::string path,
+              const std::function<void(std::string)> &forEachLineCallback);
+} // namespace utils

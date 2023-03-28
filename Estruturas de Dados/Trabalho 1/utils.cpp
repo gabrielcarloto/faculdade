@@ -1,15 +1,15 @@
 #include "utils.h"
 #include <fstream>
-#include <stdlib.h>
 #include <string>
-using namespace std;
 
-void readFile(string path, const function<void(string)> &forEachLineCallback) {
-  string line;
-  ifstream file(path);
+void utils::readFile(
+    std::string path,
+    const std::function<void(std::string)> &forEachLineCallback) {
+  std::string line;
+  std::ifstream file(path);
 
   if (!file.is_open()) {
-    cout << "Unable to open file" << endl;
+    std::cout << "Unable to open file" << std::endl;
     exit(1);
   }
 
