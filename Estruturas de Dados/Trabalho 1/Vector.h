@@ -46,7 +46,7 @@ public:
 template <typename T>
 Vector<T>::Vector(const T &array, size_t length) : BaseList<T>() {
   commonConstructor(length);
-  memcpy(data, array, length * sizeof(T)); // TODO:
+  memcpy(data, array, length * sizeof(T)); // TODO: switch to for loop
 }
 
 template <typename T> Vector<T>::Vector(size_t length) : BaseList<T>() {
@@ -98,7 +98,8 @@ template <typename T> void Vector<T>::shrink() {
 template <typename T> void Vector<T>::resizeIfNeeded() {
   if (length == capacity)
     return grow();
-  if (length > 0 && length * (getGrowthFactor(length) + 0.7) < capacity)
+  if (length > 0 && length * (getGrowthFactor(length) + 0.7) <
+                        capacity) // TODO: remove hard-coded number
     shrink();
 }
 
@@ -218,6 +219,6 @@ template <typename T> double Vector<T>::getGrowthFactor(size_t size) {
   if (size <= LARGE)
     return largeFactor;
 
-  // TODO: possível perda de dados a oconverter float para size_t
+  // TODO: possível perda de dados a oconverter double para size_t
   return defaultFactor;
 }
