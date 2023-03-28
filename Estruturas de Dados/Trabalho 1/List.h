@@ -6,6 +6,7 @@ template <typename T> class List : public BaseList<T> {
   struct Node {
     T data;
     Node *next = NULL;
+    Node *prev = NULL;
   };
 
   size_t currentIndex = 0;
@@ -50,6 +51,7 @@ template <typename T> void List<T>::push(const T &item) {
   else
     lastNode->next = node;
 
+  node->prev = lastNode;
   lastNode = node;
 
   node->data = item;
