@@ -9,8 +9,8 @@ template <typename T> class List : public BaseList<T> {
   };
 
   size_t currentIndex = 0;
-  T *firstNode = NULL;
-  T *lastNode = NULL;
+  Node *firstNode = NULL;
+  Node *lastNode = NULL;
 
 public:
   List(const T &array, const size_t length);
@@ -33,11 +33,24 @@ public:
 template <typename T> List<T>::List(const T &array, const size_t length) {
   this->length = length;
 
-  for (const T item in array) {
+  for (const T item : array) {
     push(item);
   }
 }
 
 template <typename T> List<T>::List(const size_t length) {
   this->length = length;
+}
+
+template <typename T> void List<T>::push(const T &item) {
+  Node *node = new Node;
+
+  if (firstNode == NULL)
+    firstNode = node;
+  else
+    lastNode->next = node;
+
+  lastNode = node;
+
+  node->data = item;
 }
