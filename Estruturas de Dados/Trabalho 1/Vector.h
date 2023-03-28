@@ -10,7 +10,7 @@
 #include <utility>
 
 template <typename T> class Vector : public BaseList<T> {
-  size_t length, capacity;
+  size_t capacity;
   T *data;
 
   void grow();
@@ -55,13 +55,13 @@ template <typename T> Vector<T>::Vector(size_t length) : BaseList<T>() {
 
 template <typename T> Vector<T>::~Vector() {
   if (this->itemReleaseCallback != NULL)
-    for (size_t i = 0; i < length; i++)
+    for (size_t i = 0; i < this->length; i++)
       this->rawCallReleaseCallback(data[i]);
 
   delete[] data;
 }
 
-template <typename T> size_t Vector<T>::getLength() { return length; }
+template <typename T> size_t Vector<T>::getLength() { return this->length; }
 
 template <typename T> void Vector<T>::commonConstructor(size_t length) {
   this->length = length;
@@ -92,14 +92,14 @@ template <typename T> void Vector<T>::grow() {
 }
 
 template <typename T> void Vector<T>::shrink() {
-  resize(length * getGrowthFactor(length));
+  resize(this->length * getGrowthFactor(this->length));
 }
 
 template <typename T> void Vector<T>::resizeIfNeeded() {
-  if (length == capacity)
+  if (this->length == capacity)
     return grow();
-  if (length > 0 && length * (getGrowthFactor(length) + 0.7) <
-                        capacity) // TODO: remove hard-coded number
+  if (this->length > 0 && this->length * (getGrowthFactor(this->length) + 0.7) <
+                              capacity) // TODO: remove hard-coded number
     shrink();
 }
 
@@ -109,7 +109,7 @@ void Vector<T>::forEach(
     size_t startIndex) {
   this->assertIndexIsValid(startIndex);
 
-  for (size_t i = startIndex; i < length; i++) {
+  for (size_t i = startIndex; i < this->length; i++) {
     callback(data[i], i);
   }
 }
@@ -120,7 +120,7 @@ template <typename T> void Vector<T>::insert(T item, size_t index) {
   T lastItem = data[index];
   data[index] = item;
 
-  length++;
+  this->length++;
   resizeIfNeeded();
 
   forEach(
@@ -141,22 +141,22 @@ template <typename T> void Vector<T>::remove(size_t index) {
   this->callReleaseCallback(data[index]);
   forEach([&](auto _, auto i) { data[i] = data[i + 1]; }, index);
 
-  length--;
+  this->length--;
   resizeIfNeeded();
 }
 
 template <typename T> void Vector<T>::push(const T &item) {
   resizeIfNeeded();
 
-  data[length] = item;
-  length++;
+  data[this->length] = item;
+  this->length++;
 }
 
 template <typename T>
 Vector<T> &Vector<T>::filter(ItemIndexCallback<T, bool> filterFunction) {
   Vector<T> items;
 
-  for (size_t i = 0; i < length; i++) {
+  for (size_t i = 0; i < this->length; i++) {
     bool shouldBeIncluded = filterFunction(data[i], i);
     if (shouldBeIncluded)
       items.push(data[i]);
@@ -167,7 +167,7 @@ Vector<T> &Vector<T>::filter(ItemIndexCallback<T, bool> filterFunction) {
 
 template <typename T>
 bool Vector<T>::find(ItemIndexCallback<T, bool> filterFunction, T &item) {
-  for (size_t i = 0; i < length; i++) {
+  for (size_t i = 0; i < this->length; i++) {
     bool foundItem = filterFunction(data[i], i);
 
     if (foundItem) {
@@ -182,7 +182,7 @@ bool Vector<T>::find(ItemIndexCallback<T, bool> filterFunction, T &item) {
 template <typename T>
 bool Vector<T>::findIndex(ItemIndexCallback<T, bool> filterFunction,
                           size_t &index) {
-  for (size_t i = 0; i < length; i++) {
+  for (size_t i = 0; i < this->length; i++) {
     bool foundItem = filterFunction(data[i], i);
 
     if (foundItem) {
@@ -198,7 +198,7 @@ template <typename T> T *Vector<T>::getArray() { return data; }
 
 template <typename T> T &Vector<T>::at(intmax_t index) {
   this->assertIndexIsValid(index);
-  return data[index > 0 ? index : length + index];
+  return data[index > 0 ? index : this->length + index];
 }
 
 template <typename T> T &Vector<T>::operator[](size_t index) {
