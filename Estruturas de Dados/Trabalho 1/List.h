@@ -12,8 +12,6 @@ template <typename T> class List : public BaseList<T> {
   T *firstNode = NULL;
   T *lastNode = NULL;
 
-  void commonConstructor(size_t length);
-
 public:
   List(const T &array, const size_t length);
   List(const size_t length = 0);
@@ -31,3 +29,15 @@ public:
   bool find(ItemIndexCallback<T, bool> filterFn, T &item) override;
   List<T> &filter(ItemIndexCallback<T, bool> filterFn) override;
 };
+
+template <typename T> List<T>::List(const T &array, const size_t length) {
+  this->length = length;
+
+  for (const T item in array) {
+    push(item);
+  }
+}
+
+template <typename T> List<T>::List(const size_t length) {
+  this->length = length;
+}
