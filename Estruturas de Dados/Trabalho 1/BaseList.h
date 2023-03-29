@@ -36,7 +36,7 @@ public:
   virtual void insert(T item, size_t index = 0) = 0;
   virtual void replace(T item, size_t index = 0) = 0;
   // virtual void slice(size_t indexStart, size_t indexEnd = NULL);
-  // virtual BaseList<T> &filter(ItemIndexCallback<T, bool> filterFn) = 0;
+  virtual BaseList<T> &filter(ItemIndexCallback<T, bool> filterFn) = 0;
   virtual bool find(ItemIndexCallback<T, bool> filterFn, T &item) = 0;
   virtual void forEach(ItemIndexCallback<T> callback,
                        size_t startIndex = 0) = 0;
