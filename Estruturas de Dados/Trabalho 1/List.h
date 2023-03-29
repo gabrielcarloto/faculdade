@@ -53,14 +53,14 @@ public:
 
   T &operator[](size_t index) override;
 
-  T &at(intmax_t index) override;
+  T &at(intmax_t index) override { return gotoIndex(index)->data; };
 
   void push(const T &item) override {
     Node *node = new Node;
 
     if (firstNode == NULL) {
       firstNode = node;
-      currentIndex = node;
+      current = node;
     } else {
       lastNode->next = node;
     }
