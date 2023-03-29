@@ -30,13 +30,13 @@ public:
   virtual T &operator[](size_t index) = 0;
   size_t getLength();
 
-  virtual T &at(size_t index) = 0;
+  virtual T &at(intmax_t index) = 0;
   virtual void push(const T &item) = 0;
   virtual void remove(size_t index) = 0;
   virtual void insert(T item, size_t index = 0) = 0;
   virtual void replace(T item, size_t index = 0) = 0;
   // virtual void slice(size_t indexStart, size_t indexEnd = NULL);
-  virtual BaseList<T> &filter(ItemIndexCallback<T, bool> filterFn) = 0;
+  // virtual BaseList<T> &filter(ItemIndexCallback<T, bool> filterFn) = 0;
   virtual bool find(ItemIndexCallback<T, bool> filterFn, T &item) = 0;
   virtual void forEach(ItemIndexCallback<T> callback,
                        size_t startIndex = 0) = 0;
@@ -68,7 +68,7 @@ template <typename T> void BaseList<T>::throwOutOfRange(size_t index) {
 
 template <typename T> void BaseList<T>::throwOutOfRange(intmax_t index) {
   char message[100];
-  snprintf(message, 100, "Index out of range: %d", index);
+  snprintf(message, 100, "Index out of range: %lld", index);
 
   throw std::out_of_range(message);
 }
