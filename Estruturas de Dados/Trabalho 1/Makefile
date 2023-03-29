@@ -17,6 +17,6 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 clean:
-		rm -Force -Recurse $(EXE) $(OBJ_DIR)
+		rm -rf $(EXE) $(OBJ_DIR)
 
 .PHONY: clean
