@@ -53,7 +53,7 @@ template <typename T> Vector<T>::Vector(size_t length) : BaseList<T>() {
 }
 
 template <typename T> Vector<T>::~Vector() {
-  if (this->itemReleaseCallback != NULL)
+  if (this->checkReleaseCallback())
     for (size_t i = 0; i < this->length; i++)
       this->rawCallReleaseCallback(data[i]);
 

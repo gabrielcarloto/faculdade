@@ -16,6 +16,8 @@ private:
 protected:
   size_t length;
 
+  bool checkReleaseCallback() { return itemReleaseCallback != NULL; };
+
   void callReleaseCallback(T &);
   void rawCallReleaseCallback(T &);
   void assertIndexIsValid(size_t index);
