@@ -2,6 +2,7 @@
 #include "BaseList.h"
 #include "utils.h"
 #include <iostream>
+#include <stdint.h>
 
 template <typename T> class List : public BaseList<T> {
   struct Node {
@@ -16,8 +17,10 @@ template <typename T> class List : public BaseList<T> {
   size_t currentIndex = 0;
 
   Node *gotoIndex(size_t index) {
-    intmax_t distanceFirst = index, distanceCurrent = abs(index - currentIndex),
-             distanceLast = abs(index - this->length - 1);
+    intmax_t distanceFirst = index,
+             distanceCurrent = abs(static_cast<intmax_t>(index) -
+                                   static_cast<intmax_t>(currentIndex)),
+             distanceLast = this->length - 1 - index;
 
     if (distanceFirst < distanceCurrent) {
       current = firstNode;
@@ -27,12 +30,14 @@ template <typename T> class List : public BaseList<T> {
       currentIndex = this->length - 1;
     }
 
-    for (currentIndex; currentIndex < index; currentIndex++) {
+    while (currentIndex < index) {
       current = current->next;
+      currentIndex++;
     }
 
-    for (currentIndex; currentIndex > index; currentIndex--) {
+    while (currentIndex > index) {
       current = current->prev;
+      currentIndex--;
     }
 
     return current;
@@ -49,9 +54,9 @@ public:
 
   List(const size_t length = 0) { this->length = length; };
 
-  ~List();
+  // ~List();
 
-  T &operator[](size_t index) override;
+  T &operator[](size_t index) override{};
 
   T &at(intmax_t index) override { return gotoIndex(index)->data; };
 
@@ -69,13 +74,14 @@ public:
     lastNode = node;
 
     node->data = item;
+    this->length++;
   };
 
-  void remove(size_t index) override;
-  void insert(T item, size_t index = 0) override;
-  void replace(T item, size_t index = 0) override;
-  void forEach(ItemIndexCallback<T> callback, size_t startIndex = 0) override;
-  bool findIndex(ItemIndexCallback<T, bool> filterFn, size_t &index) override;
-  bool find(ItemIndexCallback<T, bool> filterFn, T &item) override;
-  List<T> &filter(ItemIndexCallback<T, bool> filterFn) override;
+  void remove(size_t index) override{};
+  void insert(T item, size_t index = 0) override{};
+  void replace(T item, size_t index = 0) override{};
+  void forEach(ItemIndexCallback<T> callback, size_t startIndex = 0) override{};
+  bool findIndex(ItemIndexCallback<T, bool> filterFn, size_t &index) override{};
+  bool find(ItemIndexCallback<T, bool> filterFn, T &item) override{};
+  List<T> &filter(ItemIndexCallback<T, bool> filterFn) override{};
 };
