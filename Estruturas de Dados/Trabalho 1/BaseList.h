@@ -67,6 +67,7 @@ protected:
                           size_t &index) = 0;
 
 public:
+  BaseList(const size_t length) { this->length = length; }
   ~BaseList() = default;
 
   void registerItemReleaseCallback(void (*fn)(T &)) {

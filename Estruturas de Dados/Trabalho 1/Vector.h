@@ -15,8 +15,8 @@ template <typename T> class Vector : public BaseList<T> {
 
   void grow();
   void resizeIfNeeded();
+  void commonConstructor();
   void resize(size_t newSize);
-  void commonConstructor(size_t length);
   double getGrowthFactor(size_t size);
 
 public:
@@ -43,14 +43,13 @@ public:
 };
 
 template <typename T>
-Vector<T>::Vector(const T &array, size_t length) : BaseList<T>() {
-  commonConstructor(length);
+Vector<T>::Vector(const T &array, const size_t length) : BaseList<T>(length) {
+  commonConstructor();
   memcpy(data, array, length * sizeof(T)); // TODO: switch to for loop
 }
 
-template <typename T> Vector<T>::Vector(size_t length) : BaseList<T>() {
-  commonConstructor(length);
-}
+template <typename T>
+Vector<T>::Vector(const size_t length) : BaseList<T>(length) {}
 
 template <typename T> Vector<T>::~Vector() {
   if (this->checkReleaseCallback())
@@ -60,10 +59,8 @@ template <typename T> Vector<T>::~Vector() {
   delete[] data;
 }
 
-template <typename T> void Vector<T>::commonConstructor(size_t length) {
-  this->length = length;
-  this->capacity = length + 1;
-
+template <typename T> void Vector<T>::commonConstructor() {
+  this->capacity = this->length + 1;
   data = new T[this->capacity];
 }
 

@@ -49,15 +49,13 @@ template <typename T> class List : public BaseList<T> {
   }
 
 public:
-  List(const T &array, const size_t length) {
-    this->length = length;
-
+  List(const T &array, const size_t length) : BaseList<T>(length) {
     for (const T item : array) {
       push(item);
     }
   };
 
-  List(const size_t length = 0) { this->length = length; };
+  List(const size_t length = 0) : BaseList<T>(length){};
 
   // ~List();
 
