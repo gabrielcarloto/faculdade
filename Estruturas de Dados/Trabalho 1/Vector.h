@@ -101,7 +101,6 @@ template <typename T>
 void Vector<T>::_forEach(
     const std::function<void(T &item, const size_t index)> &callback,
     size_t startIndex) {
-  this->assertIndexIsValid(startIndex);
 
   for (size_t i = startIndex; i < this->length; i++) {
     callback(data[i], i);
@@ -109,7 +108,6 @@ void Vector<T>::_forEach(
 }
 
 template <typename T> void Vector<T>::_insert(T item, size_t index) {
-  this->assertIndexIsValid(index);
 
   T lastItem = data[index];
   data[index] = item;
@@ -126,7 +124,6 @@ template <typename T> void Vector<T>::_insert(T item, size_t index) {
 }
 
 template <typename T> void Vector<T>::_replace(T item, size_t index) {
-  this->assertIndexIsValid(index);
   this->callReleaseCallback(data[index]);
   data[index] = item;
 }
@@ -191,7 +188,6 @@ bool Vector<T>::_findIndex(ItemIndexCallback<T, bool> filterFunction,
 template <typename T> T *Vector<T>::getArray() { return data; }
 
 template <typename T> T &Vector<T>::_at(intmax_t index) {
-  this->assertIndexIsValid(index);
   return data[index > 0 ? index : this->length + index];
 }
 
