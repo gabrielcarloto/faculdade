@@ -60,7 +60,7 @@ public:
 
   // ~List();
 
-  T &operator[](size_t index) override{};
+  T &operator[](size_t index) override { return gotoIndex(index)->data; };
 
   T &_at(intmax_t index) override {
     return gotoIndex(index >= 0 ? index : this->length - index)->data;
