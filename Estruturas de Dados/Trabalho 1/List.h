@@ -13,34 +13,39 @@ template <typename T> class List : public BaseList<T> {
 
   Node *firstNode = NULL;
   Node *lastNode = NULL;
-  Node *current = NULL;
-  size_t currentIndex = 0;
+
+  Node *lastChosenNode = NULL;
+  size_t lastChosenNodeIndex = 0;
 
   Node *gotoIndex(size_t index) {
-    intmax_t distanceFirst = index,
-             distanceCurrent = abs(static_cast<intmax_t>(index) -
-                                   static_cast<intmax_t>(currentIndex)),
-             distanceLast = this->length - 1 - index;
+    compareIndices(index);
+
+    while (lastChosenNodeIndex < index) {
+      lastChosenNode = lastChosenNode->next;
+      lastChosenNodeIndex++;
+    }
+
+    while (lastChosenNodeIndex > index) {
+      lastChosenNode = lastChosenNode->prev;
+      lastChosenNodeIndex--;
+    }
+
+    return lastChosenNode;
+  }
+
+  void compareIndices(size_t index) {
+    size_t distanceFirst = index;
+    size_t distanceLast = this->length - 1 - index;
+    size_t distanceCurrent = abs(static_cast<intmax_t>(index) -
+                                 static_cast<intmax_t>(lastChosenNodeIndex));
 
     if (distanceFirst < distanceCurrent) {
-      current = firstNode;
-      currentIndex = 0;
+      lastChosenNode = firstNode;
+      lastChosenNodeIndex = 0;
     } else if (distanceLast < distanceFirst && distanceLast < distanceCurrent) {
-      current = lastNode;
-      currentIndex = this->length - 1;
+      lastChosenNode = lastNode;
+      lastChosenNodeIndex = this->length - 1;
     }
-
-    while (currentIndex < index) {
-      current = current->next;
-      currentIndex++;
-    }
-
-    while (currentIndex > index) {
-      current = current->prev;
-      currentIndex--;
-    }
-
-    return current;
   }
 
 public:
@@ -65,7 +70,7 @@ public:
 
     if (firstNode == NULL) {
       firstNode = node;
-      current = node;
+      lastChosenNode = node;
     } else {
       lastNode->next = node;
     }
