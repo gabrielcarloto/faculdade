@@ -18,6 +18,7 @@ template <typename T> class List : public BaseList<T> {
   size_t lastChosenNodeIndex = 0;
 
   Node *gotoIndex(size_t index) {
+    this->assertIndexIsValid(index);
     compareIndices(index);
 
     while (lastChosenNodeIndex < index) {
