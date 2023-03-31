@@ -31,15 +31,15 @@ public:
   void shrink();
 
   T *getArray();
-  T &at(intmax_t index) override;
-  void push(const T &item) override;
-  void remove(size_t index) override;
-  void insert(T item, size_t index = 0) override;
-  void replace(T item, size_t index = 0) override;
-  void forEach(ItemIndexCallback<T> callback, size_t startIndex = 0) override;
-  bool findIndex(ItemIndexCallback<T, bool> filterFn, size_t &index) override;
-  bool find(ItemIndexCallback<T, bool> filterFn, T &item) override;
-  Vector<T> &filter(ItemIndexCallback<T, bool> filterFn) override;
+  T &_at(intmax_t index) override;
+  void _push(const T &item) override;
+  void _remove(size_t index) override;
+  void _insert(T item, size_t index = 0) override;
+  void _replace(T item, size_t index = 0) override;
+  void _forEach(ItemIndexCallback<T> callback, size_t startIndex = 0) override;
+  bool _findIndex(ItemIndexCallback<T, bool> filterFn, size_t &index) override;
+  bool _find(ItemIndexCallback<T, bool> filterFn, T &item) override;
+  Vector<T> &_filter(ItemIndexCallback<T, bool> filterFn) override;
 };
 
 template <typename T>
@@ -101,7 +101,7 @@ template <typename T> void Vector<T>::resizeIfNeeded() {
 }
 
 template <typename T>
-void Vector<T>::forEach(
+void Vector<T>::_forEach(
     const std::function<void(T &item, const size_t index)> &callback,
     size_t startIndex) {
   this->assertIndexIsValid(startIndex);
@@ -111,7 +111,7 @@ void Vector<T>::forEach(
   }
 }
 
-template <typename T> void Vector<T>::insert(T item, size_t index) {
+template <typename T> void Vector<T>::_insert(T item, size_t index) {
   this->assertIndexIsValid(index);
 
   T lastItem = data[index];
@@ -128,13 +128,13 @@ template <typename T> void Vector<T>::insert(T item, size_t index) {
       index + 1);
 }
 
-template <typename T> void Vector<T>::replace(T item, size_t index) {
+template <typename T> void Vector<T>::_replace(T item, size_t index) {
   this->assertIndexIsValid(index);
   this->callReleaseCallback(data[index]);
   data[index] = item;
 }
 
-template <typename T> void Vector<T>::remove(size_t index) {
+template <typename T> void Vector<T>::_remove(size_t index) {
   this->callReleaseCallback(data[index]);
   forEach([&](auto _, auto i) { data[i] = data[i + 1]; }, index);
 
@@ -142,7 +142,7 @@ template <typename T> void Vector<T>::remove(size_t index) {
   resizeIfNeeded();
 }
 
-template <typename T> void Vector<T>::push(const T &item) {
+template <typename T> void Vector<T>::_push(const T &item) {
   resizeIfNeeded();
 
   data[this->length] = item;
@@ -150,7 +150,7 @@ template <typename T> void Vector<T>::push(const T &item) {
 }
 
 template <typename T>
-Vector<T> &Vector<T>::filter(ItemIndexCallback<T, bool> filterFunction) {
+Vector<T> &Vector<T>::_filter(ItemIndexCallback<T, bool> filterFunction) {
   Vector<T> items;
 
   for (size_t i = 0; i < this->length; i++) {
@@ -163,7 +163,7 @@ Vector<T> &Vector<T>::filter(ItemIndexCallback<T, bool> filterFunction) {
 }
 
 template <typename T>
-bool Vector<T>::find(ItemIndexCallback<T, bool> filterFunction, T &item) {
+bool Vector<T>::_find(ItemIndexCallback<T, bool> filterFunction, T &item) {
   for (size_t i = 0; i < this->length; i++) {
     bool foundItem = filterFunction(data[i], i);
 
@@ -177,8 +177,8 @@ bool Vector<T>::find(ItemIndexCallback<T, bool> filterFunction, T &item) {
 }
 
 template <typename T>
-bool Vector<T>::findIndex(ItemIndexCallback<T, bool> filterFunction,
-                          size_t &index) {
+bool Vector<T>::_findIndex(ItemIndexCallback<T, bool> filterFunction,
+                           size_t &index) {
   for (size_t i = 0; i < this->length; i++) {
     bool foundItem = filterFunction(data[i], i);
 
@@ -193,7 +193,7 @@ bool Vector<T>::findIndex(ItemIndexCallback<T, bool> filterFunction,
 
 template <typename T> T *Vector<T>::getArray() { return data; }
 
-template <typename T> T &Vector<T>::at(intmax_t index) {
+template <typename T> T &Vector<T>::_at(intmax_t index) {
   this->assertIndexIsValid(index);
   return data[index > 0 ? index : this->length + index];
 }

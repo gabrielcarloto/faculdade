@@ -63,9 +63,9 @@ public:
 
   T &operator[](size_t index) override{};
 
-  T &at(intmax_t index) override { return gotoIndex(index)->data; };
+  T &_at(intmax_t index) override { return gotoIndex(index)->data; };
 
-  void push(const T &item) override {
+  void _push(const T &item) override {
     Node *node = new Node;
 
     if (firstNode == NULL) {
@@ -82,11 +82,15 @@ public:
     this->length++;
   };
 
-  void remove(size_t index) override{};
-  void insert(T item, size_t index = 0) override{};
-  void replace(T item, size_t index = 0) override{};
-  void forEach(ItemIndexCallback<T> callback, size_t startIndex = 0) override{};
-  bool findIndex(ItemIndexCallback<T, bool> filterFn, size_t &index) override{};
-  bool find(ItemIndexCallback<T, bool> filterFn, T &item) override{};
-  List<T> &filter(ItemIndexCallback<T, bool> filterFn) override{};
+  void _remove(size_t index) override{};
+  void _insert(T item, size_t index = 0) override{};
+  void _replace(T item, size_t index = 0) override{};
+
+  void _forEach(ItemIndexCallback<T> callback,
+                size_t startIndex = 0) override{};
+
+  bool _findIndex(ItemIndexCallback<T, bool> filterFn,
+                  size_t &index) override{};
+  bool _find(ItemIndexCallback<T, bool> filterFn, T &item) override{};
+  List<T> &_filter(ItemIndexCallback<T, bool> filterFn) override{};
 };
