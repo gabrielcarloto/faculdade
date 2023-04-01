@@ -63,7 +63,7 @@ public:
   T &operator[](size_t index) override { return gotoIndex(index)->data; };
 
   T &_at(intmax_t index) override {
-    return gotoIndex(index >= 0 ? index : this->length - index)->data;
+    return gotoIndex(index >= 0 ? index : this->length + index)->data;
   };
 
   void _push(const T &item) override {
@@ -101,13 +101,13 @@ public:
   bool _findIndex(ItemIndexCallback<T, bool> filterFn, size_t &index) override {
     size_t i = 0;
     Node *node = firstNode;
-    bool found = callback(node->data, i);
+    bool found = filterFn(node->data, i);
 
     while (node != NULL && !found) {
       node = node->next;
       i++;
 
-      found = callback(node->data, i);
+      found = filterFn(node->data, i);
     }
 
     if (found)
@@ -119,13 +119,13 @@ public:
   bool _find(ItemIndexCallback<T, bool> filterFn, T &item) override {
     size_t i = 0;
     Node *node = firstNode;
-    bool found = callback(node->data, i);
+    bool found = filterFn(node->data, i);
 
     while (node != NULL && !found) {
       node = node->next;
       i++;
 
-      found = callback(node->data, i);
+      found = filterFn(node->data, i);
     }
 
     if (found)
@@ -134,7 +134,7 @@ public:
     return found;
   };
 
-  List<T> &_filter(ItemIndexCallback<T, bool> filterFn) override {
+  List<T> _filter(ItemIndexCallback<T, bool> filterFn) override {
     List<T> list;
 
     this->forEach([&](auto item, auto i) {
