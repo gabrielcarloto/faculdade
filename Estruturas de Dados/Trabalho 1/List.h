@@ -134,5 +134,16 @@ public:
     return found;
   };
 
-  List<T> &_filter(ItemIndexCallback<T, bool> filterFn) override{};
+  List<T> &_filter(ItemIndexCallback<T, bool> filterFn) override {
+    List<T> list;
+
+    this->forEach([&](auto item, auto i) {
+      bool found = filterFn(item, i);
+
+      if (found)
+        list.push(item);
+    });
+
+    return list;
+  };
 };
