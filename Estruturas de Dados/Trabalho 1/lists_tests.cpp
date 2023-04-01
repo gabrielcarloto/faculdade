@@ -61,6 +61,24 @@ int main() {
       assert(vec.at(indexToRemove) == successorValue);
       assert(vec.at(indexToRemove - 1) == predecessorValue);
     });
+
+    it("should add an item", [&]() {
+      const int valueToInsert = 50;
+      const size_t indexToInsert = 10;
+      const int indexValue = indexToInsert;
+      const size_t expectedLength = LIST_LENGTH;
+      const int predecessorValue = indexToInsert - 1;
+      const int successorValue = indexToInsert + 1;
+
+      assert(vec.at(indexToInsert) == indexValue);
+      vec.insert(valueToInsert, indexToInsert);
+
+      assert(vec.at(indexToInsert) == valueToInsert);
+      assert(vec.at(indexToInsert + 1) == indexValue);
+      assert(vec.at(indexToInsert + 2) == successorValue);
+      assert(vec.at(indexToInsert - 1) == predecessorValue);
+      assert(vec.getLength() == expectedLength);
+    });
   });
 
   return 0;
