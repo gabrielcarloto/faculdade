@@ -103,13 +103,11 @@ public:
   };
 
   void _forEach(ItemIndexCallback<T> callback, size_t startIndex = 0) override {
-    Node *node = firstNode;
-    size_t i = 0;
+    Node *node = gotoIndex(startIndex);
+    size_t i = startIndex;
 
     while (node != NULL) {
-      if (i >= startIndex)
-        callback(node->data, i);
-
+      callback(node->data, i);
       node = node->next;
       i++;
     }
