@@ -18,6 +18,7 @@ template <typename T> class Vector : public BaseList<T, Vector<T>> {
   void commonConstructor();
   void resize(size_t newSize);
   double getGrowthFactor(size_t size);
+  void shrink();
 
 public:
   Vector(const T &array, const size_t length);
@@ -28,7 +29,7 @@ public:
 
   size_t getCapacity();
   void reserve(size_t capacity);
-  void shrink();
+  void shrinkToFit();
 
   T *getArray();
   T &_at(intmax_t index) override;
@@ -91,6 +92,8 @@ template <typename T> void Vector<T>::grow() {
 template <typename T> void Vector<T>::shrink() {
   resize(this->length * getGrowthFactor(this->length));
 }
+
+template <typename T> void Vector<T>::shrinkToFit() { resize(this->length); }
 
 template <typename T> void Vector<T>::resizeIfNeeded() {
   if (this->length == capacity)

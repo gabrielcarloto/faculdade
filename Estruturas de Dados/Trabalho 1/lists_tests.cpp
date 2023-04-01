@@ -89,6 +89,14 @@ int main() {
       assert(vec.at(indexToRemove - 1) == predecessorValue);
     });
 
+    it("should shrink to fit", [&]() {
+      const size_t capacityBeforeShrinking = vec.getCapacity();
+
+      vec.shrinkToFit();
+
+      assert(capacityBeforeShrinking > vec.getCapacity());
+    });
+
     // NOTE: currently, each tests depends on the previous tests
     // so the expected length will be LIST_LENGTH.
     // This isn't ideal, but it is better than not testing
