@@ -2,6 +2,7 @@
 #include "List.h"
 #include "Vector.h"
 #include "test.h"
+#include <stdint.h>
 
 using namespace test;
 
@@ -38,6 +39,14 @@ int main() {
 
       assert(vec.at(unsignedIndex) == unsignedIndexExpectedResult);
       assert(vec.at(signedIndex) == signedIndexExpectedResult);
+    });
+
+    it("should throw when trying to access index out of range", [&]() {
+      const size_t unsignedIndex = LIST_LENGTH;
+      const intmax_t signedIndex = -LIST_LENGTH;
+
+      expectThrow(vec.at, unsignedIndex);
+      expectThrow(vec.at, signedIndex);
     });
   });
 

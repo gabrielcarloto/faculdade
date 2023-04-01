@@ -12,6 +12,13 @@ using TestCallback = const std::function<void()> &;
   if (!(condition))                                                            \
   throw std::logic_error("Assertion failed: " #condition)
 
+#define expectThrow(fn, ...)                                                   \
+  try {                                                                        \
+    fn(__VA_ARGS__);                                                           \
+    throw std::runtime_error("Function call expected to throw but did not");   \
+  } catch (...) {                                                              \
+  }
+
 namespace test {
 void describe(std::string, TestCallback);
 void it(std::string, TestCallback);
