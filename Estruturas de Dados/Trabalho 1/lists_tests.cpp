@@ -133,7 +133,8 @@ template <typename Derived> void testOutOfRange(BaseList<int, Derived> &list) {
 }
 
 template <typename Derived> void testForEach(BaseList<int, Derived> &list) {
-  list.forEach([](auto item, auto i) { expectEqual(item, i); });
+  list.forEach(
+      [](auto item, auto i) { expectEqual(static_cast<size_t>(item), i); });
 }
 
 template <typename Derived> void testFind(BaseList<int, Derived> &list) {
@@ -141,7 +142,7 @@ template <typename Derived> void testFind(BaseList<int, Derived> &list) {
   int item = -1;
 
   bool found =
-      list.find([](auto item, auto _i) { return item == itemToFind; }, item);
+      list.find([](auto item, auto) { return item == itemToFind; }, item);
 
   expectEqual(found, true);
   expectEqual(item, itemToFind);
@@ -152,8 +153,8 @@ template <typename Derived> void testFindIndex(BaseList<int, Derived> &list) {
   const size_t expectedIndex = itemToFind;
   size_t item = -1;
 
-  bool found = list.findIndex(
-      [](auto item, auto _i) { return item == itemToFind; }, item);
+  bool found =
+      list.findIndex([](auto item, auto) { return item == itemToFind; }, item);
 
   expectEqual(found, true);
   expectEqual(item, expectedIndex);
