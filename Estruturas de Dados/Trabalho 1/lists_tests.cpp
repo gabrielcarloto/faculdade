@@ -10,6 +10,16 @@ using namespace test;
 #define LIST_LENGTH 1000
 
 template <typename Derived> void mockList(BaseList<int, Derived> &list);
+template <typename Derived>
+void testAccessOperator(BaseList<int, Derived> &list);
+template <typename Derived> void testAtMethod(BaseList<int, Derived> &list);
+template <typename Derived> void testOutOfRange(BaseList<int, Derived> &list);
+template <typename Derived> void testForEach(BaseList<int, Derived> &list);
+template <typename Derived> void testFind(BaseList<int, Derived> &list);
+template <typename Derived> void testFindIndex(BaseList<int, Derived> &list);
+template <typename Derived> void testRemove(BaseList<int, Derived> &list);
+template <typename Derived> void testInsert(BaseList<int, Derived> &list);
+template <typename Derived> void testReplace(BaseList<int, Derived> &list);
 
 int main() {
   describe("Vector", []() {
@@ -25,69 +35,23 @@ int main() {
     it("should have LIST_LENGTH length",
        [&]() { expectEqual(vec.getLength(), LIST_LENGTH); });
 
-    it("should return the correct items using the [] operator", [&]() {
-      const size_t index = 7;
-      const int expectedResult = index;
+    it("should return the correct items using the [] operator",
+       [&]() { testAccessOperator(vec); });
 
-      expectEqual(vec[index], expectedResult);
-    });
+    it("should return the correct items using the `at` method",
+       [&]() { testAtMethod(vec); });
 
-    it("should return the correct items using the `at` method", [&]() {
-      const size_t unsignedIndex = 7;
-      const intmax_t signedIndex = -2;
-      const int unsignedIndexExpectedResult = unsignedIndex;
-      const int signedIndexExpectedResult = LIST_LENGTH + signedIndex;
-
-      expectEqual(vec.at(unsignedIndex), unsignedIndexExpectedResult);
-      expectEqual(vec.at(signedIndex), signedIndexExpectedResult);
-    });
-
-    it("should throw when trying to access index out of range", [&]() {
-      const size_t unsignedIndex = LIST_LENGTH;
-      const intmax_t signedIndex = -LIST_LENGTH;
-
-      expectThrow(vec.at, unsignedIndex);
-      expectThrow(vec.at, signedIndex);
-    });
+    it("should throw when trying to access index out of range",
+       [&]() { testOutOfRange(vec); });
 
     it("should loop through every item using the `forEach` method",
-       [&]() { vec.forEach([](auto item, auto i) { expectEqual(item, i); }); });
+       [&]() { testForEach(vec); });
 
-    it("should find an item", [&]() {
-      const int itemToFind = LIST_LENGTH / 2;
-      int item = -1;
+    it("should find an item", [&]() { testFind(vec); });
 
-      bool found =
-          vec.find([](auto item, auto _i) { return item == itemToFind; }, item);
+    it("should find the index of an item", [&]() { testFindIndex(vec); });
 
-      expectEqual(found, true);
-      expectEqual(item, itemToFind);
-    });
-
-    it("should find the index of an item", [&]() {
-      const int itemToFind = LIST_LENGTH / 2;
-      const size_t expectedIndex = itemToFind;
-      size_t item = -1;
-
-      bool found = vec.findIndex(
-          [](auto item, auto _i) { return item == itemToFind; }, item);
-
-      expectEqual(found, true);
-      expectEqual(item, expectedIndex);
-    });
-
-    it("should remove an index", [&]() {
-      const size_t indexToRemove = LIST_LENGTH - 10;
-      const int indexValue = vec.at(indexToRemove);
-      const size_t expectedLength = LIST_LENGTH - 1;
-      const int predecessorValue = vec.at(indexToRemove - 1);
-      const int successorValue = vec.at(indexToRemove + 1);
-
-      vec.remove(indexToRemove);
-      expectDifer(vec.at(indexToRemove), indexValue);
-      expectEqual(vec.at(indexToRemove), successorValue);
-      expectEqual(vec.at(indexToRemove - 1), predecessorValue);
-    });
+    it("should remove an index", [&]() { testRemove(vec); });
 
     it("should shrink to fit", [&]() {
       const size_t capacityBeforeShrinking = vec.getCapacity();
@@ -97,43 +61,40 @@ int main() {
       expectGreaterThan(capacityBeforeShrinking, vec.getCapacity());
     });
 
-    // NOTE: currently, each tests depends on the previous tests
-    // so the expected length will be LIST_LENGTH.
-    // This isn't ideal, but it is better than not testing
-    it("should add an item", [&]() {
-      const int valueToInsert = 50;
-      const size_t indexToInsert = 10;
-      const int indexValue = indexToInsert;
-      const size_t expectedLength = LIST_LENGTH;
-      const int predecessorValue = indexToInsert - 1;
-      const int successorValue = indexToInsert + 1;
+    it("should insert an item", [&]() { testInsert(vec); });
 
-      expectEqual(vec.at(indexToInsert), indexValue);
-      vec.insert(valueToInsert, indexToInsert);
+    it("should replace an item", [&]() { testReplace(vec); });
+  });
 
-      expectEqual(vec.at(indexToInsert), valueToInsert);
-      expectEqual(vec.at(indexToInsert + 1), indexValue);
-      expectEqual(vec.at(indexToInsert + 2), successorValue);
-      expectEqual(vec.at(indexToInsert - 1), predecessorValue);
-      expectEqual(vec.getLength(), expectedLength);
-    });
+  describe("List", []() {
+    List<int> list;
 
-    it("should replace an item", [&]() {
-      const int valueToReplace = 50;
-      const size_t indexToReplace = 5;
-      const int indexValue = indexToReplace;
-      const size_t expectedLength = LIST_LENGTH;
-      const int predecessorValue = indexToReplace - 1;
-      const int successorValue = indexToReplace + 1;
+    it("should add items without errors", [&]() { mockList(list); });
 
-      expectEqual(vec.at(indexToReplace), indexValue);
-      vec.replace(valueToReplace, indexToReplace);
+    it("should have LIST_LENGTH length",
+       [&]() { expectEqual(list.getLength(), LIST_LENGTH); });
 
-      expectEqual(vec.at(indexToReplace), valueToReplace);
-      expectEqual(vec.at(indexToReplace + 1), successorValue);
-      expectEqual(vec.at(indexToReplace - 1), predecessorValue);
-      expectEqual(vec.getLength(), expectedLength);
-    });
+    it("should return the correct items using the [] operator",
+       [&]() { testAccessOperator(list); });
+
+    it("should return the correct items using the `at` method",
+       [&]() { testAtMethod(list); });
+
+    it("should throw when trying to access index out of range",
+       [&]() { testOutOfRange(list); });
+
+    it("should loop through every item using the `forEach` method",
+       [&]() { testForEach(list); });
+
+    it("should find an item", [&]() { testFind(list); });
+
+    it("should find the index of an item", [&]() { testFindIndex(list); });
+
+    it("should remove an index", [&]() { testRemove(list); });
+
+    it("should insert an item", [&]() { testInsert(list); });
+
+    it("should replace an item", [&]() { testReplace(list); });
   });
 
   return 0;
@@ -143,4 +104,108 @@ template <typename Derived> void mockList(BaseList<int, Derived> &list) {
   for (size_t i = 0; i < LIST_LENGTH; i++) {
     list.push(i);
   }
+}
+
+template <typename Derived>
+void testAccessOperator(BaseList<int, Derived> &list) {
+  const size_t index = 7;
+  const int expectedResult = index;
+
+  expectEqual(list[index], expectedResult);
+}
+
+template <typename Derived> void testAtMethod(BaseList<int, Derived> &list) {
+  const size_t unsignedIndex = 7;
+  const intmax_t signedIndex = -2;
+  const int unsignedIndexExpectedResult = unsignedIndex;
+  const int signedIndexExpectedResult = LIST_LENGTH + signedIndex;
+
+  expectEqual(list.at(unsignedIndex), unsignedIndexExpectedResult);
+  expectEqual(list.at(signedIndex), signedIndexExpectedResult);
+}
+
+template <typename Derived> void testOutOfRange(BaseList<int, Derived> &list) {
+  const size_t unsignedIndex = LIST_LENGTH;
+  const intmax_t signedIndex = -LIST_LENGTH;
+
+  expectThrow(list.at, unsignedIndex);
+  expectThrow(list.at, signedIndex);
+}
+
+template <typename Derived> void testForEach(BaseList<int, Derived> &list) {
+  list.forEach([](auto item, auto i) { expectEqual(item, i); });
+}
+
+template <typename Derived> void testFind(BaseList<int, Derived> &list) {
+  const int itemToFind = LIST_LENGTH / 2;
+  int item = -1;
+
+  bool found =
+      list.find([](auto item, auto _i) { return item == itemToFind; }, item);
+
+  expectEqual(found, true);
+  expectEqual(item, itemToFind);
+}
+
+template <typename Derived> void testFindIndex(BaseList<int, Derived> &list) {
+  const int itemToFind = LIST_LENGTH / 2;
+  const size_t expectedIndex = itemToFind;
+  size_t item = -1;
+
+  bool found = list.findIndex(
+      [](auto item, auto _i) { return item == itemToFind; }, item);
+
+  expectEqual(found, true);
+  expectEqual(item, expectedIndex);
+}
+
+template <typename Derived> void testRemove(BaseList<int, Derived> &list) {
+  const size_t indexToRemove = LIST_LENGTH - 10;
+  const int indexValue = list.at(indexToRemove);
+  const size_t expectedLength = LIST_LENGTH - 1;
+  const int predecessorValue = list.at(indexToRemove - 1);
+  const int successorValue = list.at(indexToRemove + 1);
+
+  list.remove(indexToRemove);
+  expectDifer(list.at(indexToRemove), indexValue);
+  expectEqual(list.at(indexToRemove), successorValue);
+  expectEqual(list.at(indexToRemove - 1), predecessorValue);
+}
+
+// NOTE: currently, each test depends on the previous tests
+// so the expected length will be LIST_LENGTH.
+// This isn't ideal, but it is better than not testing
+template <typename Derived> void testInsert(BaseList<int, Derived> &list) {
+  const int valueToInsert = 50;
+  const size_t indexToInsert = 10;
+  const int indexValue = indexToInsert;
+  const size_t expectedLength = LIST_LENGTH;
+  const int predecessorValue = indexToInsert - 1;
+  const int successorValue = indexToInsert + 1;
+
+  expectEqual(list.at(indexToInsert), indexValue);
+  list.insert(valueToInsert, indexToInsert);
+
+  expectEqual(list.at(indexToInsert), valueToInsert);
+  expectEqual(list.at(indexToInsert + 1), indexValue);
+  expectEqual(list.at(indexToInsert + 2), successorValue);
+  expectEqual(list.at(indexToInsert - 1), predecessorValue);
+  expectEqual(list.getLength(), expectedLength);
+}
+
+template <typename Derived> void testReplace(BaseList<int, Derived> &list) {
+  const int valueToReplace = 50;
+  const size_t indexToReplace = 5;
+  const int indexValue = indexToReplace;
+  const size_t expectedLength = LIST_LENGTH;
+  const int predecessorValue = indexToReplace - 1;
+  const int successorValue = indexToReplace + 1;
+
+  expectEqual(list.at(indexToReplace), indexValue);
+  list.replace(valueToReplace, indexToReplace);
+
+  expectEqual(list.at(indexToReplace), valueToReplace);
+  expectEqual(list.at(indexToReplace + 1), successorValue);
+  expectEqual(list.at(indexToReplace - 1), predecessorValue);
+  expectEqual(list.getLength(), expectedLength);
 }
