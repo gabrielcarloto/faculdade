@@ -95,7 +95,7 @@ public:
 
   void insert(T item, size_t index = 0) {
     assertIndexIsValid(index);
-    _insert();
+    _insert(item, index);
   };
 
   void replace(T item, size_t index = 0) {
