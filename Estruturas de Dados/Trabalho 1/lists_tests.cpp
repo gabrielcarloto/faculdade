@@ -25,12 +25,8 @@ int main() {
     it("should return the correct items using the [] operator", [&]() {
       const size_t index = 7;
       const int expectedResult = index;
-      const intmax_t signedIndex = -2;
-      const int signedIndexExpectedResult = LIST_LENGTH + signedIndex;
 
       assert(vec[index] == expectedResult);
-      assert(vec.at(index) == expectedResult);
-      assert(vec.at(signedIndex) == signedIndexExpectedResult);
     });
 
     it("should return the correct items using the `at` method", [&]() {
