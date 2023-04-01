@@ -100,7 +100,7 @@ public:
 
   void replace(T item, size_t index = 0) {
     assertIndexIsValid(index);
-    _replace();
+    _replace(item, index);
   };
 
   Derived filter(ItemIndexCallback<T, bool> filterFn) {
