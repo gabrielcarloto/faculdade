@@ -48,6 +48,19 @@ int main() {
       expectThrow(vec.at, unsignedIndex);
       expectThrow(vec.at, signedIndex);
     });
+
+    it("should remove an index", [&]() {
+      const size_t indexToRemove = LIST_LENGTH - 10;
+      const int indexValue = vec.at(indexToRemove);
+      const size_t expectedLength = LIST_LENGTH - 1;
+      const int predecessorValue = vec.at(indexToRemove - 1);
+      const int successorValue = vec.at(indexToRemove + 1);
+
+      vec.remove(indexToRemove);
+      assert(vec.at(indexToRemove) != indexValue);
+      assert(vec.at(indexToRemove) == successorValue);
+      assert(vec.at(indexToRemove - 1) == predecessorValue);
+    });
   });
 
   return 0;
