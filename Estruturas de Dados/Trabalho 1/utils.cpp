@@ -9,8 +9,7 @@ void utils::readFile(
   std::ifstream file(path);
 
   if (!file.is_open()) {
-    std::cout << "Unable to open file" << std::endl;
-    exit(1);
+    throw std::runtime_error("Unable to open file");
   }
 
   while (getline(file, line))
