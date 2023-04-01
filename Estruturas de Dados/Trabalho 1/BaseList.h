@@ -84,7 +84,7 @@ public:
 
   T &at(intmax_t index) {
     assertIndexIsValid(index);
-    _at(index);
+    return _at(index);
   };
 
   void push(const T &item) { _push(item); };
@@ -104,11 +104,11 @@ public:
   };
 
   BaseList<T> &filter(ItemIndexCallback<T, bool> filterFn) {
-    _filter(filterFn);
+    return _filter(filterFn);
   };
 
   bool find(ItemIndexCallback<T, bool> filterFn, T &item) {
-    _find(filterFn, item);
+    return _find(filterFn, item);
   };
 
   void forEach(ItemIndexCallback<T> callback, size_t startIndex = 0) {
@@ -118,7 +118,7 @@ public:
 
   // TODO: use pointer instead
   bool findIndex(ItemIndexCallback<T, bool> filterFn, size_t &index) {
-    _findIndex(filterFn, index);
+    return _findIndex(filterFn, index);
   };
 };
 
