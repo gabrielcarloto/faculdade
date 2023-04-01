@@ -87,8 +87,16 @@ public:
   void _insert(T item, size_t index = 0) override{};
   void _replace(T item, size_t index = 0) override{};
 
-  void _forEach(ItemIndexCallback<T> callback,
-                size_t startIndex = 0) override{};
+  void _forEach(ItemIndexCallback<T> callback, size_t startIndex = 0) override {
+    Node *node = firstNode;
+    size_t i = 0;
+
+    while (node != NULL) {
+      callback(node->data, i);
+      node = node->next;
+      i++;
+    }
+  };
 
   bool _findIndex(ItemIndexCallback<T, bool> filterFn,
                   size_t &index) override{};
