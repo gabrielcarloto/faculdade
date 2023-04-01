@@ -98,8 +98,41 @@ public:
     }
   };
 
-  bool _findIndex(ItemIndexCallback<T, bool> filterFn,
-                  size_t &index) override{};
-  bool _find(ItemIndexCallback<T, bool> filterFn, T &item) override{};
+  bool _findIndex(ItemIndexCallback<T, bool> filterFn, size_t &index) override {
+    size_t i = 0;
+    Node *node = firstNode;
+    bool found = callback(node->data, i);
+
+    while (node != NULL && !found) {
+      node = node->next;
+      i++;
+
+      found = callback(node->data, i);
+    }
+
+    if (found)
+      index = i;
+
+    return found;
+  };
+
+  bool _find(ItemIndexCallback<T, bool> filterFn, T &item) override {
+    size_t i = 0;
+    Node *node = firstNode;
+    bool found = callback(node->data, i);
+
+    while (node != NULL && !found) {
+      node = node->next;
+      i++;
+
+      found = callback(node->data, i);
+    }
+
+    if (found)
+      item = node->data;
+
+    return found;
+  };
+
   List<T> &_filter(ItemIndexCallback<T, bool> filterFn) override{};
 };
