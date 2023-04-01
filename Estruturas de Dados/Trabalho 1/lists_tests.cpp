@@ -2,6 +2,7 @@
 #include "List.h"
 #include "Vector.h"
 #include "test.h"
+#include <stdexcept>
 #include <stdint.h>
 
 using namespace test;
@@ -47,6 +48,32 @@ int main() {
 
       expectThrow(vec.at, unsignedIndex);
       expectThrow(vec.at, signedIndex);
+    });
+
+    it("should loop through every item using the `forEach` method",
+       [&]() { vec.forEach([](auto item, auto i) { assert(item == i); }); });
+
+    it("should find an item", [&]() {
+      const int itemToFind = LIST_LENGTH / 2;
+      int item = -1;
+
+      bool found =
+          vec.find([](auto item, auto _i) { return item == itemToFind; }, item);
+
+      assert(found == true);
+      assert(item == itemToFind);
+    });
+
+    it("should find the index of an item", [&]() {
+      const int itemToFind = LIST_LENGTH / 2;
+      const size_t expectedIndex = itemToFind;
+      size_t item = -1;
+
+      bool found = vec.findIndex(
+          [](auto item, auto _i) { return item == itemToFind; }, item);
+
+      assert(found == true);
+      assert(item == expectedIndex);
     });
 
     it("should remove an index", [&]() {
