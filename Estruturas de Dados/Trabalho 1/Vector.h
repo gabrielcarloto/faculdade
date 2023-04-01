@@ -136,7 +136,7 @@ template <typename T> void Vector<T>::_replace(T item, size_t index) {
 
 template <typename T> void Vector<T>::_remove(size_t index) {
   this->callReleaseCallback(data[index]);
-  this->forEach([&](auto _, auto i) { data[i] = data[i + 1]; }, index);
+  this->forEach([&](auto, auto i) { data[i] = data[i + 1]; }, index);
 
   this->length--;
   resizeIfNeeded();
