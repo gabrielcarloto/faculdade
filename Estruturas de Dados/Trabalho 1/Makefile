@@ -4,17 +4,18 @@ CXXFLAGS = -Wall -Wextra
 SRC_DIR = .
 OBJ_DIR = objects
 
-SRCS = $(wildcard $(SRC_DIR)/*.cpp)
-OBJS = $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SRCS))
-
 EXE = main.exe
+TEST_EXE = test.exe
 
-$(EXE): $(OBJS)
-	$(CXX) $(CFLAGS) $^ -o $@ 
+$(EXE): utils.o main.cpp
+	$(CXX) $(CXXFLAGS) $^ -o $@ 
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	mkdir -p $(OBJ_DIR)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+test: utils.o test.o 
+	$(CXX) $(CXXFLAGS) lists_tests.cpp $^ -o $(TEST_EXE)
 
 clean:
 		rm -rf $(EXE) $(OBJ_DIR)
