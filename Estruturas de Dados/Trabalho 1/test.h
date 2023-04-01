@@ -14,8 +14,32 @@ using TestCallback = const std::function<void()> &;
 #define expectEqual(lhs, rhs)                                                  \
   if (lhs != rhs) {                                                            \
     std::ostringstream stringStream;                                           \
-    stringStream << "Expected " << lhs << " (exp: " #lhs ") to be equal to "   \
-                 << rhs << " (exp: " #rhs ")\n";                               \
+    stringStream << "Expected " << lhs << " (" #lhs ") to equal " << rhs       \
+                 << " (" #rhs ")\n";                                           \
+    throw std::logic_error(stringStream.str());                                \
+  }
+
+#define expectDifer(lhs, rhs)                                                  \
+  if (lhs == rhs) {                                                            \
+    std::ostringstream stringStream;                                           \
+    stringStream << "Expected " << lhs << " (" #lhs ") to not equal " << rhs   \
+                 << " (" #rhs ")\n";                                           \
+    throw std::logic_error(stringStream.str());                                \
+  }
+
+#define expectGreaterThan(lhs, rhs)                                            \
+  if (lhs <= rhs) {                                                            \
+    std::ostringstream stringStream;                                           \
+    stringStream << "Expected " << lhs << " (" #lhs ") to be greater than "    \
+                 << rhs << " (" #rhs ")\n";                                    \
+    throw std::logic_error(stringStream.str());                                \
+  }
+
+#define expectLessThan(lhs, rhs)                                               \
+  if (lhs >= rhs) {                                                            \
+    std::ostringstream stringStream;                                           \
+    stringStream << "Expected " << lhs << " (" #lhs ") to be less than "       \
+                 << rhs << " (" #rhs ")\n";                                    \
     throw std::logic_error(stringStream.str());                                \
   }
 

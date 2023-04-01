@@ -17,19 +17,19 @@ int main() {
 
     it("should reserve the the correct capacity", [&]() {
       vec.reserve(LIST_LENGTH);
-      assert(vec.getCapacity() == LIST_LENGTH);
+      expectEqual(vec.getCapacity(), LIST_LENGTH);
     });
 
     it("should add items without errors", [&]() { mockList(vec); });
 
     it("should have LIST_LENGTH length",
-       [&]() { assert(vec.getLength() == LIST_LENGTH); });
+       [&]() { expectEqual(vec.getLength(), LIST_LENGTH); });
 
     it("should return the correct items using the [] operator", [&]() {
       const size_t index = 7;
       const int expectedResult = index;
 
-      assert(vec[index] == expectedResult);
+      expectEqual(vec[index], expectedResult);
     });
 
     it("should return the correct items using the `at` method", [&]() {
@@ -38,8 +38,8 @@ int main() {
       const int unsignedIndexExpectedResult = unsignedIndex;
       const int signedIndexExpectedResult = LIST_LENGTH + signedIndex;
 
-      assert(vec.at(unsignedIndex) == unsignedIndexExpectedResult);
-      assert(vec.at(signedIndex) == signedIndexExpectedResult);
+      expectEqual(vec.at(unsignedIndex), unsignedIndexExpectedResult);
+      expectEqual(vec.at(signedIndex), signedIndexExpectedResult);
     });
 
     it("should throw when trying to access index out of range", [&]() {
@@ -51,7 +51,7 @@ int main() {
     });
 
     it("should loop through every item using the `forEach` method",
-       [&]() { vec.forEach([](auto item, auto i) { assert(item == i); }); });
+       [&]() { vec.forEach([](auto item, auto i) { expectEqual(item, i); }); });
 
     it("should find an item", [&]() {
       const int itemToFind = LIST_LENGTH / 2;
@@ -60,8 +60,8 @@ int main() {
       bool found =
           vec.find([](auto item, auto _i) { return item == itemToFind; }, item);
 
-      assert(found == true);
-      assert(item == itemToFind);
+      expectEqual(found, true);
+      expectEqual(item, itemToFind);
     });
 
     it("should find the index of an item", [&]() {
@@ -72,8 +72,8 @@ int main() {
       bool found = vec.findIndex(
           [](auto item, auto _i) { return item == itemToFind; }, item);
 
-      assert(found == true);
-      assert(item == expectedIndex);
+      expectEqual(found, true);
+      expectEqual(item, expectedIndex);
     });
 
     it("should remove an index", [&]() {
@@ -84,9 +84,9 @@ int main() {
       const int successorValue = vec.at(indexToRemove + 1);
 
       vec.remove(indexToRemove);
-      assert(vec.at(indexToRemove) != indexValue);
-      assert(vec.at(indexToRemove) == successorValue);
-      assert(vec.at(indexToRemove - 1) == predecessorValue);
+      expectDifer(vec.at(indexToRemove), indexValue);
+      expectEqual(vec.at(indexToRemove), successorValue);
+      expectEqual(vec.at(indexToRemove - 1), predecessorValue);
     });
 
     it("should shrink to fit", [&]() {
@@ -94,7 +94,7 @@ int main() {
 
       vec.shrinkToFit();
 
-      assert(capacityBeforeShrinking > vec.getCapacity());
+      expectGreaterThan(capacityBeforeShrinking, vec.getCapacity());
     });
 
     // NOTE: currently, each tests depends on the previous tests
@@ -108,14 +108,14 @@ int main() {
       const int predecessorValue = indexToInsert - 1;
       const int successorValue = indexToInsert + 1;
 
-      assert(vec.at(indexToInsert) == indexValue);
+      expectEqual(vec.at(indexToInsert), indexValue);
       vec.insert(valueToInsert, indexToInsert);
 
-      assert(vec.at(indexToInsert) == valueToInsert);
-      assert(vec.at(indexToInsert + 1) == indexValue);
-      assert(vec.at(indexToInsert + 2) == successorValue);
-      assert(vec.at(indexToInsert - 1) == predecessorValue);
-      assert(vec.getLength() == expectedLength);
+      expectEqual(vec.at(indexToInsert), valueToInsert);
+      expectEqual(vec.at(indexToInsert + 1), indexValue);
+      expectEqual(vec.at(indexToInsert + 2), successorValue);
+      expectEqual(vec.at(indexToInsert - 1), predecessorValue);
+      expectEqual(vec.getLength(), expectedLength);
     });
 
     it("should replace an item", [&]() {
@@ -126,13 +126,13 @@ int main() {
       const int predecessorValue = indexToReplace - 1;
       const int successorValue = indexToReplace + 1;
 
-      assert(vec.at(indexToReplace) == indexValue);
+      expectEqual(vec.at(indexToReplace), indexValue);
       vec.replace(valueToReplace, indexToReplace);
 
-      assert(vec.at(indexToReplace) == valueToReplace);
-      assert(vec.at(indexToReplace + 1) == successorValue);
-      assert(vec.at(indexToReplace - 1) == predecessorValue);
-      assert(vec.getLength() == expectedLength);
+      expectEqual(vec.at(indexToReplace), valueToReplace);
+      expectEqual(vec.at(indexToReplace + 1), successorValue);
+      expectEqual(vec.at(indexToReplace - 1), predecessorValue);
+      expectEqual(vec.getLength(), expectedLength);
     });
   });
 
