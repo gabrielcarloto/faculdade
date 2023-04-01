@@ -62,6 +62,9 @@ int main() {
       assert(vec.at(indexToRemove - 1) == predecessorValue);
     });
 
+    // NOTE: currently, each tests depends on the previous tests
+    // so the expected length will be LIST_LENGTH.
+    // This isn't ideal, but it is better than not testing
     it("should add an item", [&]() {
       const int valueToInsert = 50;
       const size_t indexToInsert = 10;
@@ -77,6 +80,23 @@ int main() {
       assert(vec.at(indexToInsert + 1) == indexValue);
       assert(vec.at(indexToInsert + 2) == successorValue);
       assert(vec.at(indexToInsert - 1) == predecessorValue);
+      assert(vec.getLength() == expectedLength);
+    });
+
+    it("should replace an item", [&]() {
+      const int valueToReplace = 50;
+      const size_t indexToReplace = 5;
+      const int indexValue = indexToReplace;
+      const size_t expectedLength = LIST_LENGTH;
+      const int predecessorValue = indexToReplace - 1;
+      const int successorValue = indexToReplace + 1;
+
+      assert(vec.at(indexToReplace) == indexValue);
+      vec.replace(valueToReplace, indexToReplace);
+
+      assert(vec.at(indexToReplace) == valueToReplace);
+      assert(vec.at(indexToReplace + 1) == successorValue);
+      assert(vec.at(indexToReplace - 1) == predecessorValue);
       assert(vec.getLength() == expectedLength);
     });
   });
