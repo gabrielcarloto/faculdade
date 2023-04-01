@@ -1,4 +1,5 @@
 #include "BaseList.h"
+#include "List.h"
 #include "Vector.h"
 #include "test.h"
 
@@ -6,7 +7,7 @@ using namespace test;
 
 #define LIST_LENGTH 1000
 
-void mockList(BaseList<int> &list);
+template <typename Derived> void mockList(BaseList<int, Derived> &list);
 
 int main() {
   describe("Vector", []() {
@@ -43,7 +44,7 @@ int main() {
   return 0;
 }
 
-void mockList(BaseList<int> &list) {
+template <typename Derived> void mockList(BaseList<int, Derived> &list) {
   for (size_t i = 0; i < LIST_LENGTH; i++) {
     list.push(i);
   }

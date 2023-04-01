@@ -9,7 +9,7 @@ using ItemIndexCallback =
 
 template <typename T> void defaultItemRelease(T &item);
 
-template <typename T> class BaseList {
+template <typename T, typename Derived> class BaseList {
 private:
   void throwOutOfRange(size_t index) {
     char message[100];
@@ -59,7 +59,7 @@ protected:
   virtual void _insert(T item, size_t index = 0) = 0;
   virtual void _replace(T item, size_t index = 0) = 0;
   // virtual void slice(size_t indexStart, size_t indexEnd = NULL);
-  virtual BaseList<T> &_filter(ItemIndexCallback<T, bool> filterFn) = 0;
+  virtual Derived _filter(ItemIndexCallback<T, bool> filterFn) = 0;
   virtual bool _find(ItemIndexCallback<T, bool> filterFn, T &item) = 0;
   virtual void _forEach(ItemIndexCallback<T> callback,
                         size_t startIndex = 0) = 0;
@@ -103,7 +103,7 @@ public:
     _replace();
   };
 
-  BaseList<T> &filter(ItemIndexCallback<T, bool> filterFn) {
+  Derived filter(ItemIndexCallback<T, bool> filterFn) {
     return _filter(filterFn);
   };
 

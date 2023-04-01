@@ -4,7 +4,7 @@
 #include <iostream>
 #include <stdint.h>
 
-template <typename T> class List : public BaseList<T> {
+template <typename T> class List : public BaseList<T, List<T>> {
   struct Node {
     T data;
     Node *next = NULL;
@@ -50,13 +50,13 @@ template <typename T> class List : public BaseList<T> {
   }
 
 public:
-  List(const T &array, const size_t length) : BaseList<T>(length) {
+  List(const T &array, const size_t length) : BaseList<T, List<T>>(length) {
     for (const T item : array) {
       push(item);
     }
   };
 
-  List(const size_t length = 0) : BaseList<T>(length){};
+  List(const size_t length = 0) : BaseList<T, List<T>>(length){};
 
   // ~List();
 

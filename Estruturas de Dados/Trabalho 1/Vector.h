@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <utility>
 
-template <typename T> class Vector : public BaseList<T> {
+template <typename T> class Vector : public BaseList<T, Vector<T>> {
   size_t capacity;
   T *data;
 
@@ -39,17 +39,18 @@ public:
   void _forEach(ItemIndexCallback<T> callback, size_t startIndex = 0) override;
   bool _findIndex(ItemIndexCallback<T, bool> filterFn, size_t &index) override;
   bool _find(ItemIndexCallback<T, bool> filterFn, T &item) override;
-  Vector<T> &_filter(ItemIndexCallback<T, bool> filterFn) override;
+  Vector<T> _filter(ItemIndexCallback<T, bool> filterFn) override;
 };
 
 template <typename T>
-Vector<T>::Vector(const T &array, const size_t length) : BaseList<T>(length) {
+Vector<T>::Vector(const T &array, const size_t length)
+    : BaseList<T, Vector<T>>(length) {
   commonConstructor();
   memcpy(data, array, length * sizeof(T)); // TODO: switch to for loop
 }
 
 template <typename T>
-Vector<T>::Vector(const size_t length) : BaseList<T>(length) {
+Vector<T>::Vector(const size_t length) : BaseList<T, Vector<T>>(length) {
   commonConstructor();
 }
 
@@ -146,7 +147,7 @@ template <typename T> void Vector<T>::_push(const T &item) {
 }
 
 template <typename T>
-Vector<T> &Vector<T>::_filter(ItemIndexCallback<T, bool> filterFunction) {
+Vector<T> Vector<T>::_filter(ItemIndexCallback<T, bool> filterFunction) {
   Vector<T> items;
 
   for (size_t i = 0; i < this->length; i++) {
