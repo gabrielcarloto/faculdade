@@ -83,7 +83,16 @@ public:
     this->length++;
   };
 
-  void _remove(size_t index) override{};
+  void _remove(size_t index) override {
+    Node *node = gotoIndex(index), *prevNode = node->prev,
+         *nextNode = node->next;
+
+    this->callReleaseCallback(node->data);
+    prevNode->next = nextNode;
+    nextNode->prev = prevNode;
+    delete node;
+  };
+
   void _insert(T item, size_t index = 0) override{};
 
   void _replace(T item, size_t index = 0) override {
