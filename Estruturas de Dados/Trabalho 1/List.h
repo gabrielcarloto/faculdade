@@ -92,7 +92,9 @@ public:
     size_t i = 0;
 
     while (node != NULL) {
-      callback(node->data, i);
+      if (i >= startIndex)
+        callback(node->data, i);
+
       node = node->next;
       i++;
     }
