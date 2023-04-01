@@ -85,7 +85,13 @@ public:
 
   void _remove(size_t index) override{};
   void _insert(T item, size_t index = 0) override{};
-  void _replace(T item, size_t index = 0) override{};
+
+  void _replace(T item, size_t index = 0) override {
+    Node *node = gotoIndex(index);
+
+    this->callReleaseCallback(node->data);
+    node->data = item;
+  };
 
   void _forEach(ItemIndexCallback<T> callback, size_t startIndex = 0) override {
     Node *node = firstNode;
