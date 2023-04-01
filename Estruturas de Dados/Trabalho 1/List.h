@@ -91,6 +91,8 @@ public:
     prevNode->next = nextNode;
     nextNode->prev = prevNode;
     delete node;
+
+    this->length--;
   };
 
   void _insert(T item, size_t index = 0) override {
@@ -102,6 +104,7 @@ public:
     newNode->prev = prevNode;
 
     prevNode->next = newNode;
+    this->length++;
   };
 
   void _replace(T item, size_t index = 0) override {

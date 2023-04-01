@@ -167,6 +167,7 @@ template <typename Derived> void testRemove(BaseList<int, Derived> &list) {
   const int successorValue = list.at(indexToRemove + 1);
 
   list.remove(indexToRemove);
+  expectEqual(list.getLength(), expectedLength);
   expectDifer(list.at(indexToRemove), indexValue);
   expectEqual(list.at(indexToRemove), successorValue);
   expectEqual(list.at(indexToRemove - 1), predecessorValue);
