@@ -93,7 +93,16 @@ public:
     delete node;
   };
 
-  void _insert(T item, size_t index = 0) override{};
+  void _insert(T item, size_t index = 0) override {
+    Node *node = gotoIndex(index), *prevNode = node->prev;
+    Node *newNode = new Node;
+
+    newNode->data = item;
+    newNode->next = node;
+    newNode->prev = prevNode;
+
+    prevNode->next = newNode;
+  };
 
   void _replace(T item, size_t index = 0) override {
     Node *node = gotoIndex(index);
