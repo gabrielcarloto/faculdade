@@ -46,7 +46,8 @@ protected:
   };
 
   void assertIndexIsValid(intmax_t index) {
-    if (index <= length && index >= -static_cast<intmax_t>(length))
+    if (index < static_cast<intmax_t>(length) &&
+        static_cast<intmax_t>(length) + index > 0)
       return;
 
     throwOutOfRange(index);
