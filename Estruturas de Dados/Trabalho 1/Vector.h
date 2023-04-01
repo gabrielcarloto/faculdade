@@ -49,7 +49,9 @@ Vector<T>::Vector(const T &array, const size_t length) : BaseList<T>(length) {
 }
 
 template <typename T>
-Vector<T>::Vector(const size_t length) : BaseList<T>(length) {}
+Vector<T>::Vector(const size_t length) : BaseList<T>(length) {
+  commonConstructor();
+}
 
 template <typename T> Vector<T>::~Vector() {
   if (this->checkReleaseCallback())
@@ -75,7 +77,7 @@ template <typename T> void Vector<T>::resize(size_t newSize) {
   capacity = newSize;
   T *tempArray = new T[newSize];
 
-  forEach([&](T item, size_t i) { tempArray[i] = item; });
+  this->forEach([&](T item, size_t i) { tempArray[i] = item; });
 
   delete[] data;
   data = tempArray;
@@ -115,7 +117,7 @@ template <typename T> void Vector<T>::_insert(T item, size_t index) {
   this->length++;
   resizeIfNeeded();
 
-  forEach(
+  this->forEach(
       [&](auto curr, auto i) {
         data[i] = lastItem;
         lastItem = curr;
@@ -130,7 +132,7 @@ template <typename T> void Vector<T>::_replace(T item, size_t index) {
 
 template <typename T> void Vector<T>::_remove(size_t index) {
   this->callReleaseCallback(data[index]);
-  forEach([&](auto _, auto i) { data[i] = data[i + 1]; }, index);
+  this->forEach([&](auto _, auto i) { data[i] = data[i + 1]; }, index);
 
   this->length--;
   resizeIfNeeded();
