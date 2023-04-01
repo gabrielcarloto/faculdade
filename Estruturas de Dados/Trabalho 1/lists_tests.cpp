@@ -11,18 +11,34 @@ void mockList(BaseList<int> &list);
 int main() {
   describe("Vector", []() {
     Vector<int> vec;
-    mockList(vec);
+
+    it("should reserve the the correct capacity", [&]() {
+      vec.reserve(LIST_LENGTH);
+      assert(vec.getCapacity() == LIST_LENGTH);
+    });
+
+    it("should add items without errors", [&]() { mockList(vec); });
 
     it("should have LIST_LENGTH length",
        [&]() { assert(vec.getLength() == LIST_LENGTH); });
 
-    it("should return the correct items by index", [&]() {
+    it("should return the correct items using the [] operator", [&]() {
+      const size_t index = 7;
+      const int expectedResult = index;
+      const intmax_t signedIndex = -2;
+      const int signedIndexExpectedResult = LIST_LENGTH + signedIndex;
+
+      assert(vec[index] == expectedResult);
+      assert(vec.at(index) == expectedResult);
+      assert(vec.at(signedIndex) == signedIndexExpectedResult);
+    });
+
+    it("should return the correct items using the `at` method", [&]() {
       const size_t unsignedIndex = 7;
       const intmax_t signedIndex = -2;
       const int unsignedIndexExpectedResult = unsignedIndex;
       const int signedIndexExpectedResult = LIST_LENGTH + signedIndex;
 
-      assert(vec[unsignedIndex] == unsignedIndexExpectedResult);
       assert(vec.at(unsignedIndex) == unsignedIndexExpectedResult);
       assert(vec.at(signedIndex) == signedIndexExpectedResult);
     });
