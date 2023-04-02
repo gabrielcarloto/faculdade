@@ -4,12 +4,16 @@
 #include <iostream>
 #include <stdint.h>
 
+template <class Derived> class TestBaseListDerivedClass;
+
+template <typename T> struct NodeStruct {
+  T data;
+  NodeStruct<T> *next = NULL;
+  NodeStruct<T> *prev = NULL;
+};
+
 template <typename T> class List : public BaseList<T, List<T>> {
-  struct Node {
-    T data;
-    Node *next = NULL;
-    Node *prev = NULL;
-  };
+  using Node = NodeStruct<T>;
 
   Node *firstNode = NULL;
   Node *lastNode = NULL;
@@ -49,6 +53,8 @@ template <typename T> class List : public BaseList<T, List<T>> {
       lastChosenNodeIndex = this->length - 1;
     }
   }
+
+  friend class TestBaseListDerivedClass<List<T>>;
 
 public:
   List(const T &array, const size_t length) : BaseList<T, List<T>>(length) {
@@ -100,8 +106,20 @@ public:
          *nextNode = node->next;
 
     this->callReleaseCallback(node->data);
-    prevNode->next = nextNode;
-    nextNode->prev = prevNode;
+
+    if (prevNode != NULL)
+      prevNode->next = nextNode;
+    else if (nextNode != NULL)
+      nextNode->prev = prevNode;
+
+    if (index == 0)
+      firstNode = nextNode;
+    else if (index == this->length)
+      lastNode = prevNode;
+
+    lastChosenNode = firstNode;
+    lastChosenNodeIndex = 0;
+
     delete node;
 
     this->length--;
