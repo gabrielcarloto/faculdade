@@ -95,6 +95,16 @@ int main() {
     it("should insert an item", [&]() { testInsert(list); });
 
     it("should replace an item", [&]() { testReplace(list); });
+
+    it("should insert an item when length is zero", []() {
+      List<int> lista;
+
+      expectEqual(lista.getLength(), 0);
+
+      lista.insert(0);
+
+      expectEqual(lista.at(0), 0);
+    });
   });
 
   return 0;
