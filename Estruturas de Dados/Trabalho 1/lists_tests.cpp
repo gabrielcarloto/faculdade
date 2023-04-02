@@ -173,6 +173,17 @@ template <class Derived> class TestBaseListDerivedClass {
     });
   }
 
+  void testInsertLastIndex(ListType list) {
+    it("should insert an item in index LIST_LENGTH", [&]() {
+      const size_t indexToInsert = LIST_LENGTH;
+      const int itemToInsert = 10;
+
+      list.insert(itemToInsert, indexToInsert);
+      expectEqual(list.getLength(), indexToInsert + 1);
+      expectEqual(itemToInsert, list.at(indexToInsert))
+    });
+  }
+
   std::vector<std::function<void(ListType)>> testsList = {
       std::bind(&TestBaseListDerivedClass::testAccessOperator, this,
                 std::placeholders::_1),
@@ -194,7 +205,10 @@ template <class Derived> class TestBaseListDerivedClass {
       std::bind(&TestBaseListDerivedClass::testRemove, this,
                 std::placeholders::_1),
       std::bind(&TestBaseListDerivedClass::testReplace, this,
-                std::placeholders::_1)};
+                std::placeholders::_1),
+      std::bind(&TestBaseListDerivedClass::testInsertLastIndex, this,
+                std::placeholders::_1),
+  };
 
 public:
   static void mockBaseListDerivedClass(BaseList<int, Derived> &derived) {
