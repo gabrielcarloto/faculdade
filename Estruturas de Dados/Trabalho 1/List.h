@@ -37,8 +37,9 @@ template <typename T> class List : public BaseList<T, List<T>> {
   void compareIndices(size_t index) {
     size_t distanceFirst = index;
     size_t distanceLast = this->length - 1 - index;
-    size_t distanceCurrent = abs(static_cast<intmax_t>(index) -
-                                 static_cast<intmax_t>(lastChosenNodeIndex));
+    size_t distanceCurrent =
+        absolute(static_cast<intmax_t>(index) -
+                 static_cast<intmax_t>(lastChosenNodeIndex));
 
     if (distanceFirst < distanceCurrent) {
       lastChosenNode = firstNode;
@@ -59,14 +60,15 @@ public:
   List(const size_t length = 0) : BaseList<T, List<T>>(length){};
 
   ~List() {
-    Node *node = firstNode, *aux = node->next;
+    Node *node = firstNode, *aux = node != NULL ? node->next : NULL;
 
     while (node != NULL) {
       this->callReleaseCallback(node->data);
       delete node;
 
       node = aux;
-      aux = node->next;
+      if (node != NULL)
+        aux = node->next;
     }
   };
 
@@ -106,7 +108,7 @@ public:
   };
 
   void _insert(T item, size_t index = 0) override {
-    if (this->length == 0)
+    if (this->length == 0 || index == this->length)
       return this->push(item);
 
     Node *node = gotoIndex(index), *prevNode = node->prev;
