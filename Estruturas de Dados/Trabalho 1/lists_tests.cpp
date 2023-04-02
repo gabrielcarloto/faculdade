@@ -28,12 +28,20 @@ template <class Derived> class TestBaseListDerivedClass {
   void testAtMethodWithPositiveAndNegativeIndices(ListType list) {
     it("should return the correct items using the `at` method", [&]() {
       const size_t unsignedIndex = 7;
+      const size_t unsignedIndex2 = 0;
       const intmax_t signedIndex = -2;
       const int unsignedIndexExpectedResult = unsignedIndex;
+      const int unsignedIndexExpectedResult2 = unsignedIndex2;
       const int signedIndexExpectedResult = LIST_LENGTH + signedIndex;
 
-      expectEqual(list.at(unsignedIndex), unsignedIndexExpectedResult);
+      const int atUnsigned = list.at(unsignedIndex),
+                atUnsigned2 = list.at(unsignedIndex2);
+
       expectEqual(list.at(signedIndex), signedIndexExpectedResult);
+      expectEqual(atUnsigned2, unsignedIndexExpectedResult2);
+      expectEqual(atUnsigned, unsignedIndexExpectedResult);
+      expectEqual(atUnsigned2, list[unsignedIndex2]);
+      expectEqual(atUnsigned, list[unsignedIndex]);
     });
   }
 
@@ -128,6 +136,18 @@ template <class Derived> class TestBaseListDerivedClass {
     });
   }
 
+  void testRemoveZeroIndex(ListType list) {
+    it("should remove first index", [&]() {
+      const size_t indexToRemove = 0;
+      const size_t expectedLength = LIST_LENGTH - 1;
+      const int valueBeforeRemoving = list.at(indexToRemove);
+
+      list.remove(indexToRemove);
+      expectEqual(list.getLength(), expectedLength);
+      expectDifer(list.at(indexToRemove), valueBeforeRemoving);
+    });
+  }
+
   void testInsert(ListType list) {
     it("should insert an item", [&]() {
       const int valueToInsert = 50;
@@ -213,6 +233,8 @@ template <class Derived> class TestBaseListDerivedClass {
       std::bind(&TestBaseListDerivedClass::testReplace, this,
                 std::placeholders::_1),
       std::bind(&TestBaseListDerivedClass::testInsertLastIndex, this,
+                std::placeholders::_1),
+      std::bind(&TestBaseListDerivedClass::testRemoveZeroIndex, this,
                 std::placeholders::_1),
   };
 
