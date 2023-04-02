@@ -106,14 +106,20 @@ public:
   };
 
   void _insert(T item, size_t index = 0) override {
+    if (this->length == 0)
+      return this->push(item);
+
     Node *node = gotoIndex(index), *prevNode = node->prev;
     Node *newNode = new Node;
 
     newNode->data = item;
     newNode->next = node;
     newNode->prev = prevNode;
+    node->prev = newNode;
 
-    prevNode->next = newNode;
+    if (prevNode != NULL)
+      prevNode->next = newNode;
+
     this->length++;
   };
 
