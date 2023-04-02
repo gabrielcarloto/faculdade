@@ -12,7 +12,7 @@ using namespace test;
 #define LIST_LENGTH 1000
 
 template <class Derived> class TestBaseListDerivedClass {
-  using ListType = BaseList<int, Derived> &;
+  using ListType = Derived &;
 
   Derived beforeEachTest() { return initBaseListDerivedClass(); };
 
@@ -141,10 +141,19 @@ template <class Derived> class TestBaseListDerivedClass {
       const size_t indexToRemove = 0;
       const size_t expectedLength = LIST_LENGTH - 1;
       const int valueBeforeRemoving = list.at(indexToRemove);
+      NodeStruct<int> *firstNodeBeforeRemoving;
+
+      if constexpr (std::is_same_v<Derived, List<int>>) {
+        firstNodeBeforeRemoving = list.firstNode;
+      }
 
       list.remove(indexToRemove);
       expectEqual(list.getLength(), expectedLength);
       expectDifer(list.at(indexToRemove), valueBeforeRemoving);
+
+      if constexpr (std::is_same_v<Derived, List<int>>) {
+        expectDifer(list.firstNode, firstNodeBeforeRemoving)
+      }
     });
   }
 
@@ -203,10 +212,19 @@ template <class Derived> class TestBaseListDerivedClass {
     it("should insert an item in index LIST_LENGTH", [&]() {
       const size_t indexToInsert = LIST_LENGTH;
       const int itemToInsert = 10;
+      NodeStruct<int> *lastNodeBeforeRemoving;
+
+      if constexpr (std::is_same_v<Derived, List<int>>) {
+        lastNodeBeforeRemoving = list.lastNode;
+      }
 
       list.insert(itemToInsert, indexToInsert);
       expectEqual(list.getLength(), indexToInsert + 1);
-      expectEqual(itemToInsert, list.at(indexToInsert))
+      expectEqual(itemToInsert, list.at(indexToInsert));
+
+      if constexpr (std::is_same_v<Derived, List<int>>) {
+        expectDifer(list.lastNode, lastNodeBeforeRemoving)
+      }
     });
   }
 
