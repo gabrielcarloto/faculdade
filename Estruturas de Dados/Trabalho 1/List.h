@@ -108,9 +108,6 @@ public:
   };
 
   void _insert(T item, size_t index = 0) override {
-    if (this->length == 0 || index == this->length)
-      return this->push(item);
-
     Node *node = gotoIndex(index), *prevNode = node->prev;
     Node *newNode = new Node;
 

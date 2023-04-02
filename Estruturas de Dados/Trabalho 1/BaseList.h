@@ -88,6 +88,7 @@ public:
   };
 
   void push(const T &item) { _push(item); };
+
   void remove(size_t index) {
     assertIndexIsValid(index);
     _remove(index);
@@ -95,6 +96,10 @@ public:
 
   void insert(T item, size_t index = 0) {
     assertIndexIsValid(index);
+
+    if (length == index)
+      return _push(item);
+
     _insert(item, index);
   };
 
@@ -116,7 +121,6 @@ public:
     _forEach(callback, startIndex);
   };
 
-  // TODO: use pointer instead
   bool findIndex(ItemIndexCallback<T, bool> filterFn, size_t &index) {
     return _findIndex(filterFn, index);
   };
