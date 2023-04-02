@@ -123,16 +123,32 @@ template <class Derived> class TestBaseListDerivedClass {
   void testRemove(ListType list) {
     it("should remove an index", [&]() {
       const size_t indexToRemove = LIST_LENGTH - 10;
-      const int indexValue = list.at(indexToRemove);
-      const size_t expectedLength = LIST_LENGTH - 1;
-      const int predecessorValue = list.at(indexToRemove - 1);
-      const int successorValue = list.at(indexToRemove + 1);
 
-      list.remove(indexToRemove);
-      expectEqual(list.getLength(), expectedLength);
-      expectDifer(list.at(indexToRemove), indexValue);
-      expectEqual(list.at(indexToRemove), successorValue);
-      expectEqual(list.at(indexToRemove - 1), predecessorValue);
+      {
+        const int indexValue = list.at(indexToRemove);
+        const size_t expectedLength = LIST_LENGTH - 1;
+        const int predecessorValue = list.at(indexToRemove - 1);
+        const int successorValue = list.at(indexToRemove + 1);
+
+        list.remove(indexToRemove);
+        expectEqual(list.getLength(), expectedLength);
+        expectDifer(list.at(indexToRemove), indexValue);
+        expectEqual(list.at(indexToRemove), successorValue);
+        expectEqual(list.at(indexToRemove - 1), predecessorValue);
+      }
+
+      {
+        const int indexValue = list.at(indexToRemove);
+        const size_t expectedLength = LIST_LENGTH - 2;
+        const int predecessorValue = list.at(indexToRemove - 1);
+        const int successorValue = list.at(indexToRemove + 1);
+
+        list.remove(indexToRemove);
+        expectEqual(list.getLength(), expectedLength);
+        expectDifer(list.at(indexToRemove), indexValue);
+        expectEqual(list.at(indexToRemove), successorValue);
+        expectEqual(list.at(indexToRemove - 1), predecessorValue);
+      }
     });
   }
 
