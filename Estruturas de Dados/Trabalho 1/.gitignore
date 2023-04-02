@@ -1,3 +1,5 @@
 arquivos/
 objects/
 *.o
+compile_commands.json
+.cache/
