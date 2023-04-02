@@ -30,14 +30,17 @@ template <class Derived> class TestBaseListDerivedClass {
       const size_t unsignedIndex = 7;
       const size_t unsignedIndex2 = 0;
       const intmax_t signedIndex = -2;
+      const intmax_t signedIndex2 = -1;
       const int unsignedIndexExpectedResult = unsignedIndex;
       const int unsignedIndexExpectedResult2 = unsignedIndex2;
       const int signedIndexExpectedResult = LIST_LENGTH + signedIndex;
+      const int signedIndexExpectedResult2 = LIST_LENGTH + signedIndex2;
 
       const int atUnsigned = list.at(unsignedIndex),
                 atUnsigned2 = list.at(unsignedIndex2);
 
       expectEqual(list.at(signedIndex), signedIndexExpectedResult);
+      expectEqual(list.at(signedIndex2), signedIndexExpectedResult2);
       expectEqual(atUnsigned2, unsignedIndexExpectedResult2);
       expectEqual(atUnsigned, unsignedIndexExpectedResult);
       expectEqual(atUnsigned2, list[unsignedIndex2]);
@@ -173,6 +176,28 @@ template <class Derived> class TestBaseListDerivedClass {
     });
   }
 
+  void testRemoveLastIndex(ListType list) {
+    it("should remove last index", [&]() {
+      const size_t indexToRemove = LIST_LENGTH - 1;
+      const size_t expectedLength = LIST_LENGTH - 1;
+      const int predecessorValue = list.at(indexToRemove - 1);
+      NodeStruct<int> *lastNodeBeforeRemoving;
+
+      if constexpr (std::is_same_v<Derived, List<int>>) {
+        lastNodeBeforeRemoving = list.lastNode;
+      }
+
+      list.remove(indexToRemove);
+      expectEqual(list.getLength(), expectedLength);
+      expectEqual(list.at(-1), predecessorValue);
+      expectThrow(list.at, indexToRemove);
+
+      if constexpr (std::is_same_v<Derived, List<int>>) {
+        expectDifer(list.lastNode, lastNodeBeforeRemoving)
+      }
+    });
+  }
+
   void testInsert(ListType list) {
     it("should insert an item", [&]() {
       const int valueToInsert = 50;
@@ -225,8 +250,8 @@ template <class Derived> class TestBaseListDerivedClass {
   }
 
   void testInsertLastIndex(ListType list) {
-    it("should insert an item in index LIST_LENGTH", [&]() {
-      const size_t indexToInsert = LIST_LENGTH;
+    it("should insert an item in index LIST_LENGTH - 1", [&]() {
+      const size_t indexToInsert = LIST_LENGTH - 1;
       const int itemToInsert = 10;
       NodeStruct<int> *lastNodeBeforeRemoving;
 
@@ -235,7 +260,7 @@ template <class Derived> class TestBaseListDerivedClass {
       }
 
       list.insert(itemToInsert, indexToInsert);
-      expectEqual(list.getLength(), indexToInsert + 1);
+      expectEqual(list.getLength(), LIST_LENGTH + 1);
       expectEqual(itemToInsert, list.at(indexToInsert));
 
       if constexpr (std::is_same_v<Derived, List<int>>) {
@@ -269,6 +294,8 @@ template <class Derived> class TestBaseListDerivedClass {
       std::bind(&TestBaseListDerivedClass::testInsertLastIndex, this,
                 std::placeholders::_1),
       std::bind(&TestBaseListDerivedClass::testRemoveZeroIndex, this,
+                std::placeholders::_1),
+      std::bind(&TestBaseListDerivedClass::testRemoveLastIndex, this,
                 std::placeholders::_1),
   };
 

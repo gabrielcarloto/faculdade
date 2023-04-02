@@ -39,7 +39,7 @@ protected:
 
   void rawCallReleaseCallback(T &item) { (*itemReleaseCallback)(item); };
   void assertIndexIsValid(size_t index) {
-    if (index <= length)
+    if (index < length)
       return;
 
     throwOutOfRange(index);
@@ -95,10 +95,17 @@ public:
   };
 
   void insert(T item, size_t index = 0) {
-    assertIndexIsValid(index);
 
-    if (length == index)
+    if (index == length) {
       return _push(item);
+    } else if (index == length - 1) {
+      T lastItem = at(index);
+      _replace(item, index);
+      _push(lastItem);
+      return;
+    }
+
+    assertIndexIsValid(index);
 
     _insert(item, index);
   };

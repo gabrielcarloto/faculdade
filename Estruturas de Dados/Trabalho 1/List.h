@@ -117,10 +117,10 @@ public:
       firstNode = nextNode;
       lastChosenNode = firstNode;
       lastChosenNodeIndex = 0;
-    } else if (index == this->length) {
+    } else if (index == this->length - 1) {
       lastNode = prevNode;
       lastChosenNode = lastNode;
-      lastChosenNodeIndex = this->length - 1;
+      lastChosenNodeIndex = this->length - 2;
     } else {
       lastChosenNode = nextNode;
       lastChosenNodeIndex = index;

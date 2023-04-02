@@ -79,7 +79,9 @@ template <typename T> void Vector<T>::resize(size_t newSize) {
   capacity = newSize;
   T *tempArray = new T[newSize];
 
-  this->forEach([&](T item, size_t i) { tempArray[i] = item; });
+  for (size_t i = 0; i < this->length; i++) {
+    tempArray[i] = data[i];
+  }
 
   delete[] data;
   data = tempArray;
