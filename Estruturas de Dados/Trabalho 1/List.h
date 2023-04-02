@@ -109,19 +109,24 @@ public:
 
     if (prevNode != NULL)
       prevNode->next = nextNode;
-    else if (nextNode != NULL)
+
+    if (nextNode != NULL)
       nextNode->prev = prevNode;
 
-    if (index == 0)
+    if (index == 0) {
       firstNode = nextNode;
-    else if (index == this->length)
+      lastChosenNode = firstNode;
+      lastChosenNodeIndex = 0;
+    } else if (index == this->length) {
       lastNode = prevNode;
-
-    lastChosenNode = firstNode;
-    lastChosenNodeIndex = 0;
+      lastChosenNode = lastNode;
+      lastChosenNodeIndex = this->length - 1;
+    } else {
+      lastChosenNode = nextNode;
+      lastChosenNodeIndex = index;
+    }
 
     delete node;
-
     this->length--;
   };
 
