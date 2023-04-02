@@ -58,7 +58,17 @@ public:
 
   List(const size_t length = 0) : BaseList<T, List<T>>(length){};
 
-  // ~List();
+  ~List() {
+    Node *node = firstNode, *aux = node->next;
+
+    while (node != NULL) {
+      this->callReleaseCallback(node->data);
+      delete node;
+
+      node = aux;
+      aux = node->next;
+    }
+  };
 
   T &operator[](size_t index) override { return gotoIndex(index)->data; };
 
