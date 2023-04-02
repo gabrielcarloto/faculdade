@@ -37,13 +37,19 @@ template <class Derived> class TestBaseListDerivedClass {
     });
   }
 
-  void testAtOutOfRangeThrow(ListType list) {
+  void testOutOfRangeThrow(ListType list) {
     it("should throw when trying to access index out of range", [&]() {
       const size_t unsignedIndex = LIST_LENGTH;
       const intmax_t signedIndex = -LIST_LENGTH;
+      const auto lambda = [](auto, auto) {};
+      const int item = 10;
 
       expectThrow(list.at, unsignedIndex);
       expectThrow(list.at, signedIndex);
+      expectThrow(list.remove, signedIndex);
+      expectThrow(list.insert, item, signedIndex);
+      expectThrow(list.replace, item, signedIndex);
+      expectThrow(list.forEach, lambda, signedIndex)
     });
   }
 
@@ -198,7 +204,7 @@ template <class Derived> class TestBaseListDerivedClass {
       std::bind(
           &TestBaseListDerivedClass::testAtMethodWithPositiveAndNegativeIndices,
           this, std::placeholders::_1),
-      std::bind(&TestBaseListDerivedClass::testAtOutOfRangeThrow, this,
+      std::bind(&TestBaseListDerivedClass::testOutOfRangeThrow, this,
                 std::placeholders::_1),
       std::bind(&TestBaseListDerivedClass::testInsert, this,
                 std::placeholders::_1),
