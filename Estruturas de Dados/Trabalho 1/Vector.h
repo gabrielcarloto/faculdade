@@ -194,7 +194,7 @@ bool Vector<T>::_findIndex(ItemIndexCallback<T, bool> filterFunction,
 template <typename T> T *Vector<T>::getArray() { return data; }
 
 template <typename T> T &Vector<T>::_at(intmax_t index) {
-  return data[index > 0 ? index : this->length + index];
+  return data[index >= 0 ? index : this->length + index];
 }
 
 template <typename T> T &Vector<T>::operator[](size_t index) {
