@@ -1,4 +1,6 @@
 #include "test.h"
+#include "utils.h"
+#include <chrono>
 #include <exception>
 #include <string.h>
 
@@ -22,7 +24,7 @@ void test::it(std::string description, TestCallback fn) {
   const std::string tab = std::string(testSuiteLength, ' ');
 
   try {
-    fn();
+    utils::callWithTimeout(fn, std::chrono::seconds(10));
     std::cout << tab << TEST_SUCCESS << " " << description << "\n";
   } catch (...) {
     std::exception_ptr e = std::current_exception();
