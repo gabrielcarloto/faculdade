@@ -20,40 +20,59 @@ template <typename Derived> void testFindIndex(BaseList<int, Derived> &list);
 template <typename Derived> void testRemove(BaseList<int, Derived> &list);
 template <typename Derived> void testInsert(BaseList<int, Derived> &list);
 template <typename Derived> void testReplace(BaseList<int, Derived> &list);
+Vector<int> initVector();
+List<int> initList();
 
 int main() {
   describe("Vector", []() {
-    Vector<int> vec;
-
     it("should reserve the the correct capacity", [&]() {
+      Vector<int> vec;
       vec.reserve(LIST_LENGTH);
       expectEqual(vec.getCapacity(), LIST_LENGTH);
     });
 
-    it("should add items without errors", [&]() { mockList(vec); });
+    it("should add items without errors", [&]() {
+      auto vec = initVector();
+      expectEqual(vec.getLength(), LIST_LENGTH);
+    });
 
-    it("should have LIST_LENGTH length",
-       [&]() { expectEqual(vec.getLength(), LIST_LENGTH); });
+    it("should return the correct items using the [] operator", [&]() {
+      auto vec = initVector();
+      testAccessOperator(vec);
+    });
 
-    it("should return the correct items using the [] operator",
-       [&]() { testAccessOperator(vec); });
+    it("should return the correct items using the `at` method", [&]() {
+      auto vec = initVector();
+      testAtMethod(vec);
+    });
 
-    it("should return the correct items using the `at` method",
-       [&]() { testAtMethod(vec); });
+    it("should throw when trying to access index out of range", [&]() {
+      auto vec = initVector();
+      testOutOfRange(vec);
+    });
 
-    it("should throw when trying to access index out of range",
-       [&]() { testOutOfRange(vec); });
+    it("should loop through every item using the `forEach` method", [&]() {
+      auto vec = initVector();
+      testForEach(vec);
+    });
 
-    it("should loop through every item using the `forEach` method",
-       [&]() { testForEach(vec); });
+    it("should find an item", [&]() {
+      auto vec = initVector();
+      testFind(vec);
+    });
 
-    it("should find an item", [&]() { testFind(vec); });
+    it("should find the index of an item", [&]() {
+      auto vec = initVector();
+      testFindIndex(vec);
+    });
 
-    it("should find the index of an item", [&]() { testFindIndex(vec); });
-
-    it("should remove an index", [&]() { testRemove(vec); });
+    it("should remove an index", [&]() {
+      auto vec = initVector();
+      testRemove(vec);
+    });
 
     it("should shrink to fit", [&]() {
+      auto vec = initVector();
       const size_t capacityBeforeShrinking = vec.getCapacity();
 
       vec.shrinkToFit();
@@ -61,40 +80,67 @@ int main() {
       expectGreaterThan(capacityBeforeShrinking, vec.getCapacity());
     });
 
-    it("should insert an item", [&]() { testInsert(vec); });
+    it("should insert an item", [&]() {
+      auto vec = initVector();
+      testInsert(vec);
+    });
 
-    it("should replace an item", [&]() { testReplace(vec); });
+    it("should replace an item", [&]() {
+      auto vec = initVector();
+      testReplace(vec);
+    });
   });
 
   describe("List", []() {
-    List<int> list;
+    it("should add items without errors", [&]() {
+      auto list = initList();
+      expectEqual(list.getLength(), LIST_LENGTH);
+    });
 
-    it("should add items without errors", [&]() { mockList(list); });
+    it("should return the correct items using the [] operator", [&]() {
+      auto list = initList();
+      testAccessOperator(list);
+    });
 
-    it("should have LIST_LENGTH length",
-       [&]() { expectEqual(list.getLength(), LIST_LENGTH); });
+    it("should return the correct items using the `at` method", [&]() {
+      auto list = initList();
+      testAtMethod(list);
+    });
 
-    it("should return the correct items using the [] operator",
-       [&]() { testAccessOperator(list); });
+    it("should throw when trying to access index out of range", [&]() {
+      auto list = initList();
+      testOutOfRange(list);
+    });
 
-    it("should return the correct items using the `at` method",
-       [&]() { testAtMethod(list); });
+    it("should loop through every item using the `forEach` method", [&]() {
+      auto list = initList();
+      testForEach(list);
+    });
 
-    it("should throw when trying to access index out of range",
-       [&]() { testOutOfRange(list); });
+    it("should find an item", [&]() {
+      auto list = initList();
+      testFind(list);
+    });
 
-    it("should loop through every item using the `forEach` method",
-       [&]() { testForEach(list); });
+    it("should find the index of an item", [&]() {
+      auto list = initList();
+      testFindIndex(list);
+    });
 
-    it("should find an item", [&]() { testFind(list); });
+    it("should remove an index", [&]() {
+      auto list = initList();
+      testRemove(list);
+    });
 
-    it("should find the index of an item", [&]() { testFindIndex(list); });
+    it("should insert an item", [&]() {
+      auto list = initList();
+      testInsert(list);
+    });
 
-    it("should remove an index", [&]() { testRemove(list); });
-
-    it("should insert an item", [&]() { testInsert(list); });
-
-    it("should replace an item", [&]() { testReplace(list); });
+    it("should replace an item", [&]() {
+      auto list = initList();
+      testReplace(list);
+    });
 
     it("should insert an item when length is zero", []() {
       List<int> lista;
@@ -108,6 +154,19 @@ int main() {
   });
 
   return 0;
+}
+
+Vector<int> initVector() {
+  Vector<int> vec;
+  vec.reserve(LIST_LENGTH);
+  mockList(vec);
+  return vec;
+}
+
+List<int> initList() {
+  List<int> list;
+  mockList(list);
+  return list;
 }
 
 template <typename Derived> void mockList(BaseList<int, Derived> &list) {
@@ -184,14 +243,11 @@ template <typename Derived> void testRemove(BaseList<int, Derived> &list) {
   expectEqual(list.at(indexToRemove - 1), predecessorValue);
 }
 
-// NOTE: currently, each test depends on the previous tests
-// so the expected length will be LIST_LENGTH.
-// This isn't ideal, but it is better than not testing
 template <typename Derived> void testInsert(BaseList<int, Derived> &list) {
   const int valueToInsert = 50;
   const size_t indexToInsert = 10;
   const int indexValue = indexToInsert;
-  const size_t expectedLength = LIST_LENGTH;
+  const size_t expectedLength = LIST_LENGTH + 1;
   const int predecessorValue = indexToInsert - 1;
   const int successorValue = indexToInsert + 1;
 
