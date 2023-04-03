@@ -23,6 +23,14 @@ template <typename T> class List : public BaseList<T, List<T>> {
 
   Node *gotoIndex(size_t index) {
     this->assertIndexIsValid(index);
+
+    if (index == 0)
+      return firstNode;
+    else if (index == this->length - 1)
+      return lastNode;
+
+    this->profiler.addComparison(2);
+
     compareIndices(index);
 
     while (lastChosenNodeIndex < index) {
@@ -157,6 +165,9 @@ public:
       prevNode->next = newNode;
     }
 
+    if (index == 0)
+      firstNode = newNode;
+
     this->profiler.addMove();
     this->length++;
   };
@@ -184,7 +195,7 @@ public:
     Node *node = firstNode;
     bool found = filterFn(node->data, i);
 
-    while (node != NULL && !found) {
+    while (node->next != NULL && !found) {
       node = node->next;
       i++;
 
@@ -202,8 +213,9 @@ public:
     size_t i = 0;
     Node *node = firstNode;
     bool found = filterFn(node->data, i);
+    this->profiler.addComparison();
 
-    while (node != NULL && !found) {
+    while (node->next != NULL && !found) {
       node = node->next;
       i++;
 

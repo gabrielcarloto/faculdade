@@ -112,7 +112,7 @@ public:
       return profiler.end();
     } else if (index == length - 1) {
       assertIndexIsValid(index);
-      T lastItem = _at(index);
+      T &lastItem = _at(index);
       _replace(item, index);
       _push(lastItem);
       return profiler.end();
