@@ -22,14 +22,63 @@ template <typename T>
 void saveToFile(BaseList<Person *, T> &list, std::string filePath);
 void pushLinesToLists(Profiler *, Profiler *, std::string, List<Person *> &,
                       Vector<Person *> &);
-void insertList(List<Person *> &peopleList, Vector<Person *> &peopleVector,
-                size_t index, Profiler *listProfiler, Profiler *vectorProfiler);
+template <typename T>
+void insertList(BaseList<Person *, T> &list, Profiler *profiler,
+                std::string name, unsigned int id, size_t index);
+template <typename T>
+void removeList(BaseList<Person *, T> &list, Profiler *profiler, size_t index);
+
+template <typename T>
+void searchListName(BaseList<Person *, T> &list, Profiler *profiler,
+                    std::string &name) {
+  size_t index;
+  bool found = list.findIndex(
+      [&](auto item, auto) { return item->name == name; }, index);
+
+  if (!found) {
+    std::cout << profiler->getName() << " nao encontrou o item\n";
+    return;
+  }
+
+  profiler->printInfo();
+
+  Person *fromList = list.at(index);
+
+  std::cout << "Item encontrado no indice " << index << " do "
+            << profiler->getName() << "\n";
+  std::cout << "\tNome: " << fromList->name << ", RG: " << fromList->id << "\n";
+}
+
+template <typename T>
+void searchListID(BaseList<Person *, T> &list, Profiler *profiler,
+                  unsigned int id) {
+  size_t index;
+  bool found =
+      list.findIndex([&](auto item, auto) { return item->id == id; }, index);
+
+  if (!found) {
+    std::cout << profiler->getName() << " nao encontrou o item\n";
+    return;
+  }
+
+  profiler->printInfo();
+
+  Person *fromList = list.at(index);
+
+  std::cout << "Item encontrado no indice " << index << " do "
+            << profiler->getName() << "\n";
+  std::cout << "\tNome: " << fromList->name << ", RG: " << fromList->id << "\n";
+}
+
+size_t askForIndex();
+unsigned int askForID();
+std::string askForName();
 
 int main() {
   _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 
   const std::string files[] = {"10", "50", "100", "1K", "10K", "1M", "100M"};
-  const size_t sizes[] = {10, 50, 100, 1000, 10000, 1000000, 12000000};
+  const size_t sizes[] = {10, 50, 100, 1000, 10000, 1000000, 13000000};
   unsigned int chosenFile;
   Menu menu;
 
@@ -68,220 +117,70 @@ int main() {
     auto insertMenu = menu.addNestedMenu("Inserir");
 
     insertMenu->addOption("no inicio", [&](auto) {
-      std::string name;
-      unsigned int id;
+      const size_t index = 0;
+      std::string name = askForName();
+      unsigned int id = askForID();
 
-      std::cout << "Digite o nome: ";
-      std::cin >> name;
-      std::cout << "Digite o RG: ";
-      std::cin >> id;
-
-      Person *newPerson = new Person;
-
-      newPerson->name = name;
-      newPerson->id = id;
-
-      peopleVector.insert(newPerson);
-      peopleList.insert(newPerson);
-
-      vectorProfiler->printInfo();
-      listProfiler->printInfo();
-
-      Person *fromList = peopleList.at(0), *fromVector = peopleVector.at(0);
-
-      std::cout << "Item inserido: \n";
-      std::cout << "List - nome: " << fromList->name << ", RG: " << fromList->id
-                << "\n";
-      std::cout << "Vector - nome: " << fromVector->name
-                << ", RG: " << fromVector->id << "\n";
+      insertList(peopleList, listProfiler, name, id, index);
+      insertList(peopleVector, vectorProfiler, name, id, index);
     });
 
     insertMenu->addOption("em um indice", [&](auto) {
-      std::string name;
-      unsigned int id;
-      size_t index;
+      const size_t index =
+          askForIndex(); // TODO: depois de adicionar no inicio, o list quebra
+      std::string name = askForName();
+      unsigned int id = askForID();
 
-      std::cout << "Digite o indice: ";
-      std::cin >> index;
-      std::cout << "Digite o nome: ";
-      std::cin >> name;
-      std::cout << "Digite o RG: ";
-      std::cin >> id;
-
-      Person *newPerson = new Person;
-
-      newPerson->name = name;
-      newPerson->id = id;
-
-      peopleVector.insert(newPerson, index);
-      peopleList.insert(newPerson, index);
-
-      vectorProfiler->printInfo();
-      listProfiler->printInfo();
-
-      Person *fromList = peopleList.at(index),
-             *fromVector = peopleVector.at(index);
-
-      std::cout << "Item inserido: \n";
-      std::cout << "List - nome: " << fromList->name << ", RG: " << fromList->id
-                << "\n";
-      std::cout << "Vector - nome: " << fromVector->name
-                << ", RG: " << fromVector->id << "\n";
+      insertList(peopleList, listProfiler, name, id, index);
+      insertList(peopleVector, vectorProfiler, name, id, index);
     });
 
     insertMenu->addOption("no fim", [&](auto) {
-      std::string name;
-      unsigned int id;
+      const size_t index = peopleVector.getLength();
+      std::string name = askForName();
+      unsigned int id = askForID();
 
-      std::cout << "Digite o nome: ";
-      std::cin >> name;
-      std::cout << "Digite o RG: ";
-      std::cin >> id;
-
-      Person *newPerson = new Person;
-
-      newPerson->name = name;
-      newPerson->id = id;
-
-      peopleVector.push(newPerson);
-      peopleList.push(newPerson);
-
-      vectorProfiler->printInfo();
-      listProfiler->printInfo();
-
-      Person *fromList = peopleList.at(-1), *fromVector = peopleVector.at(-1);
-
-      std::cout << "Item inserido: \n";
-      std::cout << "List - nome: " << fromList->name << ", RG: " << fromList->id
-                << "\n";
-      std::cout << "Vector - nome: " << fromVector->name
-                << ", RG: " << fromVector->id << "\n";
+      insertList(peopleList, listProfiler, name, id, index);
+      insertList(peopleVector, vectorProfiler, name, id, index);
     });
 
     auto removeMenu = menu.addNestedMenu("Remover");
 
     removeMenu->addOption("no inicio", [&](auto) {
-      Person *fromList = peopleList.at(0), *fromVector = peopleVector.at(0);
+      const size_t index = 0;
 
-      std::cout << "Removendo (Vector) pessoa " << fromVector->name << " RG "
-                << fromVector->id << "\n";
-
-      peopleVector.remove(0);
-
-      std::cout << "Removendo (List) pessoa " << fromList->name << " RG "
-                << fromList->id << "\n";
-
-      peopleList.remove(0);
-
-      vectorProfiler->printInfo();
-      listProfiler->printInfo();
+      removeList(peopleList, listProfiler, index);
+      removeList(peopleVector, vectorProfiler, index);
     });
 
     removeMenu->addOption("em um indice", [&](auto) {
-      size_t index;
+      const size_t index = askForIndex();
 
-      std::cout << "Digite o indice: ";
-      std::cin >> index;
-
-      Person *fromList = peopleList.at(index),
-             *fromVector = peopleVector.at(index);
-
-      std::cout << "Removendo (Vector) pessoa " << fromVector->name << " RG "
-                << fromVector->id << "\n";
-
-      peopleVector.remove(index);
-
-      std::cout << "Removendo (List) pessoa " << fromList->name << " RG "
-                << fromList->id << "\n";
-
-      peopleList.remove(index);
-
-      vectorProfiler->printInfo();
-      listProfiler->printInfo();
+      removeList(peopleList, listProfiler, index);
+      removeList(peopleVector, vectorProfiler, index);
     });
 
     removeMenu->addOption("no fim", [&](auto) {
-      Person *fromList = peopleList.at(-1), *fromVector = peopleVector.at(-1);
+      const size_t index = peopleVector.getLength() - 1;
 
-      std::cout << "Removendo (Vector) pessoa " << fromVector->name << " RG "
-                << fromVector->id << "\n";
-
-      size_t index = peopleVector.getLength() - 1;
-      peopleVector.remove(index);
-
-      std::cout << "Removendo (List) pessoa " << fromList->name << " RG "
-                << fromList->id << "\n";
-
-      peopleList.remove(index);
-
-      vectorProfiler->printInfo();
-      listProfiler->printInfo();
+      removeList(peopleList, listProfiler, index);
+      removeList(peopleVector, vectorProfiler, index);
     });
 
     auto searchMenu = menu.addNestedMenu("Procurar");
 
     searchMenu->addOption("Nome", [&](auto) {
-      std::string name;
+      std::string name = askForName();
 
-      std::cout << "Digite o nome que deseja procurar: ";
-      std::cin >> name;
-
-      Person *fromList, *fromVector;
-      bool foundFromVector = peopleVector.find(
-          [&](auto item, auto) { return item->name == name; }, fromVector);
-      bool foundFromList = peopleList.find(
-          [&](auto item, auto) { return item->name == name; }, fromList);
-
-      vectorProfiler->printInfo();
-      listProfiler->printInfo();
-
-      if (foundFromList) {
-        std::cout << "List - nome: " << fromList->name
-                  << ", RG: " << fromList->id << "\n";
-
-      } else {
-        std::cout << "List nao encontrou a pessoa\n";
-      }
-
-      if (foundFromVector) {
-        std::cout << "Vector - nome: " << fromVector->name
-                  << ", RG: " << fromVector->id << "\n";
-
-      } else {
-        std::cout << "Vector nao encontrou a pessoa\n";
-      }
+      searchListName(peopleVector, vectorProfiler, name);
+      searchListName(peopleList, listProfiler, name);
     });
 
     searchMenu->addOption("RG", [&](auto) {
-      unsigned int id;
+      unsigned int id = askForID();
 
-      std::cout << "Digite o RG que deseja procurar: ";
-      std::cin >> id;
-
-      Person *fromList, *fromVector;
-      bool foundFromVector = peopleVector.find(
-          [&](auto item, auto) { return item->id == id; }, fromVector);
-      bool foundFromList = peopleList.find(
-          [&](auto item, auto) { return item->id == id; }, fromList);
-
-      vectorProfiler->printInfo();
-      listProfiler->printInfo();
-
-      if (foundFromList) {
-        std::cout << "List - nome: " << fromList->name
-                  << ", RG: " << fromList->id << "\n";
-
-      } else {
-        std::cout << "List nao encontrou a pessoa\n";
-      }
-
-      if (foundFromVector) {
-        std::cout << "Vector - nome: " << fromVector->name
-                  << ", RG: " << fromVector->id << "\n";
-
-      } else {
-        std::cout << "Vector nao encontrou a pessoa\n";
-      }
+      searchListID(peopleVector, vectorProfiler, id);
+      searchListID(peopleList, listProfiler, id);
     });
 
     auto saveMenu = menu.addNestedMenu("Salvar no arquivo");
@@ -303,6 +202,33 @@ int main() {
   return 0;
 }
 
+std::string askForName() {
+  std::string name;
+
+  std::cout << "Digite o nome: ";
+  std::cin >> name;
+
+  return name;
+};
+
+unsigned int askForID() {
+  unsigned int id;
+
+  std::cout << "Digite o RG: ";
+  std::cin >> id;
+
+  return id;
+};
+
+size_t askForIndex() {
+  size_t index;
+
+  std::cout << "Digite o indice: ";
+  std::cin >> index;
+
+  return index;
+};
+
 template <typename T> void printToStdout(BaseList<Person *, T> &list) {
   std::string content = "";
 
@@ -311,6 +237,51 @@ template <typename T> void printToStdout(BaseList<Person *, T> &list) {
 
   std::cout << content << "\n";
   list.getProfiler()->printInfo();
+}
+
+template <typename T>
+void removeList(BaseList<Person *, T> &list, Profiler *profiler, size_t index) {
+  try {
+    list.remove(index);
+    profiler->printInfo();
+
+    Person *fromList;
+
+    try {
+      fromList = list.at(index);
+    } catch (...) {
+      fromList = list.at(index - 1);
+    }
+
+    std::cout << "Item removido no " << profiler->getName()
+              << ". O item atual neste indice agora eh \n";
+    std::cout << "\tNome: " << fromList->name << ", RG: " << fromList->id
+              << "\n";
+  } catch (...) {
+    std::cout << "O indice esta fora de alcance.\n";
+  }
+}
+
+template <typename T>
+void insertList(BaseList<Person *, T> &list, Profiler *profiler,
+                std::string name, unsigned int id, size_t index) {
+  Person *newPerson = new Person;
+
+  newPerson->name = name;
+  newPerson->id = id;
+
+  try {
+    list.insert(newPerson, index);
+    profiler->printInfo();
+
+    Person *fromList = list.at(index);
+
+    std::cout << "Item inserido no " << profiler->getName() << ": \n";
+    std::cout << "\tNome: " << fromList->name << ", RG: " << fromList->id
+              << "\n";
+  } catch (...) {
+    std::cout << "O indice esta fora de alcance.\n";
+  }
 }
 
 template <typename T>

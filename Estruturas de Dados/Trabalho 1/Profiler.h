@@ -29,6 +29,7 @@ public:
   unsigned int getComparisons();
   unsigned int getMoves();
 
+  std::string getName();
   void setName(std::string);
   void printInfo(bool = true);
 };

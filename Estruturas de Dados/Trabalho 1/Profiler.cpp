@@ -36,7 +36,9 @@ std::chrono::milliseconds Profiler::getDuration() {
 unsigned int Profiler::getComparisons() { return comparisons; }
 unsigned int Profiler::getMoves() { return moves; }
 
+std::string Profiler::getName() { return name; }
 void Profiler::setName(std::string n) { name = n; }
+
 void Profiler::printInfo(bool withExecTime) {
   std::cout << name << " fez " << getComparisons() << " comparacoes e "
             << getMoves() << " movimentacoes";
