@@ -161,8 +161,10 @@ public:
       prevNode->next = newNode;
     }
 
-    if (index == 0)
+    if (index == 0) {
       firstNode = newNode;
+      lastChosenNode = firstNode;
+    }
 
     this->profiler.addMove();
     this->length++;
