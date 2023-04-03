@@ -7,14 +7,14 @@ OBJ_DIR = objects
 EXE = main.exe
 TEST_EXE = test.exe
 
-$(EXE): utils.o main.cpp
+$(EXE): utils.o main.cpp Profiler.cpp
 	$(CXX) $(CXXFLAGS) $^ -o $@ 
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	mkdir -p $(OBJ_DIR)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-test: utils.o test.o 
+test: utils.o test.o Profiler.o
 	$(CXX) $(CXXFLAGS) lists_tests.cpp $^ -o $(TEST_EXE)
 
 clean:

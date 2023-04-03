@@ -69,8 +69,10 @@ template <typename T> void Vector<T>::commonConstructor() {
 }
 
 template <typename T> void Vector<T>::reserve(size_t capacity) {
-  if (this->capacity > capacity)
+  if (this->capacity > capacity) {
+    this->profiler.addComparison();
     return;
+  }
 
   resize(capacity);
 }
@@ -98,10 +100,14 @@ template <typename T> void Vector<T>::shrink() {
 template <typename T> void Vector<T>::shrinkToFit() { resize(this->length); }
 
 template <typename T> void Vector<T>::resizeIfNeeded() {
+  this->profiler.addComparison(2);
+
   if (this->length == capacity)
-    return grow();
-  if (this->length > 0 && this->length * (getGrowthFactor(this->length) + 0.7) <
-                              capacity) // TODO: remove hard-coded number
+    grow();
+  else if (this->length > 0 &&
+           this->length * (getGrowthFactor(this->length) + 0.7) <
+               capacity) // TODO: remove hard-coded number
+
     shrink();
 }
 
@@ -109,14 +115,12 @@ template <typename T>
 void Vector<T>::_forEach(
     const std::function<void(T &item, const size_t index)> &callback,
     size_t startIndex) {
-
   for (size_t i = startIndex; i < this->length; i++) {
     callback(data[i], i);
   }
 }
 
 template <typename T> void Vector<T>::_insert(T item, size_t index) {
-
   T lastItem = data[index];
   data[index] = item;
 
@@ -127,6 +131,7 @@ template <typename T> void Vector<T>::_insert(T item, size_t index) {
       [&](auto curr, auto i) {
         data[i] = lastItem;
         lastItem = curr;
+        this->profiler.addMove();
       },
       index + 1);
 }
@@ -138,7 +143,12 @@ template <typename T> void Vector<T>::_replace(T item, size_t index) {
 
 template <typename T> void Vector<T>::_remove(size_t index) {
   this->callReleaseCallback(data[index]);
-  this->forEach([&](auto, auto i) { data[i] = data[i + 1]; }, index);
+  this->forEach(
+      [&](auto, auto i) {
+        data[i] = data[i + 1];
+        this->profiler.addMove();
+      },
+      index);
 
   this->length--;
   resizeIfNeeded();
@@ -157,6 +167,8 @@ Vector<T> Vector<T>::_filter(ItemIndexCallback<T, bool> filterFunction) {
 
   for (size_t i = 0; i < this->length; i++) {
     bool shouldBeIncluded = filterFunction(data[i], i);
+    this->profiler.addComparison();
+
     if (shouldBeIncluded)
       items.push(data[i]);
   }
@@ -168,6 +180,7 @@ template <typename T>
 bool Vector<T>::_find(ItemIndexCallback<T, bool> filterFunction, T &item) {
   for (size_t i = 0; i < this->length; i++) {
     bool foundItem = filterFunction(data[i], i);
+    this->profiler.addComparison();
 
     if (foundItem) {
       item = data[i];
@@ -183,6 +196,7 @@ bool Vector<T>::_findIndex(ItemIndexCallback<T, bool> filterFunction,
                            size_t &index) {
   for (size_t i = 0; i < this->length; i++) {
     bool foundItem = filterFunction(data[i], i);
+    this->profiler.addComparison();
 
     if (foundItem) {
       index = i;
@@ -210,12 +224,18 @@ template <typename T> double Vector<T>::getGrowthFactor(size_t size) {
   const double smallFactor = 2, mediumFactor = 1.4, largeFactor = 1.2,
                defaultFactor = 1.1;
 
-  if (size <= SMALL)
+  if (size <= SMALL) {
+    this->profiler.addComparison();
     return smallFactor;
-  if (size <= MEDIUM)
+  }
+  if (size <= MEDIUM) {
+    this->profiler.addComparison();
     return mediumFactor;
-  if (size <= LARGE)
+  }
+  if (size <= LARGE) {
+    this->profiler.addComparison();
     return largeFactor;
+  }
 
   // TODO: possível perda de dados a oconverter double para size_t
   return defaultFactor;

@@ -1,4 +1,5 @@
 #pragma once
+#include "Profiler.h"
 #include <functional>
 #include <iostream>
 #include <stdint.h>
@@ -29,16 +30,20 @@ private:
 
 protected:
   size_t length;
+  Profiler profiler;
 
   bool checkReleaseCallback() { return itemReleaseCallback != NULL; };
 
   void callReleaseCallback(T &item) {
+    profiler.addComparison();
     if (itemReleaseCallback != NULL)
       (*itemReleaseCallback)(item);
   };
 
   void rawCallReleaseCallback(T &item) { (*itemReleaseCallback)(item); };
+
   void assertIndexIsValid(size_t index) {
+    profiler.addComparison();
     if (index < length)
       return;
 
@@ -68,7 +73,7 @@ protected:
                           size_t &index) = 0;
 
 public:
-  BaseList(const size_t length) { this->length = length; }
+  BaseList(const size_t length) : profiler() { this->length = length; }
   ~BaseList() = default;
 
   void registerItemReleaseCallback(void (*fn)(T &)) {
@@ -83,54 +88,78 @@ public:
   size_t getLength() { return length; };
 
   T &at(intmax_t index) {
+    profiler.start();
     assertIndexIsValid(index);
-    return _at(index);
+    T &item = _at(index);
+    profiler.end();
+    return item;
   };
 
   void push(const T &item) { _push(item); };
 
   void remove(size_t index) {
+    profiler.start();
     assertIndexIsValid(index);
     _remove(index);
+    profiler.end();
   };
 
   void insert(T item, size_t index = 0) {
+    profiler.start();
 
     if (index == length) {
-      return _push(item);
+      _push(item);
+      return profiler.end();
     } else if (index == length - 1) {
-      T lastItem = at(index);
+      assertIndexIsValid(index);
+      T lastItem = _at(index);
       _replace(item, index);
       _push(lastItem);
-      return;
+      return profiler.end();
     }
 
     assertIndexIsValid(index);
 
     _insert(item, index);
+    profiler.end();
   };
 
   void replace(T item, size_t index = 0) {
+    profiler.start();
     assertIndexIsValid(index);
     _replace(item, index);
+    profiler.end();
   };
 
   Derived filter(ItemIndexCallback<T, bool> filterFn) {
-    return _filter(filterFn);
+    profiler.start();
+    Derived list = _filter(filterFn);
+    profiler.end();
+    return list;
   };
 
   bool find(ItemIndexCallback<T, bool> filterFn, T &item) {
-    return _find(filterFn, item);
+    profiler.start();
+    auto found = _find(filterFn, item);
+    profiler.end();
+    return found;
   };
 
   void forEach(ItemIndexCallback<T> callback, size_t startIndex = 0) {
+    profiler.start();
     assertIndexIsValid(startIndex);
     _forEach(callback, startIndex);
+    profiler.end();
   };
 
   bool findIndex(ItemIndexCallback<T, bool> filterFn, size_t &index) {
-    return _findIndex(filterFn, index);
+    profiler.start();
+    bool found = _findIndex(filterFn, index);
+    profiler.end();
+    return found;
   };
+
+  Profiler *getProfiler() { return &profiler; }
 };
 
 template <typename T> void defaultItemRelease(T &item) { delete item; }
