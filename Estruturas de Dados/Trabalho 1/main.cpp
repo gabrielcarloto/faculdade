@@ -62,239 +62,243 @@ int main() {
   pushLinesToLists(vectorProfiler, listProfiler, filePath, peopleList,
                    peopleVector);
 
-  menu.clear();
-  auto insertMenu = menu.addNestedMenu("Inserir");
+  while (true) {
+    menu.clear();
 
-  insertMenu->addOption("no inicio", [&](auto) {
-    std::string name;
-    unsigned int id;
+    auto insertMenu = menu.addNestedMenu("Inserir");
 
-    std::cout << "Digite o nome: ";
-    std::cin >> name;
-    std::cout << "Digite o RG: ";
-    std::cin >> id;
+    insertMenu->addOption("no inicio", [&](auto) {
+      std::string name;
+      unsigned int id;
 
-    Person *newPerson = new Person;
+      std::cout << "Digite o nome: ";
+      std::cin >> name;
+      std::cout << "Digite o RG: ";
+      std::cin >> id;
 
-    newPerson->name = name;
-    newPerson->id = id;
+      Person *newPerson = new Person;
 
-    peopleVector.insert(newPerson);
-    peopleList.insert(newPerson);
+      newPerson->name = name;
+      newPerson->id = id;
 
-    vectorProfiler->printInfo();
-    listProfiler->printInfo();
+      peopleVector.insert(newPerson);
+      peopleList.insert(newPerson);
 
-    Person *fromList = peopleList.at(0), *fromVector = peopleVector.at(0);
+      vectorProfiler->printInfo();
+      listProfiler->printInfo();
 
-    std::cout << "Item inserido: \n";
-    std::cout << "List - nome: " << fromList->name << ", RG: " << fromList->id
-              << "\n";
-    std::cout << "Vector - nome: " << fromVector->name
-              << ", RG: " << fromVector->id << "\n";
-  });
+      Person *fromList = peopleList.at(0), *fromVector = peopleVector.at(0);
 
-  insertMenu->addOption("em um indice", [&](auto) {
-    std::string name;
-    unsigned int id;
-    size_t index;
-
-    std::cout << "Digite o indice: ";
-    std::cin >> index;
-    std::cout << "Digite o nome: ";
-    std::cin >> name;
-    std::cout << "Digite o RG: ";
-    std::cin >> id;
-
-    Person *newPerson = new Person;
-
-    newPerson->name = name;
-    newPerson->id = id;
-
-    peopleVector.insert(newPerson, index);
-    peopleList.insert(newPerson, index);
-
-    vectorProfiler->printInfo();
-    listProfiler->printInfo();
-
-    Person *fromList = peopleList.at(index),
-           *fromVector = peopleVector.at(index);
-
-    std::cout << "Item inserido: \n";
-    std::cout << "List - nome: " << fromList->name << ", RG: " << fromList->id
-              << "\n";
-    std::cout << "Vector - nome: " << fromVector->name
-              << ", RG: " << fromVector->id << "\n";
-  });
-
-  insertMenu->addOption("no fim", [&](auto) {
-    std::string name;
-    unsigned int id;
-
-    std::cout << "Digite o nome: ";
-    std::cin >> name;
-    std::cout << "Digite o RG: ";
-    std::cin >> id;
-
-    Person *newPerson = new Person;
-
-    newPerson->name = name;
-    newPerson->id = id;
-
-    peopleVector.push(newPerson);
-    peopleList.push(newPerson);
-
-    vectorProfiler->printInfo();
-    listProfiler->printInfo();
-
-    Person *fromList = peopleList.at(-1), *fromVector = peopleVector.at(-1);
-
-    std::cout << "Item inserido: \n";
-    std::cout << "List - nome: " << fromList->name << ", RG: " << fromList->id
-              << "\n";
-    std::cout << "Vector - nome: " << fromVector->name
-              << ", RG: " << fromVector->id << "\n";
-  });
-
-  auto removeMenu = menu.addNestedMenu("Remover");
-
-  removeMenu->addOption("no inicio", [&](auto) {
-    Person *fromList = peopleList.at(0), *fromVector = peopleVector.at(0);
-
-    std::cout << "Removendo (Vector) pessoa " << fromVector->name << " RG "
-              << fromVector->id << "\n";
-
-    peopleVector.remove(0);
-
-    std::cout << "Removendo (List) pessoa " << fromList->name << " RG "
-              << fromList->id << "\n";
-
-    peopleList.remove(0);
-
-    vectorProfiler->printInfo();
-    listProfiler->printInfo();
-  });
-
-  removeMenu->addOption("em um indice", [&](auto) {
-    size_t index;
-
-    std::cout << "Digite o indice: ";
-    std::cin >> index;
-
-    Person *fromList = peopleList.at(index),
-           *fromVector = peopleVector.at(index);
-
-    std::cout << "Removendo (Vector) pessoa " << fromVector->name << " RG "
-              << fromVector->id << "\n";
-
-    peopleVector.remove(index);
-
-    std::cout << "Removendo (List) pessoa " << fromList->name << " RG "
-              << fromList->id << "\n";
-
-    peopleList.remove(index);
-
-    vectorProfiler->printInfo();
-    listProfiler->printInfo();
-  });
-
-  removeMenu->addOption("no fim", [&](auto) {
-    Person *fromList = peopleList.at(-1), *fromVector = peopleVector.at(-1);
-
-    std::cout << "Removendo (Vector) pessoa " << fromVector->name << " RG "
-              << fromVector->id << "\n";
-
-    size_t index = peopleVector.getLength() - 1;
-    peopleVector.remove(index);
-
-    std::cout << "Removendo (List) pessoa " << fromList->name << " RG "
-              << fromList->id << "\n";
-
-    peopleList.remove(index);
-
-    vectorProfiler->printInfo();
-    listProfiler->printInfo();
-  });
-
-  auto searchMenu = menu.addNestedMenu("Procurar");
-
-  searchMenu->addOption("Nome", [&](auto) {
-    std::string name;
-
-    std::cout << "Digite o nome que deseja procurar: ";
-    std::cin >> name;
-
-    Person *fromList, *fromVector;
-    bool foundFromVector = peopleVector.find(
-        [&](auto item, auto) { return item->name == name; }, fromVector);
-    bool foundFromList = peopleList.find(
-        [&](auto item, auto) { return item->name == name; }, fromList);
-
-    vectorProfiler->printInfo();
-    listProfiler->printInfo();
-
-    if (foundFromList) {
+      std::cout << "Item inserido: \n";
       std::cout << "List - nome: " << fromList->name << ", RG: " << fromList->id
                 << "\n";
-
-    } else {
-      std::cout << "List nao encontrou a pessoa\n";
-    }
-
-    if (foundFromVector) {
       std::cout << "Vector - nome: " << fromVector->name
                 << ", RG: " << fromVector->id << "\n";
+    });
 
-    } else {
-      std::cout << "Vector nao encontrou a pessoa\n";
-    }
-  });
+    insertMenu->addOption("em um indice", [&](auto) {
+      std::string name;
+      unsigned int id;
+      size_t index;
 
-  searchMenu->addOption("RG", [&](auto) {
-    unsigned int id;
+      std::cout << "Digite o indice: ";
+      std::cin >> index;
+      std::cout << "Digite o nome: ";
+      std::cin >> name;
+      std::cout << "Digite o RG: ";
+      std::cin >> id;
 
-    std::cout << "Digite o RG que deseja procurar: ";
-    std::cin >> id;
+      Person *newPerson = new Person;
 
-    Person *fromList, *fromVector;
-    bool foundFromVector = peopleVector.find(
-        [&](auto item, auto) { return item->id == id; }, fromVector);
-    bool foundFromList = peopleList.find(
-        [&](auto item, auto) { return item->id == id; }, fromList);
+      newPerson->name = name;
+      newPerson->id = id;
 
-    vectorProfiler->printInfo();
-    listProfiler->printInfo();
+      peopleVector.insert(newPerson, index);
+      peopleList.insert(newPerson, index);
 
-    if (foundFromList) {
+      vectorProfiler->printInfo();
+      listProfiler->printInfo();
+
+      Person *fromList = peopleList.at(index),
+             *fromVector = peopleVector.at(index);
+
+      std::cout << "Item inserido: \n";
       std::cout << "List - nome: " << fromList->name << ", RG: " << fromList->id
                 << "\n";
-
-    } else {
-      std::cout << "List nao encontrou a pessoa\n";
-    }
-
-    if (foundFromVector) {
       std::cout << "Vector - nome: " << fromVector->name
                 << ", RG: " << fromVector->id << "\n";
+    });
 
-    } else {
-      std::cout << "Vector nao encontrou a pessoa\n";
-    }
-  });
+    insertMenu->addOption("no fim", [&](auto) {
+      std::string name;
+      unsigned int id;
 
-  auto saveMenu = menu.addNestedMenu("Salvar no arquivo");
+      std::cout << "Digite o nome: ";
+      std::cin >> name;
+      std::cout << "Digite o RG: ";
+      std::cin >> id;
 
-  saveMenu->addOption("Vector",
-                      [&](auto) { saveToFile(peopleVector, filePath); });
+      Person *newPerson = new Person;
 
-  saveMenu->addOption("List", [&](auto) { saveToFile(peopleList, filePath); });
+      newPerson->name = name;
+      newPerson->id = id;
 
-  auto printMenu = menu.addNestedMenu("Imprimir na tela");
+      peopleVector.push(newPerson);
+      peopleList.push(newPerson);
 
-  printMenu->addOption("Vector", [&](auto) { printToStdout(peopleVector); });
-  printMenu->addOption("List", [&](auto) { printToStdout(peopleList); });
+      vectorProfiler->printInfo();
+      listProfiler->printInfo();
 
-  menu.display();
+      Person *fromList = peopleList.at(-1), *fromVector = peopleVector.at(-1);
+
+      std::cout << "Item inserido: \n";
+      std::cout << "List - nome: " << fromList->name << ", RG: " << fromList->id
+                << "\n";
+      std::cout << "Vector - nome: " << fromVector->name
+                << ", RG: " << fromVector->id << "\n";
+    });
+
+    auto removeMenu = menu.addNestedMenu("Remover");
+
+    removeMenu->addOption("no inicio", [&](auto) {
+      Person *fromList = peopleList.at(0), *fromVector = peopleVector.at(0);
+
+      std::cout << "Removendo (Vector) pessoa " << fromVector->name << " RG "
+                << fromVector->id << "\n";
+
+      peopleVector.remove(0);
+
+      std::cout << "Removendo (List) pessoa " << fromList->name << " RG "
+                << fromList->id << "\n";
+
+      peopleList.remove(0);
+
+      vectorProfiler->printInfo();
+      listProfiler->printInfo();
+    });
+
+    removeMenu->addOption("em um indice", [&](auto) {
+      size_t index;
+
+      std::cout << "Digite o indice: ";
+      std::cin >> index;
+
+      Person *fromList = peopleList.at(index),
+             *fromVector = peopleVector.at(index);
+
+      std::cout << "Removendo (Vector) pessoa " << fromVector->name << " RG "
+                << fromVector->id << "\n";
+
+      peopleVector.remove(index);
+
+      std::cout << "Removendo (List) pessoa " << fromList->name << " RG "
+                << fromList->id << "\n";
+
+      peopleList.remove(index);
+
+      vectorProfiler->printInfo();
+      listProfiler->printInfo();
+    });
+
+    removeMenu->addOption("no fim", [&](auto) {
+      Person *fromList = peopleList.at(-1), *fromVector = peopleVector.at(-1);
+
+      std::cout << "Removendo (Vector) pessoa " << fromVector->name << " RG "
+                << fromVector->id << "\n";
+
+      size_t index = peopleVector.getLength() - 1;
+      peopleVector.remove(index);
+
+      std::cout << "Removendo (List) pessoa " << fromList->name << " RG "
+                << fromList->id << "\n";
+
+      peopleList.remove(index);
+
+      vectorProfiler->printInfo();
+      listProfiler->printInfo();
+    });
+
+    auto searchMenu = menu.addNestedMenu("Procurar");
+
+    searchMenu->addOption("Nome", [&](auto) {
+      std::string name;
+
+      std::cout << "Digite o nome que deseja procurar: ";
+      std::cin >> name;
+
+      Person *fromList, *fromVector;
+      bool foundFromVector = peopleVector.find(
+          [&](auto item, auto) { return item->name == name; }, fromVector);
+      bool foundFromList = peopleList.find(
+          [&](auto item, auto) { return item->name == name; }, fromList);
+
+      vectorProfiler->printInfo();
+      listProfiler->printInfo();
+
+      if (foundFromList) {
+        std::cout << "List - nome: " << fromList->name
+                  << ", RG: " << fromList->id << "\n";
+
+      } else {
+        std::cout << "List nao encontrou a pessoa\n";
+      }
+
+      if (foundFromVector) {
+        std::cout << "Vector - nome: " << fromVector->name
+                  << ", RG: " << fromVector->id << "\n";
+
+      } else {
+        std::cout << "Vector nao encontrou a pessoa\n";
+      }
+    });
+
+    searchMenu->addOption("RG", [&](auto) {
+      unsigned int id;
+
+      std::cout << "Digite o RG que deseja procurar: ";
+      std::cin >> id;
+
+      Person *fromList, *fromVector;
+      bool foundFromVector = peopleVector.find(
+          [&](auto item, auto) { return item->id == id; }, fromVector);
+      bool foundFromList = peopleList.find(
+          [&](auto item, auto) { return item->id == id; }, fromList);
+
+      vectorProfiler->printInfo();
+      listProfiler->printInfo();
+
+      if (foundFromList) {
+        std::cout << "List - nome: " << fromList->name
+                  << ", RG: " << fromList->id << "\n";
+
+      } else {
+        std::cout << "List nao encontrou a pessoa\n";
+      }
+
+      if (foundFromVector) {
+        std::cout << "Vector - nome: " << fromVector->name
+                  << ", RG: " << fromVector->id << "\n";
+
+      } else {
+        std::cout << "Vector nao encontrou a pessoa\n";
+      }
+    });
+
+    auto saveMenu = menu.addNestedMenu("Salvar no arquivo");
+
+    saveMenu->addOption("Vector",
+                        [&](auto) { saveToFile(peopleVector, filePath); });
+
+    saveMenu->addOption("List",
+                        [&](auto) { saveToFile(peopleList, filePath); });
+
+    auto printMenu = menu.addNestedMenu("Imprimir na tela");
+
+    printMenu->addOption("Vector", [&](auto) { printToStdout(peopleVector); });
+    printMenu->addOption("List", [&](auto) { printToStdout(peopleList); });
+
+    menu.display();
+  }
 
   return 0;
 }

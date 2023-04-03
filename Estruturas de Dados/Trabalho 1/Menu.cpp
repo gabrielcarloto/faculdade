@@ -13,7 +13,7 @@ class Menu {
   Menu *menuToReturn = NULL;
 
   void addBasicOptions() {
-    addOption("Sair", [](auto) { return; });
+    addOption("Sair", [](auto) { exit(0); });
 
     if (nestedNevel > 0)
       addOption("Voltar", [this](auto) { menuToReturn->display(); });
