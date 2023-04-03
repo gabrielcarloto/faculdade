@@ -1,4 +1,5 @@
 #pragma once
+#include "Vector.h"
 #include <chrono>
 #include <functional>
 #include <future>
@@ -7,9 +8,20 @@
 
 #define absolute(x) (x > 0 ? x : -x)
 
+struct Person {
+  std::string name;
+  unsigned int id = 0;
+};
+
 namespace utils {
 void readFile(std::string path,
               const std::function<void(std::string)> &forEachLineCallback);
+
+Vector<char *> splitStr(char *str, const char *delimiter);
+
+Person *strToPerson(std::string &str);
+
+bool verifyString(std::string &);
 
 // https://stackoverflow.com/a/56268886
 template <typename TF, typename TDuration, class... TArgs>
