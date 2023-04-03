@@ -126,8 +126,7 @@ int main() {
     });
 
     insertMenu->addOption("em um indice", [&](auto) {
-      const size_t index =
-          askForIndex(); // TODO: depois de adicionar no inicio, o list quebra
+      const size_t index = askForIndex();
       std::string name = askForName();
       unsigned int id = askForID();
 
