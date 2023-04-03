@@ -1,4 +1,5 @@
 #include "utils.h"
+#include "Vector.h"
 #include <fstream>
 #include <string>
 
@@ -15,6 +16,16 @@ void utils::readFile(
   while (getline(file, line))
     forEachLineCallback(line);
 
+  file.close();
+}
+
+void utils::writeFile(std::string path, std::string content) {
+  std::ofstream file(path);
+
+  if (!file.is_open())
+    throw std::runtime_error("Unable to open file");
+
+  file << content;
   file.close();
 }
 
@@ -38,6 +49,10 @@ Person *utils::strToPerson(std::string &str) {
   p->id = std::atoi(splitted[1]);
 
   return p;
+}
+
+std::string utils::personToString(Person *p) {
+  return p->name + "," + std::to_string(p->id);
 }
 
 bool utils::verifyString(std::string &str) {

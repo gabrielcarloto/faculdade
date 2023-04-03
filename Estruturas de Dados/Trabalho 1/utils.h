@@ -1,5 +1,4 @@
 #pragma once
-#include "Vector.h"
 #include <chrono>
 #include <functional>
 #include <future>
@@ -7,6 +6,8 @@
 #include <thread>
 
 #define absolute(x) (x > 0 ? x : -x)
+
+template <typename T> class Vector;
 
 struct Person {
   std::string name;
@@ -17,9 +18,12 @@ namespace utils {
 void readFile(std::string path,
               const std::function<void(std::string)> &forEachLineCallback);
 
+void writeFile(std::string path, std::string content);
+
 Vector<char *> splitStr(char *str, const char *delimiter);
 
 Person *strToPerson(std::string &str);
+std::string personToString(Person *);
 
 bool verifyString(std::string &);
 

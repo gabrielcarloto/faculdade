@@ -1,3 +1,4 @@
+#include "BaseList.h"
 #include "List.h"
 #include <type_traits>
 #define _CRTDBG_MAP_ALLOC
@@ -16,6 +17,8 @@
 #define FILES_BASENAME "NomeRG"
 #define FILES_EXTENSION ".txt"
 
+template <typename T>
+void saveToFile(BaseList<Person *, T> &list, std::string filePath);
 void pushLinesToLists(Profiler *, Profiler *, std::string, List<Person *> &,
                       Vector<Person *> &);
 
@@ -73,12 +76,24 @@ int main() {
 
   auto saveMenu = menu.addNestedMenu("Salvar no arquivo");
 
-  saveMenu->addOption("Vector", [](auto) {});
-  saveMenu->addOption("List", [](auto) {});
+  saveMenu->addOption("Vector",
+                      [&](auto) { saveToFile(peopleVector, filePath); });
+
+  saveMenu->addOption("List", [&](auto) { saveToFile(peopleList, filePath); });
 
   menu.display();
 
   return 0;
+}
+
+template <typename T>
+void saveToFile(BaseList<Person *, T> &list, std::string filePath) {
+  std::string content = "";
+
+  list.forEach(
+      [&](auto item, auto) { content += utils::personToString(item) + '\n'; });
+
+  utils::writeFile(filePath, content);
 }
 
 void pushLinesToLists(Profiler *vectorProfiler, Profiler *listProfiler,
