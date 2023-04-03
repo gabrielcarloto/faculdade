@@ -192,7 +192,7 @@ public:
     size_t i = 0;
     Node *node = firstNode;
     bool found = filterFn(node->data, i);
-    this->profiler.addComparison();
+    this->profiler.addComparison(2);
 
     while (node->next != NULL && !found) {
       node = node->next;
@@ -212,7 +212,7 @@ public:
     size_t i = 0;
     Node *node = firstNode;
     bool found = filterFn(node->data, i);
-    this->profiler.addComparison();
+    this->profiler.addComparison(2);
 
     while (node->next != NULL && !found) {
       node = node->next;
