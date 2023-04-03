@@ -35,9 +35,9 @@ int main() {
   menu.display();
 
   const std::string fileName =
-                        std::string(FILES_BASENAME) + files[chosenFile - 1],
-                    filePath = std::string(FILES_PATH) + fileName +
-                               std::string(FILES_EXTENSION);
+      std::string(FILES_BASENAME) + files[chosenFile - 1];
+  const std::string filePath =
+      std::string(FILES_PATH) + fileName + std::string(FILES_EXTENSION);
 
   std::cout << std::string("Lendo o arquivo ") + fileName + "...\n";
 
@@ -53,8 +53,30 @@ int main() {
   pushLinesToLists(vectorProfiler, listProfiler, filePath, peopleList,
                    peopleVector);
 
-  const std::string opts[] = {"Inserir", "Remover", "Procurar",
-                              "Salvar no arquivo"};
+  menu.clear();
+  auto insertMenu = menu.addNestedMenu("Inserir");
+
+  insertMenu->addOption("no inicio", [](auto) {});
+  insertMenu->addOption("em um indice", [](auto) {});
+  insertMenu->addOption("no fim", [](auto) {});
+
+  auto removeMenu = menu.addNestedMenu("Remover");
+
+  removeMenu->addOption("no inicio", [](auto) {});
+  removeMenu->addOption("em um indice", [](auto) {});
+  removeMenu->addOption("no fim", [](auto) {});
+
+  auto searchMenu = menu.addNestedMenu("Procurar");
+
+  searchMenu->addOption("Nome", [](auto) {});
+  searchMenu->addOption("RG", [](auto) {});
+
+  auto saveMenu = menu.addNestedMenu("Salvar no arquivo");
+
+  saveMenu->addOption("Vector", [](auto) {});
+  saveMenu->addOption("List", [](auto) {});
+
+  menu.display();
 
   return 0;
 }
