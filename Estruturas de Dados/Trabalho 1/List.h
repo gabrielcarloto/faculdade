@@ -24,12 +24,12 @@ template <typename T> class List : public BaseList<T, List<T>> {
   Node *gotoIndex(size_t index) {
     this->assertIndexIsValid(index);
 
+    this->profiler.addComparison(2);
+
     if (index == 0)
       return firstNode;
     else if (index == this->length - 1)
       return lastNode;
-
-    this->profiler.addComparison(2);
 
     compareIndices(index);
 
@@ -53,14 +53,12 @@ template <typename T> class List : public BaseList<T, List<T>> {
         absolute(static_cast<intmax_t>(index) -
                  static_cast<intmax_t>(lastChosenNodeIndex));
 
-    if (distanceFirst < distanceCurrent) {
-      this->profiler.addComparison();
+    this->profiler.addComparison(2);
 
+    if (distanceFirst < distanceCurrent) {
       lastChosenNode = firstNode;
       lastChosenNodeIndex = 0;
     } else if (distanceLast < distanceFirst && distanceLast < distanceCurrent) {
-      this->profiler.addComparison();
-
       lastChosenNode = lastNode;
       lastChosenNodeIndex = this->length - 1;
     }
@@ -93,18 +91,18 @@ public:
   T &operator[](size_t index) override { return gotoIndex(index)->data; };
 
   T &_at(intmax_t index) override {
+    this->profiler.addComparison();
     return gotoIndex(index >= 0 ? index : this->length + index)->data;
   };
 
   void _push(const T &item) override {
     Node *node = new Node;
 
+    this->profiler.addComparison(2);
     if (firstNode == NULL) {
-      this->profiler.addComparison();
       firstNode = node;
       lastChosenNode = node;
     } else {
-      this->profiler.addComparison();
       lastNode->next = node;
     }
 
@@ -120,29 +118,26 @@ public:
          *nextNode = node->next;
 
     this->callReleaseCallback(node->data);
+    this->profiler.addComparison(5);
+    this->profiler.addMove();
 
     if (prevNode != NULL) {
-      this->profiler.addComparison();
       prevNode->next = nextNode;
     }
 
     if (nextNode != NULL) {
-      this->profiler.addComparison();
       nextNode->prev = prevNode;
     }
 
     if (index == 0) {
-      this->profiler.addComparison();
       firstNode = nextNode;
       lastChosenNode = firstNode;
       lastChosenNodeIndex = 0;
     } else if (index == this->length - 1) {
-      this->profiler.addComparison();
       lastNode = prevNode;
       lastChosenNode = lastNode;
       lastChosenNodeIndex = this->length - 2;
     } else {
-      this->profiler.addComparison();
       lastChosenNode = nextNode;
       lastChosenNodeIndex = index;
     }
@@ -155,13 +150,14 @@ public:
     Node *node = gotoIndex(index), *prevNode = node->prev;
     Node *newNode = new Node;
 
+    this->profiler.addComparison(2);
+
     newNode->data = item;
     newNode->next = node;
     newNode->prev = prevNode;
     node->prev = newNode;
 
     if (prevNode != NULL) {
-      this->profiler.addComparison();
       prevNode->next = newNode;
     }
 
@@ -194,6 +190,7 @@ public:
     size_t i = 0;
     Node *node = firstNode;
     bool found = filterFn(node->data, i);
+    this->profiler.addComparison();
 
     while (node->next != NULL && !found) {
       node = node->next;
@@ -223,6 +220,7 @@ public:
       this->profiler.addComparison();
     }
 
+    found = filterFn(node->data, i);
     if (found)
       item = node->data;
 
@@ -234,7 +232,7 @@ public:
 
     this->forEach([&](auto item, auto i) {
       bool found = filterFn(item, i);
-      this->profiler.addComparison();
+      this->profiler.addComparison(2);
 
       if (found)
         list.push(item);

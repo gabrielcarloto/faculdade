@@ -69,10 +69,10 @@ template <typename T> void Vector<T>::commonConstructor() {
 }
 
 template <typename T> void Vector<T>::reserve(size_t capacity) {
-  if (this->capacity > capacity) {
-    this->profiler.addComparison();
+  this->profiler.addComparison();
+
+  if (this->capacity > capacity)
     return;
-  }
 
   resize(capacity);
 }
@@ -83,6 +83,7 @@ template <typename T> void Vector<T>::resize(size_t newSize) {
 
   for (size_t i = 0; i < this->length; i++) {
     tempArray[i] = data[i];
+    this->profiler.addMove();
   }
 
   delete[] data;
@@ -143,6 +144,7 @@ template <typename T> void Vector<T>::_replace(T item, size_t index) {
 
 template <typename T> void Vector<T>::_remove(size_t index) {
   this->callReleaseCallback(data[index]);
+
   this->forEach(
       [&](auto, auto i) {
         data[i] = data[i + 1];
@@ -183,6 +185,8 @@ bool Vector<T>::_find(ItemIndexCallback<T, bool> filterFunction, T &item) {
     this->profiler.addComparison();
 
     if (foundItem) {
+      this->profiler.addComparison();
+
       item = data[i];
       return true;
     }
@@ -199,6 +203,8 @@ bool Vector<T>::_findIndex(ItemIndexCallback<T, bool> filterFunction,
     this->profiler.addComparison();
 
     if (foundItem) {
+      this->profiler.addComparison();
+
       index = i;
       return true;
     }
@@ -210,6 +216,7 @@ bool Vector<T>::_findIndex(ItemIndexCallback<T, bool> filterFunction,
 template <typename T> T *Vector<T>::getArray() { return data; }
 
 template <typename T> T &Vector<T>::_at(intmax_t index) {
+  this->profiler.addComparison();
   return data[index >= 0 ? index : this->length + index];
 }
 
@@ -224,18 +231,14 @@ template <typename T> double Vector<T>::getGrowthFactor(size_t size) {
   const double smallFactor = 2, mediumFactor = 1.4, largeFactor = 1.2,
                defaultFactor = 1.1;
 
-  if (size <= SMALL) {
-    this->profiler.addComparison();
+  this->profiler.addComparison(3);
+
+  if (size <= SMALL)
     return smallFactor;
-  }
-  if (size <= MEDIUM) {
-    this->profiler.addComparison();
+  if (size <= MEDIUM)
     return mediumFactor;
-  }
-  if (size <= LARGE) {
-    this->profiler.addComparison();
+  if (size <= LARGE)
     return largeFactor;
-  }
 
   // TODO: possível perda de dados a oconverter double para size_t
   return defaultFactor;

@@ -51,6 +51,7 @@ protected:
   };
 
   void assertIndexIsValid(intmax_t index) {
+    profiler.addComparison();
     if (index < static_cast<intmax_t>(length) &&
         static_cast<intmax_t>(length) + index > 0)
       return;
@@ -106,6 +107,7 @@ public:
 
   void insert(T item, size_t index = 0) {
     profiler.start();
+    profiler.addComparison(2);
 
     if (index == length) {
       _push(item);
