@@ -1,17 +1,13 @@
 #include "BaseList.h"
 #include "List.h"
-#include <type_traits>
-#define _CRTDBG_MAP_ALLOC
 #include "Menu.cpp"
 #include "Profiler.h"
 #include "Vector.h"
 #include "utils.h"
-#include <crtdbg.h>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
 #include <stdio.h>
-#include <utility>
 
 #define FILES_PATH "./arquivos/"
 #define FILES_BASENAME "NomeRG"
@@ -75,8 +71,6 @@ unsigned int askForID();
 std::string askForName();
 
 int main() {
-  _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-
   const std::string files[] = {"10", "50", "100", "1K", "10K", "1M", "100M"};
   const size_t sizes[] = {10, 50, 100, 1000, 10000, 1000000, 13000000};
   unsigned int chosenFile;
@@ -264,7 +258,7 @@ void removeList(BaseList<Person *, T> &list, Profiler *profiler, size_t index) {
 template <typename T>
 void insertList(BaseList<Person *, T> &list, Profiler *profiler,
                 std::string name, unsigned int id, size_t index) {
-  Person *newPerson = new Person;
+  Person *newPerson = DBG_NEW Person;
 
   newPerson->name = name;
   newPerson->id = id;
@@ -312,9 +306,9 @@ void pushLinesToLists(Profiler *vectorProfiler, Profiler *listProfiler,
       return;
     }
 
-    Person *parsed1 = utils::strToPerson(line), *parsed2 = new Person;
+    Person *parsed1 = utils::strToPerson(line), *parsed2 = DBG_NEW Person;
 
-    parsed2->name = std::string(parsed1->name);
+    parsed2->name = parsed1->name;
     parsed2->id = parsed1->id;
 
     peopleList.push(parsed1);
