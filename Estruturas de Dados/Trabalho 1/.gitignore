@@ -3,3 +3,6 @@ objects/
 *.o
 compile_commands.json
 .cache/
+main
+test
+valgrind-out.txt
