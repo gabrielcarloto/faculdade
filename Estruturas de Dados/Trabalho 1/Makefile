@@ -4,8 +4,13 @@ CXXFLAGS = -Wall -Wextra
 SRC_DIR = .
 OBJ_DIR = objects
 
-EXE = main.exe
-TEST_EXE = test.exe
+ifeq ($(shell uname), Linux)
+	EXE = main
+	TEST_EXE = test
+else
+	EXE = main.exe
+	TEST_EXE = test.exe
+endif
 
 $(EXE): utils.o main.cpp Profiler.cpp
 	$(CXX) $(CXXFLAGS) $^ -o $@ 
