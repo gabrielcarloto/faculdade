@@ -65,7 +65,7 @@ template <typename T> Vector<T>::~Vector() {
 
 template <typename T> void Vector<T>::commonConstructor() {
   this->capacity = this->length + 1;
-  data = new T[this->capacity];
+  data = DBG_NEW T[this->capacity];
 }
 
 template <typename T> void Vector<T>::reserve(size_t capacity) {
@@ -79,7 +79,7 @@ template <typename T> void Vector<T>::reserve(size_t capacity) {
 
 template <typename T> void Vector<T>::resize(size_t newSize) {
   capacity = newSize;
-  T *tempArray = new T[newSize];
+  T *tempArray = DBG_NEW T[newSize];
 
   for (size_t i = 0; i < this->length; i++) {
     tempArray[i] = data[i];
@@ -103,13 +103,14 @@ template <typename T> void Vector<T>::shrinkToFit() { resize(this->length); }
 template <typename T> void Vector<T>::resizeIfNeeded() {
   this->profiler.addComparison(2);
 
-  if (this->length == capacity)
+  if (this->length >= capacity)
     grow();
-  else if (this->length > 0 &&
-           this->length * (getGrowthFactor(this->length) + 0.7) <
-               capacity) // TODO: remove hard-coded number
 
-    shrink();
+  // else if (this->length > 0 &&
+  //          this->length * (getGrowthFactor(this->length) + 0.7) <
+  //              capacity) // TODO: remove hard-coded number
+  //
+  //   shrink();
 }
 
 template <typename T>

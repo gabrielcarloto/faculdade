@@ -7,7 +7,7 @@
 template <class Derived> class TestBaseListDerivedClass;
 
 template <typename T> struct NodeStruct {
-  T data;
+  T data = NULL;
   NodeStruct<T> *next = NULL;
   NodeStruct<T> *prev = NULL;
 };
@@ -96,7 +96,7 @@ public:
   };
 
   void _push(const T &item) override {
-    Node *node = new Node;
+    Node *node = DBG_NEW Node;
 
     this->profiler.addComparison(2);
     if (firstNode == NULL) {
@@ -148,7 +148,7 @@ public:
 
   void _insert(T item, size_t index = 0) override {
     Node *node = gotoIndex(index), *prevNode = node->prev;
-    Node *newNode = new Node;
+    Node *newNode = DBG_NEW Node;
 
     this->profiler.addComparison(2);
 

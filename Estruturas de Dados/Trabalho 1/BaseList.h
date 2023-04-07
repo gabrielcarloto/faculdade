@@ -164,4 +164,4 @@ public:
   Profiler *getProfiler() { return &profiler; }
 };
 
-template <typename T> void defaultItemRelease(T &item) { delete item; }
+template <typename T> void defaultItemRelease(T &item) { delete item; item = NULL; }

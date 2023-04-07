@@ -43,7 +43,7 @@ Vector<char *> utils::splitStr(char *str, const char *delimiter) {
 
 Person *utils::strToPerson(std::string &str) {
   auto splitted = splitStr(const_cast<char *>(str.data()), ",");
-  Person *p = new Person;
+  Person *p = DBG_NEW Person;
 
   p->name = std::string(splitted[0]);
   p->id = std::atoi(splitted[1]);
