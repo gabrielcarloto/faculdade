@@ -124,7 +124,7 @@ template <class Derived> class TestBaseListDerivedClass {
   }
 
   void testRemove(ListType list) {
-    it("should remove an index", [&]() {
+    it("should remove an index twice", [&]() {
       const size_t indexToRemove = LIST_LENGTH - 10;
 
       {
