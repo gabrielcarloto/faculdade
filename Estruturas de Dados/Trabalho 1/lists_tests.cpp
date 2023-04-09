@@ -344,8 +344,8 @@ int main() {
     });
 
     it("should shrink to fit", [&]() {
-      auto vec =
-          TestBaseListDerivedClass<Vector<int>>::initBaseListDerivedClass();
+      Vector<int> vec;
+      TestBaseListDerivedClass<Vector<int>>::mockBaseListDerivedClass(vec);
       const size_t capacityBeforeShrinking = vec.getCapacity();
 
       vec.shrinkToFit();
