@@ -28,7 +28,7 @@ void readFile(std::string path,
 
 void writeFile(std::string path, std::string content);
 
-Vector<char *> splitStr(char *str, const char *delimiter);
+Vector<char *> splitStr(char *str, const char *delimiter, size_t reserve = 0);
 
 Person *strToPerson(std::string &str);
 std::string personToString(Person *);

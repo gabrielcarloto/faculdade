@@ -1,6 +1,7 @@
 #include "utils.h"
 #include "Vector.h"
 #include <fstream>
+#include <string.h>
 #include <string>
 
 void utils::readFile(
@@ -29,9 +30,13 @@ void utils::writeFile(std::string path, std::string content) {
   file.close();
 }
 
-Vector<char *> utils::splitStr(char *str, const char *delimiter) {
+Vector<char *> utils::splitStr(char *str, const char *delimiter,
+                               size_t reserve) {
   char *token = strtok(str, delimiter);
   Vector<char *> splitted;
+
+  if (reserve)
+    splitted.reserve(reserve);
 
   while (token != NULL) {
     splitted.push(token);
@@ -42,17 +47,17 @@ Vector<char *> utils::splitStr(char *str, const char *delimiter) {
 }
 
 Person *utils::strToPerson(std::string &str) {
-  auto splitted = splitStr(const_cast<char *>(str.data()), ",");
+  auto splitted = splitStr(str.data(), ",", 2);
   Person *p = DBG_NEW Person;
 
-  p->name = std::string(splitted[0]);
+  p->name = splitted[0];
   p->id = std::atoi(splitted[1]);
 
   return p;
 }
 
 std::string utils::personToString(Person *p) {
-  return p->name + "," + std::to_string(p->id);
+  return "Nome: " + std::string(p->name) + ", RG: " + std::to_string(p->id);
 }
 
 bool utils::verifyString(std::string &str) {
