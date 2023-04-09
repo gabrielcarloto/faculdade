@@ -20,7 +20,7 @@ void pushLinesToLists(Profiler *, Profiler *, std::string, List<Person *> &,
                       Vector<Person *> &);
 template <typename T>
 void insertList(BaseList<Person *, T> &list, Profiler *profiler,
-                std::string name, unsigned int id, size_t index);
+                std::string &name, unsigned int id, size_t index);
 template <typename T>
 void removeList(BaseList<Person *, T> &list, Profiler *profiler, size_t index);
 
@@ -252,7 +252,7 @@ void removeList(BaseList<Person *, T> &list, Profiler *profiler, size_t index) {
 
 template <typename T>
 void insertList(BaseList<Person *, T> &list, Profiler *profiler,
-                std::string name, unsigned int id, size_t index) {
+                std::string &name, unsigned int id, size_t index) {
   Person *newPerson = DBG_NEW Person;
 
   newPerson->name = name;
@@ -295,7 +295,6 @@ void pushLinesToLists(Profiler *vectorProfiler, Profiler *listProfiler,
   unsigned int ignoredCount = 0;
 
   utils::readFile(filePath, [&](std::string line) {
-    // regex eh muito lento meu deus
     if (!utils::verifyString(line)) {
       ignoredCount++;
       return;
@@ -309,12 +308,14 @@ void pushLinesToLists(Profiler *vectorProfiler, Profiler *listProfiler,
     peopleList.push(parsed1);
     peopleVector.push(parsed2);
   });
+
   fileReadProfiler.end();
   vectorProfiler->end();
   listProfiler->end();
 
   std::cout << "A leitura do arquivo levou "
-            << fileReadProfiler.getDuration().count() << "ms.\n";
+            << fileReadProfiler.getDuration().count() << "ms e " << ignoredCount
+            << " linhas foram ignoradas.\n";
 
   vectorProfiler->printInfo(false);
   listProfiler->printInfo(false);
