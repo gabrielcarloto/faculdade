@@ -74,9 +74,7 @@ int main() {
   const std::string files[] = {"10", "50", "100", "1K", "10K", "1M", "100M"};
   const size_t sizes[] = {10, 50, 100, 1000, 10000, 1000000, 13000000};
   unsigned int chosenFile;
-  Menu menu;
-
-  std::cout << "Escolha o numero de itens na lista:\n\n";
+  Menu menu("Numero de itens na lista");
 
   for (const auto &file : files) {
     menu.addOption(file, [&chosenFile](auto c) { chosenFile = c; });
@@ -84,8 +82,7 @@ int main() {
 
   menu.display();
 
-  const std::string fileName =
-      std::string(FILES_BASENAME) + files[chosenFile - 1];
+  const std::string fileName = std::string(FILES_BASENAME) + files[chosenFile];
   const std::string filePath =
       std::string(FILES_PATH) + fileName + std::string(FILES_EXTENSION);
 
@@ -96,101 +93,99 @@ int main() {
   Profiler *vectorProfiler = peopleVector.getProfiler(),
            *listProfiler = peopleList.getProfiler();
 
-  listProfiler->setName("List");
-  vectorProfiler->setName("Vector");
-  peopleVector.reserve(sizes[chosenFile - 1]);
+  listProfiler->setName("List (encadeada)");
+  vectorProfiler->setName("Vector (sequencial)");
+  peopleVector.reserve(sizes[chosenFile]);
   peopleVector.registerItemReleaseCallback();
   peopleList.registerItemReleaseCallback();
 
   pushLinesToLists(vectorProfiler, listProfiler, filePath, peopleList,
                    peopleVector);
 
-  while (true) {
-    menu.clear();
+  menu.clear();
+  menu.setTitle("Menu");
 
-    auto insertMenu = menu.addNestedMenu("Inserir");
+  auto insertMenu = menu.addNestedMenu("Inserir");
 
-    insertMenu->addOption("no inicio", [&](auto) {
-      const size_t index = 0;
-      std::string name = askForName();
-      unsigned int id = askForID();
+  insertMenu->addOption("no inicio", [&](auto) {
+    const size_t index = 0;
+    std::string name = askForName();
+    unsigned int id = askForID();
 
-      insertList(peopleList, listProfiler, name, id, index);
-      insertList(peopleVector, vectorProfiler, name, id, index);
-    });
+    insertList(peopleList, listProfiler, name, id, index);
+    insertList(peopleVector, vectorProfiler, name, id, index);
+  });
 
-    insertMenu->addOption("em um indice", [&](auto) {
-      const size_t index = askForIndex();
-      std::string name = askForName();
-      unsigned int id = askForID();
+  insertMenu->addOption("em um indice", [&](auto) {
+    const size_t index = askForIndex();
+    std::string name = askForName();
+    unsigned int id = askForID();
 
-      insertList(peopleList, listProfiler, name, id, index);
-      insertList(peopleVector, vectorProfiler, name, id, index);
-    });
+    insertList(peopleList, listProfiler, name, id, index);
+    insertList(peopleVector, vectorProfiler, name, id, index);
+  });
 
-    insertMenu->addOption("no fim", [&](auto) {
-      const size_t index = peopleVector.getLength();
-      std::string name = askForName();
-      unsigned int id = askForID();
+  insertMenu->addOption("no fim", [&](auto) {
+    const size_t index = peopleVector.getLength();
+    std::string name = askForName();
+    unsigned int id = askForID();
 
-      insertList(peopleList, listProfiler, name, id, index);
-      insertList(peopleVector, vectorProfiler, name, id, index);
-    });
+    insertList(peopleList, listProfiler, name, id, index);
+    insertList(peopleVector, vectorProfiler, name, id, index);
+  });
 
-    auto removeMenu = menu.addNestedMenu("Remover");
+  auto removeMenu = menu.addNestedMenu("Remover");
 
-    removeMenu->addOption("no inicio", [&](auto) {
-      const size_t index = 0;
+  removeMenu->addOption("no inicio", [&](auto) {
+    const size_t index = 0;
 
-      removeList(peopleList, listProfiler, index);
-      removeList(peopleVector, vectorProfiler, index);
-    });
+    removeList(peopleList, listProfiler, index);
+    removeList(peopleVector, vectorProfiler, index);
+  });
 
-    removeMenu->addOption("em um indice", [&](auto) {
-      const size_t index = askForIndex();
+  removeMenu->addOption("em um indice", [&](auto) {
+    const size_t index = askForIndex();
 
-      removeList(peopleList, listProfiler, index);
-      removeList(peopleVector, vectorProfiler, index);
-    });
+    removeList(peopleList, listProfiler, index);
+    removeList(peopleVector, vectorProfiler, index);
+  });
 
-    removeMenu->addOption("no fim", [&](auto) {
-      const size_t index = peopleVector.getLength() - 1;
+  removeMenu->addOption("no fim", [&](auto) {
+    const size_t index = peopleVector.getLength() - 1;
 
-      removeList(peopleList, listProfiler, index);
-      removeList(peopleVector, vectorProfiler, index);
-    });
+    removeList(peopleList, listProfiler, index);
+    removeList(peopleVector, vectorProfiler, index);
+  });
 
-    auto searchMenu = menu.addNestedMenu("Procurar");
+  auto searchMenu = menu.addNestedMenu("Procurar");
 
-    searchMenu->addOption("Nome", [&](auto) {
-      std::string name = askForName();
+  searchMenu->addOption("Nome", [&](auto) {
+    std::string name = askForName();
 
-      searchListName(peopleVector, vectorProfiler, name);
-      searchListName(peopleList, listProfiler, name);
-    });
+    searchListName(peopleVector, vectorProfiler, name);
+    searchListName(peopleList, listProfiler, name);
+  });
 
-    searchMenu->addOption("RG", [&](auto) {
-      unsigned int id = askForID();
+  searchMenu->addOption("RG", [&](auto) {
+    unsigned int id = askForID();
 
-      searchListID(peopleVector, vectorProfiler, id);
-      searchListID(peopleList, listProfiler, id);
-    });
+    searchListID(peopleVector, vectorProfiler, id);
+    searchListID(peopleList, listProfiler, id);
+  });
 
-    auto saveMenu = menu.addNestedMenu("Salvar no arquivo");
+  auto saveMenu = menu.addNestedMenu("Salvar no arquivo");
 
-    saveMenu->addOption("Vector",
-                        [&](auto) { saveToFile(peopleVector, filePath); });
+  saveMenu->addOption("Vector",
+                      [&](auto) { saveToFile(peopleVector, filePath); });
 
-    saveMenu->addOption("List",
-                        [&](auto) { saveToFile(peopleList, filePath); });
+  saveMenu->addOption("List", [&](auto) { saveToFile(peopleList, filePath); });
 
-    auto printMenu = menu.addNestedMenu("Imprimir na tela");
+  auto printMenu = menu.addNestedMenu("Imprimir na tela");
 
-    printMenu->addOption("Vector", [&](auto) { printToStdout(peopleVector); });
-    printMenu->addOption("List", [&](auto) { printToStdout(peopleList); });
+  printMenu->addOption("Vector", [&](auto) { printToStdout(peopleVector); });
+  printMenu->addOption("List", [&](auto) { printToStdout(peopleList); });
 
-    menu.display();
-  }
+  menu.loopDisplay();
 
   return 0;
 }
