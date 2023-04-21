@@ -1,8 +1,8 @@
 #pragma once
 #include "Profiler.h"
+#include <cstdint>
 #include <functional>
 #include <iostream>
-#include <stdint.h>
 
 template <typename TItem, typename TReturn = void>
 using ItemIndexCallback =
@@ -41,6 +41,10 @@ protected:
   };
 
   void rawCallReleaseCallback(T &item) { (*itemReleaseCallback)(item); };
+
+  size_t intmax_t_to_size_t(intmax_t size) {
+    return size >= 0 ? size : length + size;
+  }
 
   void assertIndexIsValid(size_t index) {
     profiler.addComparison();
@@ -164,4 +168,7 @@ public:
   Profiler *getProfiler() { return &profiler; }
 };
 
-template <typename T> void defaultItemRelease(T &item) { delete item; item = NULL; }
+template <typename T> void defaultItemRelease(T &item) {
+  delete item;
+  item = NULL;
+}

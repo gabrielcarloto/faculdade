@@ -218,7 +218,7 @@ template <typename T> T *Vector<T>::getArray() { return data; }
 
 template <typename T> T &Vector<T>::_at(intmax_t index) {
   this->profiler.addComparison();
-  return data[index >= 0 ? index : this->length + index];
+  return data[this->intmax_t_to_size_t(index)];
 }
 
 template <typename T> T &Vector<T>::operator[](size_t index) {

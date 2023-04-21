@@ -1,8 +1,8 @@
 #pragma once
 #include "BaseList.h"
 #include "utils.h"
+#include <cstdint>
 #include <iostream>
-#include <stdint.h>
 
 template <class Derived> class TestBaseListDerivedClass;
 
@@ -92,7 +92,7 @@ public:
 
   T &_at(intmax_t index) override {
     this->profiler.addComparison();
-    return gotoIndex(index >= 0 ? index : this->length + index)->data;
+    return gotoIndex(this->intmax_t_to_size_t(index))->data;
   };
 
   void _push(const T &item) override {
