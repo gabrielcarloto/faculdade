@@ -66,30 +66,6 @@ template <typename T> class List : public BaseList<T, List<T>> {
 
   friend class TestBaseListDerivedClass<List<T>>;
 
-public:
-  List(const T &array, const size_t length) : BaseList<T, List<T>>(length) {
-    for (const T item : array) {
-      this->push(item);
-    }
-  };
-
-  List(const size_t length = 0) : BaseList<T, List<T>>(length){};
-
-  ~List() {
-    Node *node = firstNode, *aux = node != NULL ? node->next : NULL;
-
-    while (node != NULL) {
-      this->callReleaseCallback(node->data);
-      delete node;
-
-      node = aux;
-      if (node != NULL)
-        aux = node->next;
-    }
-  };
-
-  T &operator[](size_t index) override { return gotoIndex(index)->data; };
-
   T &_at(intmax_t index) override {
     this->profiler.addComparison();
     return gotoIndex(this->intmax_t_to_size_t(index))->data;
@@ -242,4 +218,28 @@ public:
 
     return list;
   };
+
+public:
+  List(const T &array, const size_t length) : BaseList<T, List<T>>(length) {
+    for (const T item : array) {
+      this->push(item);
+    }
+  };
+
+  List(const size_t length = 0) : BaseList<T, List<T>>(length){};
+
+  ~List() {
+    Node *node = firstNode, *aux = node != NULL ? node->next : NULL;
+
+    while (node != NULL) {
+      this->callReleaseCallback(node->data);
+      delete node;
+
+      node = aux;
+      if (node != NULL)
+        aux = node->next;
+    }
+  };
+
+  T &operator[](size_t index) override { return gotoIndex(index)->data; };
 };

@@ -20,6 +20,16 @@ template <typename T> class Vector : public BaseList<T, Vector<T>> {
   double getGrowthFactor(size_t size);
   void shrink();
 
+  T &_at(intmax_t index) override;
+  void _push(const T &item) override;
+  void _remove(size_t index) override;
+  void _insert(T item, size_t index = 0) override;
+  void _replace(T item, size_t index = 0) override;
+  void _forEach(ItemIndexCallback<T> callback, size_t startIndex = 0) override;
+  bool _findIndex(ItemIndexCallback<T, bool> filterFn, size_t &index) override;
+  bool _find(ItemIndexCallback<T, bool> filterFn, T &item) override;
+  Vector<T> _filter(ItemIndexCallback<T, bool> filterFn) override;
+
 public:
   Vector(const T &array, const size_t length);
   Vector(const size_t length = 0);
@@ -32,15 +42,6 @@ public:
   void shrinkToFit();
 
   T *getArray();
-  T &_at(intmax_t index) override;
-  void _push(const T &item) override;
-  void _remove(size_t index) override;
-  void _insert(T item, size_t index = 0) override;
-  void _replace(T item, size_t index = 0) override;
-  void _forEach(ItemIndexCallback<T> callback, size_t startIndex = 0) override;
-  bool _findIndex(ItemIndexCallback<T, bool> filterFn, size_t &index) override;
-  bool _find(ItemIndexCallback<T, bool> filterFn, T &item) override;
-  Vector<T> _filter(ItemIndexCallback<T, bool> filterFn) override;
 };
 
 template <typename T>
