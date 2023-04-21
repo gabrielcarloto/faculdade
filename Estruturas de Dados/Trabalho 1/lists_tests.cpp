@@ -1,15 +1,16 @@
+#define _DEBUG
 #include "BaseList.h"
 #include "List.h"
 #include "Vector.h"
 #include "test.h"
+#include <cstdint>
 #include <stdexcept>
-#include <stdint.h>
 #include <type_traits>
 #include <vector>
 
 using namespace test;
 
-#define LIST_LENGTH 1000
+enum { LIST_LENGTH = 1000 };
 
 template <class Derived> class TestBaseListDerivedClass {
   using ListType = Derived &;

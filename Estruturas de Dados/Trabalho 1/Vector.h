@@ -66,7 +66,7 @@ template <typename T> Vector<T>::~Vector() {
 
 template <typename T> void Vector<T>::commonConstructor() {
   this->capacity = this->length + 1;
-  data = DBG_NEW T[this->capacity];
+  data = new T[this->capacity];
 }
 
 template <typename T> void Vector<T>::reserve(size_t capacity) {
@@ -80,7 +80,7 @@ template <typename T> void Vector<T>::reserve(size_t capacity) {
 
 template <typename T> void Vector<T>::resize(size_t newSize) {
   capacity = newSize;
-  T *tempArray = DBG_NEW T[newSize];
+  T *tempArray = new T[newSize];
 
   for (size_t i = 0; i < this->length; i++) {
     tempArray[i] = data[i];

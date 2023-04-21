@@ -1,8 +1,8 @@
 #include "test.h"
 #include "utils.h"
 #include <chrono>
+#include <cstring>
 #include <exception>
-#include <string.h>
 
 #define BG_GREEN "\033[30;42m"
 #define BG_RED "\033[30;41m"

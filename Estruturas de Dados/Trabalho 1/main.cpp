@@ -1,13 +1,14 @@
+#define _DEBUG
 #include "BaseList.h"
 #include "List.h"
 #include "Menu.cpp"
 #include "Profiler.h"
 #include "Vector.h"
 #include "utils.h"
+#include <cstdio>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
-#include <stdio.h>
 
 #define FILES_PATH "./arquivos/"
 #define FILES_BASENAME "NomeRG"
@@ -253,7 +254,7 @@ void removeList(BaseList<Person *, T> &list, Profiler *profiler, size_t index) {
 template <typename T>
 void insertList(BaseList<Person *, T> &list, Profiler *profiler,
                 std::string &name, unsigned int id, size_t index) {
-  Person *newPerson = DBG_NEW Person;
+  Person *newPerson = new Person;
 
   newPerson->name = name;
   newPerson->id = id;
@@ -300,7 +301,7 @@ void pushLinesToLists(Profiler *vectorProfiler, Profiler *listProfiler,
       return;
     }
 
-    Person *parsed1 = utils::strToPerson(line), *parsed2 = DBG_NEW Person;
+    Person *parsed1 = utils::strToPerson(line), *parsed2 = new Person;
 
     parsed2->name = parsed1->name;
     parsed2->id = parsed1->id;

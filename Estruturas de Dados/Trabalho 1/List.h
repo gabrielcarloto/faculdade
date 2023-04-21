@@ -72,7 +72,7 @@ template <typename T> class List : public BaseList<T, List<T>> {
   };
 
   void _push(const T &item) override {
-    Node *node = DBG_NEW Node;
+    Node *node = new Node;
 
     this->profiler.addComparison(2);
     if (firstNode == NULL) {
@@ -124,7 +124,7 @@ template <typename T> class List : public BaseList<T, List<T>> {
 
   void _insert(T item, size_t index = 0) override {
     Node *node = gotoIndex(index), *prevNode = node->prev;
-    Node *newNode = DBG_NEW Node;
+    Node *newNode = new Node;
 
     this->profiler.addComparison(2);
 
