@@ -14,11 +14,40 @@ template <typename T> class Vector : public BaseList<T, Vector<T>> {
   T *data;
 
   void grow();
+  void shrink();
   void resizeIfNeeded();
   void commonConstructor();
   void resize(size_t newSize);
   double getGrowthFactor(size_t size);
-  void shrink();
+
+  void copy(T *source, T *dest, size_t sourceLength, size_t destLength) {
+    for (size_t i = 0; i < destLength; i++) {
+      dest[i] = std::move(source[i]);
+      this->profiler.addComparison();
+      this->profiler.addMove();
+    }
+
+    this->profiler.addComparison();
+    if (sourceLength > destLength)
+      freeData(destLength);
+  }
+
+  void freeData(size_t start = 0, size_t end = 0) {
+    this->profiler.addComparison();
+    if (this->length > 0 && (start >= this->length || end > this->length))
+      throw std::out_of_range("Invalid range in freeData");
+
+    this->profiler.addComparison();
+    if (end == 0)
+      end = this->length;
+
+    this->profiler.addComparison();
+    if (this->checkReleaseCallback())
+      for (size_t i = start; i < end; i++) {
+        this->rawCallReleaseCallback(data[i]);
+        this->profiler.addComparison();
+      }
+  }
 
   T &_at(intmax_t index) override;
   void _push(const T &item) override;
@@ -31,7 +60,7 @@ template <typename T> class Vector : public BaseList<T, Vector<T>> {
   Vector<T> _filter(ItemIndexCallback<T, bool> filterFn) override;
 
 public:
-  Vector(const T &array, const size_t length);
+  Vector(const T *array, const size_t length);
   Vector(const size_t length = 0);
   ~Vector();
 
@@ -45,10 +74,10 @@ public:
 };
 
 template <typename T>
-Vector<T>::Vector(const T &array, const size_t length)
+Vector<T>::Vector(const T *array, const size_t length)
     : BaseList<T, Vector<T>>(length) {
   commonConstructor();
-  memcpy(data, array, length * sizeof(T)); // TODO: switch to for loop
+  copy(array, data, length, length);
 }
 
 template <typename T>
@@ -57,10 +86,7 @@ Vector<T>::Vector(const size_t length) : BaseList<T, Vector<T>>(length) {
 }
 
 template <typename T> Vector<T>::~Vector() {
-  if (this->checkReleaseCallback())
-    for (size_t i = 0; i < this->length; i++)
-      this->rawCallReleaseCallback(data[i]);
-
+  freeData();
   delete[] data;
 }
 
@@ -71,7 +97,6 @@ template <typename T> void Vector<T>::commonConstructor() {
 
 template <typename T> void Vector<T>::reserve(size_t capacity) {
   this->profiler.addComparison();
-
   if (this->capacity > capacity)
     return;
 
@@ -82,13 +107,11 @@ template <typename T> void Vector<T>::resize(size_t newSize) {
   capacity = newSize;
   T *tempArray = new T[newSize];
 
+  copy(data, tempArray, this->length,
+       this->length > newSize ? newSize : this->length);
+
   if (this->length > newSize)
     this->length = newSize;
-
-  for (size_t i = 0; i < this->length; i++) {
-    tempArray[i] = data[i];
-    this->profiler.addMove();
-  }
 
   delete[] data;
   data = tempArray;
@@ -105,16 +128,10 @@ template <typename T> void Vector<T>::shrink() {
 template <typename T> void Vector<T>::shrinkToFit() { resize(this->length); }
 
 template <typename T> void Vector<T>::resizeIfNeeded() {
-  this->profiler.addComparison(2);
+  this->profiler.addComparison();
 
   if (this->length >= capacity)
     grow();
-
-  // else if (this->length > 0 &&
-  //          this->length * (getGrowthFactor(this->length) + 0.7) <
-  //              capacity) // TODO: remove hard-coded number
-  //
-  //   shrink();
 }
 
 template <typename T>
@@ -127,15 +144,15 @@ void Vector<T>::_forEach(
 }
 
 template <typename T> void Vector<T>::_insert(T item, size_t index) {
-  T lastItem = data[index];
-  data[index] = item;
+  T lastItem = std::move(data[index]);
+  data[index] = std::move(item);
 
   this->length++;
   resizeIfNeeded();
 
   this->forEach(
       [&](auto curr, auto i) {
-        data[i] = lastItem;
+        data[i] = std::move(lastItem);
         lastItem = curr;
         this->profiler.addMove();
       },
@@ -144,7 +161,7 @@ template <typename T> void Vector<T>::_insert(T item, size_t index) {
 
 template <typename T> void Vector<T>::_replace(T item, size_t index) {
   this->callReleaseCallback(data[index]);
-  data[index] = item;
+  data[index] = std::move(item);
 }
 
 template <typename T> void Vector<T>::_remove(size_t index) {
@@ -152,7 +169,7 @@ template <typename T> void Vector<T>::_remove(size_t index) {
 
   this->forEach(
       [&](auto, auto i) {
-        data[i] = data[i + 1];
+        data[i] = std::move(data[i + 1]);
         this->profiler.addMove();
       },
       index);
