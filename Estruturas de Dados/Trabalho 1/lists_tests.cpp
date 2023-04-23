@@ -164,7 +164,7 @@ template <class Derived> class TestBaseListDerivedClass {
       NodeStruct<int> *firstNodeBeforeRemoving;
 
       if constexpr (std::is_same_v<Derived, List<int>>) {
-        firstNodeBeforeRemoving = list.firstNode;
+        firstNodeBeforeRemoving = list.getManager().first();
       }
 
       list.remove(indexToRemove);
@@ -172,7 +172,7 @@ template <class Derived> class TestBaseListDerivedClass {
       expectDifer(list.at(indexToRemove), valueBeforeRemoving);
 
       if constexpr (std::is_same_v<Derived, List<int>>) {
-        expectDifer(list.firstNode, firstNodeBeforeRemoving)
+        expectDifer(list.getManager().first(), firstNodeBeforeRemoving)
       }
     });
   }
@@ -185,7 +185,7 @@ template <class Derived> class TestBaseListDerivedClass {
       NodeStruct<int> *lastNodeBeforeRemoving;
 
       if constexpr (std::is_same_v<Derived, List<int>>) {
-        lastNodeBeforeRemoving = list.lastNode;
+        lastNodeBeforeRemoving = list.getManager().last();
       }
 
       list.remove(indexToRemove);
@@ -194,7 +194,7 @@ template <class Derived> class TestBaseListDerivedClass {
       expectThrow(list.at, indexToRemove);
 
       if constexpr (std::is_same_v<Derived, List<int>>) {
-        expectDifer(list.lastNode, lastNodeBeforeRemoving)
+        expectDifer(list.getManager().last(), lastNodeBeforeRemoving)
       }
     });
   }
@@ -257,7 +257,7 @@ template <class Derived> class TestBaseListDerivedClass {
       NodeStruct<int> *lastNodeBeforeRemoving;
 
       if constexpr (std::is_same_v<Derived, List<int>>) {
-        lastNodeBeforeRemoving = list.lastNode;
+        lastNodeBeforeRemoving = list.getManager().last();
       }
 
       list.insert(itemToInsert, indexToInsert);
@@ -265,7 +265,7 @@ template <class Derived> class TestBaseListDerivedClass {
       expectEqual(itemToInsert, list.at(indexToInsert));
 
       if constexpr (std::is_same_v<Derived, List<int>>) {
-        expectDifer(list.lastNode, lastNodeBeforeRemoving)
+        expectDifer(list.getManager().last(), lastNodeBeforeRemoving)
       }
     });
   }
