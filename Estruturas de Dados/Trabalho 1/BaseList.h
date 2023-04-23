@@ -65,6 +65,7 @@ protected:
 
   virtual T &_at(intmax_t index) = 0;
   virtual void _push(const T &item) = 0;
+  virtual void _push(const T &&item) = 0;
   virtual void _remove(size_t index) = 0;
   virtual void _insert(T item, size_t index = 0) = 0;
   virtual void _replace(T item, size_t index = 0) = 0;
@@ -101,6 +102,7 @@ public:
   };
 
   void push(const T &item) { _push(item); };
+  void push(const T &&item) { _push(item); };
 
   void remove(size_t index) {
     profiler.start();

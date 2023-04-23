@@ -51,6 +51,7 @@ template <typename T> class Vector : public BaseList<T, Vector<T>> {
 
   T &_at(intmax_t index) override;
   void _push(const T &item) override;
+  void _push(const T &&item) override;
   void _remove(size_t index) override;
   void _insert(T item, size_t index = 0) override;
   void _replace(T item, size_t index = 0) override;
@@ -182,6 +183,13 @@ template <typename T> void Vector<T>::_push(const T &item) {
   resizeIfNeeded();
 
   data[this->length] = item;
+  this->length++;
+}
+
+template <typename T> void Vector<T>::_push(const T &&item) {
+  resizeIfNeeded();
+
+  data[this->length] = std::move(item);
   this->length++;
 }
 

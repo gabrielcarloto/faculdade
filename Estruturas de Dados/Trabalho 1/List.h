@@ -71,7 +71,7 @@ template <typename T> class List : public BaseList<T, List<T>> {
     return gotoIndex(this->intmax_t_to_size_t(index))->data;
   };
 
-  void _push(const T &item) override {
+  Node *pushNodeLogic() {
     Node *node = new Node;
 
     this->profiler.addComparison(2);
@@ -85,8 +85,14 @@ template <typename T> class List : public BaseList<T, List<T>> {
     node->prev = lastNode;
     lastNode = node;
 
-    node->data = item;
     this->length++;
+    return node;
+  }
+
+  void _push(const T &item) override { pushNodeLogic()->data = item; };
+
+  void _push(const T &&item) override {
+    pushNodeLogic()->data = std::move(item);
   };
 
   void _remove(size_t index) override {
