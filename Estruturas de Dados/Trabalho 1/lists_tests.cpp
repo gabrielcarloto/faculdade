@@ -161,10 +161,10 @@ template <class Derived> class TestBaseListDerivedClass {
       const size_t indexToRemove = 0;
       const size_t expectedLength = LIST_LENGTH - 1;
       const int valueBeforeRemoving = list.at(indexToRemove);
-      NodeStruct<int> *firstNodeBeforeRemoving;
+      BasicLinkedList<int>::Node *firstNodeBeforeRemoving;
 
       if constexpr (std::is_same_v<Derived, List<int>>) {
-        firstNodeBeforeRemoving = list.getManager().first();
+        firstNodeBeforeRemoving = list.getBasicLinkedList().first();
       }
 
       list.remove(indexToRemove);
@@ -172,7 +172,7 @@ template <class Derived> class TestBaseListDerivedClass {
       expectDifer(list.at(indexToRemove), valueBeforeRemoving);
 
       if constexpr (std::is_same_v<Derived, List<int>>) {
-        expectDifer(list.getManager().first(), firstNodeBeforeRemoving)
+        expectDifer(list.getBasicLinkedList().first(), firstNodeBeforeRemoving)
       }
     });
   }
@@ -182,10 +182,10 @@ template <class Derived> class TestBaseListDerivedClass {
       const size_t indexToRemove = LIST_LENGTH - 1;
       const size_t expectedLength = LIST_LENGTH - 1;
       const int predecessorValue = list.at(indexToRemove - 1);
-      NodeStruct<int> *lastNodeBeforeRemoving;
+      BasicLinkedList<int>::Node *lastNodeBeforeRemoving;
 
       if constexpr (std::is_same_v<Derived, List<int>>) {
-        lastNodeBeforeRemoving = list.getManager().last();
+        lastNodeBeforeRemoving = list.getBasicLinkedList().last();
       }
 
       list.remove(indexToRemove);
@@ -194,7 +194,7 @@ template <class Derived> class TestBaseListDerivedClass {
       expectThrow(list.at, indexToRemove);
 
       if constexpr (std::is_same_v<Derived, List<int>>) {
-        expectDifer(list.getManager().last(), lastNodeBeforeRemoving)
+        expectDifer(list.getBasicLinkedList().last(), lastNodeBeforeRemoving)
       }
     });
   }
@@ -254,10 +254,10 @@ template <class Derived> class TestBaseListDerivedClass {
     it("should insert an item in index LIST_LENGTH - 1", [&]() {
       const size_t indexToInsert = LIST_LENGTH - 1;
       const int itemToInsert = 10;
-      NodeStruct<int> *lastNodeBeforeRemoving;
+      BasicLinkedList<int>::Node *lastNodeBeforeRemoving;
 
       if constexpr (std::is_same_v<Derived, List<int>>) {
-        lastNodeBeforeRemoving = list.getManager().last();
+        lastNodeBeforeRemoving = list.getBasicLinkedList().last();
       }
 
       list.insert(itemToInsert, indexToInsert);
@@ -265,7 +265,7 @@ template <class Derived> class TestBaseListDerivedClass {
       expectEqual(itemToInsert, list.at(indexToInsert));
 
       if constexpr (std::is_same_v<Derived, List<int>>) {
-        expectDifer(list.getManager().last(), lastNodeBeforeRemoving)
+        expectDifer(list.getBasicLinkedList().last(), lastNodeBeforeRemoving)
       }
     });
   }
