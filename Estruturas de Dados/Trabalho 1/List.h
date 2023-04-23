@@ -7,18 +7,18 @@
 template <class Derived> class TestBaseListDerivedClass;
 
 template <typename T> struct NodeStruct {
-  T data = NULL;
-  NodeStruct<T> *next = NULL;
-  NodeStruct<T> *prev = NULL;
+  NodeStruct<T> *next = nullptr;
+  NodeStruct<T> *prev = nullptr;
+  T data;
 };
 
 template <typename T> class List : public BaseList<T, List<T>> {
   using Node = NodeStruct<T>;
 
-  Node *firstNode = NULL;
-  Node *lastNode = NULL;
+  Node *firstNode = nullptr;
+  Node *lastNode = nullptr;
 
-  Node *lastChosenNode = NULL;
+  Node *lastChosenNode = nullptr;
   size_t lastChosenNodeIndex = 0;
 
   Node *gotoIndex(size_t index) {
