@@ -12,7 +12,7 @@ using namespace test;
 
 enum { LIST_LENGTH = 1000 };
 
-template <class Derived> class TestBaseListDerivedClass {
+template <class Derived, class Iterator> class TestBaseListDerivedClass {
   using ListType = Derived &;
 
   Derived beforeEachTest() { return initBaseListDerivedClass(); };
@@ -77,6 +77,19 @@ template <class Derived> class TestBaseListDerivedClass {
 
          expectEqual(lengthCount, list.getLength());
        });
+  }
+
+  void testIterator(ListType list) {
+    it("should loop through every item using the iterator", [&]() {
+      size_t lengthCount = 0;
+
+      for (auto item : list) {
+        expectEqual(static_cast<size_t>(item), lengthCount);
+        lengthCount++;
+      };
+
+      expectEqual(lengthCount, list.getLength());
+    });
   }
 
   void testForEachFromArbitraryIndex(ListType list) {
@@ -277,6 +290,8 @@ template <class Derived> class TestBaseListDerivedClass {
                 std::placeholders::_1),
       std::bind(&TestBaseListDerivedClass::testForEachFromStart, this,
                 std::placeholders::_1),
+      std::bind(&TestBaseListDerivedClass::testIterator, this,
+                std::placeholders::_1),
       std::bind(&TestBaseListDerivedClass::testFindIndex, this,
                 std::placeholders::_1),
       std::bind(&TestBaseListDerivedClass::testFind, this,
@@ -301,7 +316,8 @@ template <class Derived> class TestBaseListDerivedClass {
   };
 
 public:
-  static void mockBaseListDerivedClass(BaseList<int, Derived> &derived) {
+  static void
+  mockBaseListDerivedClass(BaseList<int, Derived, Iterator> &derived) {
     for (size_t i = 0; i < LIST_LENGTH; i++) {
       derived.push(i);
     }
@@ -328,9 +344,12 @@ public:
   }
 };
 
+using VectorTest = TestBaseListDerivedClass<Vector<int>, VectorIterator<int>>;
+using ListTest = TestBaseListDerivedClass<List<int>, ListIterator<int>>;
+
 int main() {
   describe("Vector", []() {
-    TestBaseListDerivedClass<Vector<int>> vectorTests;
+    VectorTest vectorTests;
 
     it("should reserve the the correct capacity", [&]() {
       Vector<int> vec;
@@ -339,14 +358,13 @@ int main() {
     });
 
     it("should push items", [&]() {
-      auto vec =
-          TestBaseListDerivedClass<Vector<int>>::initBaseListDerivedClass();
+      auto vec = VectorTest::initBaseListDerivedClass();
       expectEqual(vec.getLength(), LIST_LENGTH);
     });
 
     it("should shrink to fit", [&]() {
       Vector<int> vec;
-      TestBaseListDerivedClass<Vector<int>>::mockBaseListDerivedClass(vec);
+      VectorTest::mockBaseListDerivedClass(vec);
       const size_t capacityBeforeShrinking = vec.getCapacity();
 
       vec.shrinkToFit();
@@ -358,7 +376,7 @@ int main() {
   });
 
   describe("List", []() {
-    TestBaseListDerivedClass<List<int>> listTests;
+    ListTest listTests;
 
     listTests.executeTests();
   });

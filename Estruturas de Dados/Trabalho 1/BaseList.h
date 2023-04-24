@@ -10,7 +10,7 @@ using ItemIndexCallback =
 
 template <typename T> void defaultItemRelease(T &item);
 
-template <typename T, typename Derived> class BaseList {
+template <typename T, class Derived, class Iterator> class BaseList {
 private:
   void throwOutOfRange(size_t index) {
     char message[100];
@@ -166,6 +166,9 @@ public:
     profiler.end();
     return found;
   };
+
+  virtual Iterator begin() = 0;
+  virtual Iterator end() = 0;
 
   Profiler *getProfiler() { return &profiler; }
 };

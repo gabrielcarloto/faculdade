@@ -5,13 +5,74 @@
 #include <cstdint>
 #include <iostream>
 
-template <class Derived> class TestBaseListDerivedClass;
+template <class Derived, class Iterator> class TestBaseListDerivedClass;
 
-template <typename T> class List : public BaseList<T, List<T>> {
+template <typename T> class ListIterator {
+  using ValueType = T;
+  using PointerType = T *;
+  using ReferenceType = T &;
   using Node = typename BasicLinkedList<T>::Node;
+
+  Node *pointer;
+
+public:
+  ListIterator(Node *ptr) : pointer(ptr) {}
+  ~ListIterator() { pointer = nullptr; }
+
+  ListIterator &operator++() {
+    pointer = pointer->next;
+    return *this;
+  }
+
+  ListIterator operator++(int) {
+    ListIterator it = *this;
+    ++(*this);
+    return it;
+  }
+
+  ListIterator &operator--() {
+    pointer = pointer->prev;
+    return *this;
+  }
+
+  ListIterator operator--(int) {
+    ListIterator it = *this;
+    --(*this);
+    return it;
+  }
+
+  ReferenceType operator[](size_t index) {
+    size_t i = 0;
+
+    while (i != index) {
+      pointer = pointer->next;
+      i++;
+    }
+
+    return pointer->data;
+  }
+
+  PointerType operator->() { return &pointer->data; }
+
+  ReferenceType operator*() { return pointer->data; }
+
+  bool operator==(const ListIterator &other) const {
+    return pointer == other.pointer;
+  }
+
+  bool operator!=(const ListIterator &other) const { return !(*this == other); }
+};
+
+template <typename T>
+class List : public BaseList<T, List<T>, ListIterator<T>> {
+private:
+  using Node = typename BasicLinkedList<T>::Node;
+
+public:
+private:
   BasicLinkedList<T> nodes;
 
-  friend class TestBaseListDerivedClass<List<T>>;
+  friend class TestBaseListDerivedClass<List<T>, ListIterator<T>>;
 
   T &_at(intmax_t index) override {
     return nodes.gotoIndex(this->intmax_t_to_size_t(index))->data;
@@ -116,14 +177,14 @@ template <typename T> class List : public BaseList<T, List<T>> {
 
 public:
   List(const T &array, const size_t length)
-      : BaseList<T, List<T>>(length), nodes(&this->profiler) {
+      : BaseList<T, List<T>, ListIterator<T>>(length), nodes(&this->profiler) {
     for (const T item : array) {
       _push(item);
     }
   };
 
   List(const size_t length = 0)
-      : BaseList<T, List<T>>(length), nodes(&this->profiler){};
+      : BaseList<T, List<T>, ListIterator<T>>(length), nodes(&this->profiler){};
 
   ~List() {
     Node *node = nodes.first(), *aux = node != nullptr ? node->next : nullptr;
@@ -139,4 +200,8 @@ public:
   };
 
   T &operator[](size_t index) override { return nodes.gotoIndex(index)->data; };
+
+  ListIterator<T> begin() override { return ListIterator<T>(nodes.first()); }
+
+  ListIterator<T> end() override { return ListIterator<T>(nullptr); }
 };

@@ -2,14 +2,65 @@
 #include "BaseList.h"
 #include "utils.h"
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
 #include <functional>
 #include <iostream>
 #include <stdexcept>
-#include <stdio.h>
 #include <utility>
 
-template <typename T> class Vector : public BaseList<T, Vector<T>> {
+template <typename T> class VectorIterator {
+  using ValueType = T;
+  using PointerType = T *;
+  using ReferenceType = T &;
+
+  PointerType pointer;
+
+public:
+  VectorIterator(PointerType ptr) : pointer(ptr) {}
+  ~VectorIterator() { pointer = nullptr; }
+
+  VectorIterator &operator++() {
+    pointer++;
+    return *this;
+  }
+
+  VectorIterator operator++(int) {
+    VectorIterator it = *this;
+    ++(*this);
+    return it;
+  }
+
+  VectorIterator &operator--() {
+    pointer--;
+    return *this;
+  }
+
+  VectorIterator operator--(int) {
+    VectorIterator it = *this;
+    --(*this);
+    return it;
+  }
+
+  ReferenceType operator[](size_t index) { return *(pointer + index); }
+
+  PointerType operator->() { return pointer; }
+
+  ReferenceType operator*() { return *pointer; }
+
+  bool operator==(const VectorIterator &other) const {
+    return pointer == other.pointer;
+  }
+
+  bool operator!=(const VectorIterator &other) const {
+    return !(*this == other);
+  }
+};
+
+template <typename T>
+class Vector : public BaseList<T, Vector<T>, VectorIterator<T>> {
+
+private:
   size_t capacity;
   T *data;
 
@@ -72,17 +123,24 @@ public:
   void shrinkToFit();
 
   T *getArray();
+
+  VectorIterator<T> begin() override { return VectorIterator(data); }
+
+  VectorIterator<T> end() override {
+    return VectorIterator(data + this->length);
+  }
 };
 
 template <typename T>
 Vector<T>::Vector(const T *array, const size_t length)
-    : BaseList<T, Vector<T>>(length) {
+    : BaseList<T, Vector<T>, VectorIterator<T>>(length) {
   commonConstructor();
   copy(array, data, length, length);
 }
 
 template <typename T>
-Vector<T>::Vector(const size_t length) : BaseList<T, Vector<T>>(length) {
+Vector<T>::Vector(const size_t length)
+    : BaseList<T, Vector<T>, VectorIterator<T>>(length) {
   commonConstructor();
 }
 
