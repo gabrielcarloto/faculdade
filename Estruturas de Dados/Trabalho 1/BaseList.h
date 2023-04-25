@@ -26,21 +26,21 @@ private:
     throw std::out_of_range(message);
   };
 
-  void (*itemReleaseCallback)(T &) = NULL;
+  std::function<void(T &)> itemReleaseCallback = nullptr;
 
 protected:
   size_t length;
   Profiler profiler;
 
-  bool checkReleaseCallback() { return itemReleaseCallback != NULL; };
+  bool checkReleaseCallback() { return itemReleaseCallback != nullptr; };
 
   void callReleaseCallback(T &item) {
     profiler.addComparison();
-    if (itemReleaseCallback != NULL)
-      (*itemReleaseCallback)(item);
+    if (itemReleaseCallback != nullptr)
+      itemReleaseCallback(item);
   };
 
-  void rawCallReleaseCallback(T &item) { (*itemReleaseCallback)(item); };
+  void rawCallReleaseCallback(T &item) { itemReleaseCallback(item); };
 
   size_t intmax_t_to_size_t(intmax_t size) {
     return size >= 0 ? size : length + size;
@@ -69,7 +69,7 @@ protected:
   virtual void _remove(size_t index) = 0;
   virtual void _insert(T item, size_t index = 0) = 0;
   virtual void _replace(T item, size_t index = 0) = 0;
-  // virtual void slice(size_t indexStart, size_t indexEnd = NULL);
+  // virtual void slice(size_t indexStart, size_t indexEnd = nullptr);
   virtual Derived _filter(ItemIndexCallback<T, bool> filterFn) = 0;
   virtual bool _find(ItemIndexCallback<T, bool> filterFn, T &item) = 0;
   virtual void _forEach(ItemIndexCallback<T> callback,
@@ -82,8 +82,8 @@ public:
   BaseList(const size_t length) : profiler() { this->length = length; }
   ~BaseList() = default;
 
-  void registerItemReleaseCallback(void (*fn)(T &)) {
-    itemReleaseCallback = fn;
+  void registerItemReleaseCallback(const std::function<void(T &)> &fn) {
+    itemReleaseCallback = std::move(fn);
   };
 
   void registerItemReleaseCallback() {
@@ -175,5 +175,5 @@ public:
 
 template <typename T> void defaultItemRelease(T &item) {
   delete item;
-  item = NULL;
+  item = nullptr;
 }

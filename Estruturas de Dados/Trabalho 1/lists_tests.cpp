@@ -283,6 +283,22 @@ template <class Derived, class Iterator> class TestBaseListDerivedClass {
     });
   }
 
+  void testItemReleaseCallbackFunction() {
+    it("should call the item release callback function", [&]() {
+      bool called = false;
+      auto callback = [&called](int &) { called = true; };
+
+      {
+        Derived list;
+
+        list.registerItemReleaseCallback(callback);
+        list.push(0);
+      }
+
+      expectEqual(called, true);
+    });
+  }
+
   std::vector<std::function<void(ListType)>> testsList = {
       std::bind(&TestBaseListDerivedClass::testAccessOperator, this,
                 std::placeholders::_1),
@@ -330,6 +346,7 @@ public:
     }
 
     testInsertWithZeroLength();
+    testItemReleaseCallbackFunction();
   };
 
   static Derived initBaseListDerivedClass() {
