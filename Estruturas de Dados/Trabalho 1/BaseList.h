@@ -8,8 +8,6 @@ template <typename TItem, typename TReturn = void>
 using ItemIndexCallback =
     const std::function<TReturn(TItem &item, const size_t index)> &;
 
-template <typename T> void defaultItemRelease(T &item);
-
 template <typename T, class Derived, class Iterator> class BaseList {
 private:
   void throwOutOfRange(size_t index) {
@@ -88,7 +86,10 @@ public:
   };
 
   void registerItemReleaseCallback() {
-    itemReleaseCallback = defaultItemRelease;
+    itemReleaseCallback = [](T &item) {
+      delete item;
+      item = nullptr;
+    };
   };
 
   virtual T &operator[](size_t index) = 0;
@@ -238,8 +239,3 @@ public:
 
   Profiler *getProfiler() { return &profiler; }
 };
-
-template <typename T> void defaultItemRelease(T &item) {
-  delete item;
-  item = nullptr;
-}
