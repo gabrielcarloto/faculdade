@@ -265,7 +265,7 @@ template <class Derived, class Iterator> class TestBaseListDerivedClass {
 
   void testInsertLastIndex(ListType list) {
     it("should insert an item in index LIST_LENGTH - 1", [&]() {
-      const size_t indexToInsert = LIST_LENGTH - 1;
+      const intmax_t indexToInsert = -1;
       const int itemToInsert = 10;
       BasicLinkedList<int>::Node *lastNodeBeforeRemoving;
 
