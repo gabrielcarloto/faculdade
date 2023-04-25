@@ -95,8 +95,13 @@ private:
     this->length--;
   };
 
-  void _insert(T item, size_t index = 0) override {
+  void _insert(const T &item, size_t index = 0) override {
     nodes.insert(index)->data = item;
+    this->length++;
+  };
+
+  void _insert(const T &&item, size_t index = 0) override {
+    nodes.insert(index)->data = std::move(item);
     this->length++;
   };
 

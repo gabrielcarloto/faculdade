@@ -104,7 +104,8 @@ private:
   void _push(const T &item) override;
   void _push(const T &&item) override;
   void _remove(size_t index) override;
-  void _insert(T item, size_t index = 0) override;
+  void _insert(const T &item, size_t index = 0) override;
+  void _insert(const T &&item, size_t index = 0) override;
   void _replace(T item, size_t index = 0) override;
   void _forEach(ItemIndexCallback<T> callback, size_t startIndex = 0) override;
   bool _findIndex(ItemIndexCallback<T, bool> filterFn, size_t &index) override;
@@ -202,7 +203,7 @@ void Vector<T>::_forEach(
   }
 }
 
-template <typename T> void Vector<T>::_insert(T item, size_t index) {
+template <typename T> void Vector<T>::_insert(const T &item, size_t index) {
   T lastItem = std::move(data[index]);
   data[index] = std::move(item);
 
@@ -212,7 +213,23 @@ template <typename T> void Vector<T>::_insert(T item, size_t index) {
   this->forEach(
       [&](auto curr, auto i) {
         data[i] = std::move(lastItem);
-        lastItem = curr;
+        lastItem = std::move(curr);
+        this->profiler.addMove();
+      },
+      index + 1);
+}
+
+template <typename T> void Vector<T>::_insert(const T &&item, size_t index) {
+  T lastItem = std::move(data[index]);
+  data[index] = std::move(item);
+
+  this->length++;
+  resizeIfNeeded();
+
+  this->forEach(
+      [&](auto curr, auto i) {
+        data[i] = std::move(lastItem);
+        lastItem = std::move(curr);
         this->profiler.addMove();
       },
       index + 1);

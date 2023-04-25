@@ -67,7 +67,8 @@ protected:
   virtual void _push(const T &item) = 0;
   virtual void _push(const T &&item) = 0;
   virtual void _remove(size_t index) = 0;
-  virtual void _insert(T item, size_t index = 0) = 0;
+  virtual void _insert(const T &item, size_t index = 0) = 0;
+  virtual void _insert(const T &&item, size_t index = 0) = 0;
   virtual void _replace(T item, size_t index = 0) = 0;
   // virtual void slice(size_t indexStart, size_t indexEnd = nullptr);
   virtual Derived _filter(ItemIndexCallback<T, bool> filterFn) = 0;
@@ -133,6 +134,49 @@ public:
   };
 
   void insert(const T &item, intmax_t index) {
+    profiler.start();
+    profiler.addComparison(2);
+    auto i = intmax_t_to_size_t(index);
+
+    if (i == length) {
+      _push(item);
+      return profiler.end();
+    } else if (i == length - 1) {
+      assertIndexIsValid(index);
+      T &lastItem = _at(i);
+      _replace(item, i);
+      _push(lastItem);
+      return profiler.end();
+    }
+
+    assertIndexIsValid(index);
+
+    _insert(item, i);
+    profiler.end();
+  }
+
+  void insert(const T &&item, size_t index = 0) {
+    profiler.start();
+    profiler.addComparison(2);
+
+    if (index == length) {
+      _push(item);
+      return profiler.end();
+    } else if (index == length - 1) {
+      assertIndexIsValid(index);
+      T &lastItem = _at(index);
+      _replace(item, index);
+      _push(lastItem);
+      return profiler.end();
+    }
+
+    assertIndexIsValid(index);
+
+    _insert(item, index);
+    profiler.end();
+  };
+
+  void insert(const T &&item, intmax_t index) {
     profiler.start();
     profiler.addComparison(2);
     auto i = intmax_t_to_size_t(index);
