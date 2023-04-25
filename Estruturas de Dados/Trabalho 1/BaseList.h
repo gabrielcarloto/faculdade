@@ -28,27 +28,6 @@ private:
 
   std::function<void(T &)> itemReleaseCallback = nullptr;
 
-  void insertHelper(const T &item, size_t index) {
-    profiler.start();
-    profiler.addComparison(2);
-
-    if (index == length) {
-      _push(item);
-      return profiler.end();
-    } else if (index == length - 1) {
-      assertIndexIsValid(index);
-      T &lastItem = _at(index);
-      _replace(item, index);
-      _push(lastItem);
-      return profiler.end();
-    }
-
-    assertIndexIsValid(index);
-
-    _insert(item, index);
-    profiler.end();
-  }
-
 protected:
   size_t length;
   Profiler profiler;
@@ -132,10 +111,47 @@ public:
     profiler.end();
   };
 
-  void insert(const T &item, size_t index = 0) { insertHelper(item, index); };
+  void insert(const T &item, size_t index = 0) {
+    profiler.start();
+    profiler.addComparison(2);
+
+    if (index == length) {
+      _push(item);
+      return profiler.end();
+    } else if (index == length - 1) {
+      assertIndexIsValid(index);
+      T &lastItem = _at(index);
+      _replace(item, index);
+      _push(lastItem);
+      return profiler.end();
+    }
+
+    assertIndexIsValid(index);
+
+    _insert(item, index);
+    profiler.end();
+  };
 
   void insert(const T &item, intmax_t index) {
-    insertHelper(item, intmax_t_to_size_t(index));
+    profiler.start();
+    profiler.addComparison(2);
+    auto i = intmax_t_to_size_t(index);
+
+    if (i == length) {
+      _push(item);
+      return profiler.end();
+    } else if (i == length - 1) {
+      assertIndexIsValid(index);
+      T &lastItem = _at(i);
+      _replace(item, i);
+      _push(lastItem);
+      return profiler.end();
+    }
+
+    assertIndexIsValid(index);
+
+    _insert(item, i);
+    profiler.end();
   }
 
   void replace(T item, size_t index = 0) {
