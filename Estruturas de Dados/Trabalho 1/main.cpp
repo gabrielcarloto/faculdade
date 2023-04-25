@@ -14,19 +14,21 @@
 #define FILES_BASENAME "NomeRG"
 #define FILES_EXTENSION ".txt"
 
-template <typename T> void printToStdout(BaseList<Person *, T> &list);
-template <typename T>
-void saveToFile(BaseList<Person *, T> &list, std::string filePath);
+template <typename T, typename I> using BaseListType = BaseList<Person *, T, I>;
+
+template <typename T, typename I> void printToStdout(BaseListType<T, I> &list);
+template <typename T, typename I>
+void saveToFile(BaseListType<T, I> &list, std::string filePath);
 void pushLinesToLists(Profiler *, Profiler *, std::string, List<Person *> &,
                       Vector<Person *> &);
-template <typename T>
-void insertList(BaseList<Person *, T> &list, Profiler *profiler,
-                std::string &name, unsigned int id, size_t index);
-template <typename T>
-void removeList(BaseList<Person *, T> &list, Profiler *profiler, size_t index);
+template <typename T, typename I>
+void insertList(BaseListType<T, I> &list, Profiler *profiler, std::string &name,
+                unsigned int id, size_t index);
+template <typename T, typename I>
+void removeList(BaseListType<T, I> &list, Profiler *profiler, size_t index);
 
-template <typename T>
-void searchListName(BaseList<Person *, T> &list, Profiler *profiler,
+template <typename T, typename I>
+void searchListName(BaseListType<T, I> &list, Profiler *profiler,
                     std::string &name) {
   size_t index;
   bool found = list.findIndex(
@@ -46,8 +48,8 @@ void searchListName(BaseList<Person *, T> &list, Profiler *profiler,
   std::cout << "\tNome: " << fromList->name << ", RG: " << fromList->id << "\n";
 }
 
-template <typename T>
-void searchListID(BaseList<Person *, T> &list, Profiler *profiler,
+template <typename T, typename I>
+void searchListID(BaseListType<T, I> &list, Profiler *profiler,
                   unsigned int id) {
   size_t index;
   bool found =
@@ -218,7 +220,7 @@ size_t askForIndex() {
   return index;
 };
 
-template <typename T> void printToStdout(BaseList<Person *, T> &list) {
+template <typename T, typename I> void printToStdout(BaseListType<T, I> &list) {
   std::string content = "";
 
   list.forEach(
@@ -228,8 +230,8 @@ template <typename T> void printToStdout(BaseList<Person *, T> &list) {
   list.getProfiler()->printInfo();
 }
 
-template <typename T>
-void removeList(BaseList<Person *, T> &list, Profiler *profiler, size_t index) {
+template <typename T, typename I>
+void removeList(BaseListType<T, I> &list, Profiler *profiler, size_t index) {
   try {
     list.remove(index);
     profiler->printInfo();
@@ -251,9 +253,9 @@ void removeList(BaseList<Person *, T> &list, Profiler *profiler, size_t index) {
   }
 }
 
-template <typename T>
-void insertList(BaseList<Person *, T> &list, Profiler *profiler,
-                std::string &name, unsigned int id, size_t index) {
+template <typename T, typename I>
+void insertList(BaseListType<T, I> &list, Profiler *profiler, std::string &name,
+                unsigned int id, size_t index) {
   Person *newPerson = new Person;
 
   newPerson->name = name;
@@ -273,8 +275,8 @@ void insertList(BaseList<Person *, T> &list, Profiler *profiler,
   }
 }
 
-template <typename T>
-void saveToFile(BaseList<Person *, T> &list, std::string filePath) {
+template <typename T, typename I>
+void saveToFile(BaseListType<T, I> &list, std::string filePath) {
   std::string content = "";
 
   list.forEach(
