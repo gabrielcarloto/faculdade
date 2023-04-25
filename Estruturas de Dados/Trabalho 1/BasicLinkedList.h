@@ -47,6 +47,9 @@ public:
   Node *gotoIndex(size_t index) {
     profiler->addComparison(2);
 
+    std::cout << "Going to index " << index << '\n';
+    std::cout << "Current length: " << length << '\n';
+
     if (index == 0)
       return firstNode;
     else if (index == length - 1)
@@ -85,7 +88,8 @@ public:
     return node;
   }
 
-  void remove(size_t index, std::function<void(Node *)> beforeDeleteCallback) {
+  void remove(size_t index,
+              const std::function<void(Node *)> &beforeDeleteCallback) {
     Node *node = gotoIndex(index), *prevNode = node->prev,
          *nextNode = node->next;
 
@@ -114,6 +118,7 @@ public:
       lastChosenNodeIndex = index;
     }
 
+    length--;
     delete node;
   }
 
