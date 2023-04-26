@@ -1,36 +1,38 @@
 CXX = g++
 CXXFLAGS = -Wall -Wextra
-CXXDEBUG_FLAGS = -Wall -Wextra -g3 -ggdb
 
 SRC_DIR = .
-OBJ_DIR = objects
 
 ifeq ($(shell uname), Linux)
 	EXE = main
 	DEBUG_EXE = main.debug
 	TEST_EXE = test
 	TEST_DEBUG_EXE = test.debug
+	OBJ_DIR = objects/linux
+	CXXDEBUG_FLAGS = -Wall -Wextra -g3 -ggdb -fsanitize=address
 else
 	EXE = main.exe
 	DEBUG_EXE = main.debug.exe
 	TEST_EXE = test.exe
 	TEST_DEBUG_EXE = test.debug.exe
+	OBJ_DIR = objects/windows
+	CXXDEBUG_FLAGS = -Wall -Wextra -g3 -ggdb
 endif
 
-$(EXE): utils.o main.cpp Profiler.cpp
+$(EXE): $(OBJ_DIR)/utils.o $(OBJ_DIR)/main.o $(OBJ_DIR)/Profiler.o
 	$(CXX) $(CXXFLAGS) $^ -o $@ 
 
-debug: utils.o main.cpp Profiler.cpp
+debug: $(OBJ_DIR)/utils.o $(OBJ_DIR)/main.o $(OBJ_DIR)/Profiler.o
 	$(CXX) $(CXXDEBUG_FLAGS) $^ -o $(DEBUG_EXE) 
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	mkdir -p $(OBJ_DIR)
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) -c $^ -o $@
 
-test: utils.o test.o Profiler.o
+test: $(OBJ_DIR)/utils.o $(OBJ_DIR)/test.o $(OBJ_DIR)/Profiler.o
 	$(CXX) $(CXXFLAGS) lists_tests.cpp $^ -o $(TEST_EXE)
 
-debug-test: utils.o test.o Profiler.o
+debug-test: $(OBJ_DIR)/utils.o $(OBJ_DIR)/test.o $(OBJ_DIR)/Profiler.o
 	$(CXX) $(CXXDEBUG_FLAGS) lists_tests.cpp $^ -o $(TEST_DEBUG_EXE)
 
 clean:
