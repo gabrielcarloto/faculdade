@@ -65,11 +65,7 @@ public:
 
 template <typename T>
 class List : public BaseList<T, List<T>, ListIterator<T>> {
-private:
   using Node = typename BasicLinkedList<T>::Node;
-
-public:
-private:
   BasicLinkedList<T> nodes;
 
   friend class TestBaseListDerivedClass<List<T>, ListIterator<T>>;
@@ -78,31 +74,21 @@ private:
     return nodes.gotoIndex(this->intmax_t_to_size_t(index))->data;
   };
 
-  void _push(const T &item) override {
-    nodes.push()->data = item;
-    this->length++;
-  };
+  void _push(const T &item) override { nodes.push()->data = item; };
 
-  void _push(const T &&item) override {
-    nodes.push()->data = std::move(item);
-    this->length++;
-  };
+  void _push(const T &&item) override { nodes.push()->data = std::move(item); };
 
   void _remove(size_t index) override {
     nodes.remove(index,
                  [=](Node *node) { this->callReleaseCallback(node->data); });
-
-    this->length--;
   };
 
   void _insert(const T &item, size_t index = 0) override {
     nodes.insert(index)->data = item;
-    this->length++;
   };
 
   void _insert(const T &&item, size_t index = 0) override {
     nodes.insert(index)->data = std::move(item);
-    this->length++;
   };
 
   void _replace(T item, size_t index = 0) override {
@@ -137,6 +123,8 @@ private:
       this->profiler.addComparison();
     }
 
+    found = filterFn(node->data, i);
+
     if (found)
       index = i;
 
@@ -158,6 +146,7 @@ private:
     }
 
     found = filterFn(node->data, i);
+
     if (found)
       item = node->data;
 
@@ -203,6 +192,8 @@ public:
         aux = node->next;
     }
   };
+
+  [[nodiscard]] size_t getLength() const override { return nodes.size(); }
 
   T &operator[](size_t index) override { return nodes.gotoIndex(index)->data; };
 

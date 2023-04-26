@@ -47,9 +47,6 @@ public:
   Node *gotoIndex(size_t index) {
     profiler->addComparison(2);
 
-    std::cout << "Going to index " << index << '\n';
-    std::cout << "Current length: " << length << '\n';
-
     if (index == 0)
       return firstNode;
     else if (index == length - 1)
@@ -142,6 +139,7 @@ public:
       lastChosenNode = firstNode;
     }
 
+    length++;
     return newNode;
   }
 };

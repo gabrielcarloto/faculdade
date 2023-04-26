@@ -40,13 +40,13 @@ protected:
 
   void rawCallReleaseCallback(T &item) { itemReleaseCallback(item); };
 
-  size_t intmax_t_to_size_t(intmax_t size) {
-    return size >= 0 ? size : length + size;
+  size_t intmax_t_to_size_t(intmax_t size) const {
+    return size >= 0 ? size : getLength() + size;
   }
 
   void assertIndexIsValid(size_t index) {
     profiler.addComparison();
-    if (index < length)
+    if (index < getLength())
       return;
 
     throwOutOfRange(index);
@@ -54,8 +54,8 @@ protected:
 
   void assertIndexIsValid(intmax_t index) {
     profiler.addComparison();
-    if (index < static_cast<intmax_t>(length) &&
-        static_cast<intmax_t>(length) + index > 0)
+    if (index < static_cast<intmax_t>(getLength()) &&
+        static_cast<intmax_t>(getLength()) + index > 0)
       return;
 
     throwOutOfRange(index);
@@ -93,7 +93,7 @@ public:
   };
 
   virtual T &operator[](size_t index) = 0;
-  size_t getLength() { return length; };
+  virtual size_t getLength() const { return length; };
 
   T &at(intmax_t index) {
     profiler.start();
@@ -117,10 +117,10 @@ public:
     profiler.start();
     profiler.addComparison(2);
 
-    if (index == length) {
+    if (index == getLength()) {
       _push(item);
       return profiler.end();
-    } else if (index == length - 1) {
+    } else if (index == getLength() - 1) {
       assertIndexIsValid(index);
       T &lastItem = _at(index);
       _replace(item, index);
@@ -139,10 +139,10 @@ public:
     profiler.addComparison(2);
     auto i = intmax_t_to_size_t(index);
 
-    if (i == length) {
+    if (i == getLength()) {
       _push(item);
       return profiler.end();
-    } else if (i == length - 1) {
+    } else if (i == getLength() - 1) {
       assertIndexIsValid(index);
       T &lastItem = _at(i);
       _replace(item, i);
@@ -160,10 +160,10 @@ public:
     profiler.start();
     profiler.addComparison(2);
 
-    if (index == length) {
+    if (index == getLength()) {
       _push(item);
       return profiler.end();
-    } else if (index == length - 1) {
+    } else if (index == getLength() - 1) {
       assertIndexIsValid(index);
       T &lastItem = _at(index);
       _replace(item, index);
@@ -182,10 +182,10 @@ public:
     profiler.addComparison(2);
     auto i = intmax_t_to_size_t(index);
 
-    if (i == length) {
+    if (i == getLength()) {
       _push(item);
       return profiler.end();
-    } else if (i == length - 1) {
+    } else if (i == getLength() - 1) {
       assertIndexIsValid(index);
       T &lastItem = _at(i);
       _replace(item, i);
