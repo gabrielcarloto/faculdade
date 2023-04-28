@@ -246,12 +246,10 @@ template <typename T> void Vector<T>::_replace(T item, size_t index) {
 template <typename T> void Vector<T>::_remove(size_t index) {
   this->callReleaseCallback(data[index]);
 
-  this->forEach(
-      [&](auto, auto i) {
-        data[i] = std::move(data[i + 1]);
-        this->profiler.addMove();
-      },
-      index);
+  for (size_t i = index; i < this->length - 1; i++) {
+    data[i] = std::move(data[i + 1]);
+    this->profiler.addMove();
+  }
 
   this->length--;
   resizeIfNeeded();
