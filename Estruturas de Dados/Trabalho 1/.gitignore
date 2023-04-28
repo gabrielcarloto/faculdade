@@ -6,3 +6,4 @@ compile_commands.json
 main
 test
 valgrind-out.txt
+*.debug
