@@ -164,17 +164,20 @@ template <typename T> void Vector<T>::reserve(size_t capacity) {
 }
 
 template <typename T> void Vector<T>::resize(size_t newSize) {
-  capacity = newSize;
   T *tempArray = new T[newSize];
+  int isCapacityLessThanLength = capacity < this->length;
+  size_t lengthToCopy = this->length - isCapacityLessThanLength;
 
-  copy(data, tempArray, this->length,
-       this->length > newSize ? newSize : this->length);
+  copy(data, tempArray, lengthToCopy,
+       this->length > newSize ? newSize - isCapacityLessThanLength
+                              : lengthToCopy);
 
   if (this->length > newSize)
     this->length = newSize;
 
   delete[] data;
   data = tempArray;
+  capacity = newSize;
 }
 
 template <typename T> void Vector<T>::grow() {
