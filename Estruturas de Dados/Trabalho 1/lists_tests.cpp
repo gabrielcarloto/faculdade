@@ -265,9 +265,9 @@ template <class Derived, class Iterator> class TestBaseListDerivedClass {
 
   void testInsertLastIndex(ListType list) {
     it("should insert an item in index LIST_LENGTH - 1", [&]() {
-      const intmax_t indexToInsert = -1;
-      const int itemToInsert = 10;
+      const intmax_t indexToInsert = -1, expectedIndex = -2;
       BasicLinkedList<int>::Node *lastNodeBeforeRemoving;
+      const int itemToInsert = 10, currentItem = list.at(indexToInsert);
 
       if constexpr (std::is_same_v<Derived, List<int>>) {
         lastNodeBeforeRemoving = list.getBasicLinkedList().last();
@@ -275,7 +275,8 @@ template <class Derived, class Iterator> class TestBaseListDerivedClass {
 
       list.insert(itemToInsert, indexToInsert);
       expectEqual(list.getLength(), LIST_LENGTH + 1);
-      expectEqual(itemToInsert, list.at(indexToInsert));
+      expectEqual(currentItem, list.at(indexToInsert));
+      expectEqual(itemToInsert, list.at(expectedIndex));
 
       if constexpr (std::is_same_v<Derived, List<int>>) {
         expectDifer(list.getBasicLinkedList().last(), lastNodeBeforeRemoving)

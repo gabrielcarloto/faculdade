@@ -143,8 +143,7 @@ public:
       _push(item);
       return profiler.end();
     } else if (i == getLength() - 1) {
-      assertIndexIsValid(index);
-      T &lastItem = _at(i);
+      T lastItem = std::move(_at(i));
       _replace(item, i);
       _push(lastItem);
       return profiler.end();
