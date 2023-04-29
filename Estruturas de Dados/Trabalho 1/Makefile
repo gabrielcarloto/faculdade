@@ -10,6 +10,7 @@ ifeq ($(shell uname), Linux)
 	TEST_DEBUG_EXE = test.debug
 	OBJ_DIR = objects/linux
 	CXXDEBUG_FLAGS = -Wall -Wextra -g3 -ggdb -fsanitize=address
+	CXXDEBUG_VALGRIND_FLAGS = -Wall -Wextra -g3 -ggdb
 else
 	EXE = main.exe
 	DEBUG_EXE = main.debug.exe
@@ -25,6 +26,11 @@ $(EXE): $(OBJ_DIR)/utils.o $(OBJ_DIR)/main.o $(OBJ_DIR)/Profiler.o
 debug: $(OBJ_DIR)/utils.o $(OBJ_DIR)/main.o $(OBJ_DIR)/Profiler.o
 	$(CXX) $(CXXDEBUG_FLAGS) $^ -o $(DEBUG_EXE) 
 
+ifeq ($(shell uname), Linux)
+debug-val: $(OBJ_DIR)/utils.o $(OBJ_DIR)/main.o $(OBJ_DIR)/Profiler.o
+	$(CXX) $(CXXDEBUG_VALGRIND_FLAGS) $^ -o $(DEBUG_EXE) 
+endif
+
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	mkdir -p $(OBJ_DIR)
 	$(CXX) $(CXXFLAGS) -c $^ -o $@
@@ -35,7 +41,13 @@ test: $(OBJ_DIR)/utils.o $(OBJ_DIR)/test.o $(OBJ_DIR)/Profiler.o
 debug-test: $(OBJ_DIR)/utils.o $(OBJ_DIR)/test.o $(OBJ_DIR)/Profiler.o
 	$(CXX) $(CXXDEBUG_FLAGS) lists_tests.cpp $^ -o $(TEST_DEBUG_EXE)
 
+ifeq ($(shell uname), Linux)
+debug-test-val: $(OBJ_DIR)/utils.o $(OBJ_DIR)/test.o $(OBJ_DIR)/Profiler.o
+	$(CXX) $(CXXDEBUG_VALGRIND_FLAGS) lists_tests.cpp $^ -o $(TEST_DEBUG_EXE)
+endif
+
 clean:
 		rm -rf $(EXE) $(OBJ_DIR)
 
 .PHONY: clean
+	
