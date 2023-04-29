@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <functional>
 #include <iostream>
+#include <sstream>
 
 template <typename TItem, typename TReturn = void>
 using ItemIndexCallback =
@@ -11,17 +12,17 @@ using ItemIndexCallback =
 template <typename T, class Derived, class Iterator> class BaseList {
 private:
   void throwOutOfRange(size_t index) {
-    char message[100];
-    snprintf(message, 100, "Index out of range: %zu", index);
+    std::ostringstream stream;
+    stream << "Index out of range: " << index;
 
-    throw std::out_of_range(message);
+    throw std::out_of_range(stream.str());
   };
 
   void throwOutOfRange(intmax_t index) {
-    char message[100];
-    snprintf(message, 100, "Index out of range: %lld", index);
+    std::ostringstream stream;
+    stream << "Index out of range: " << index;
 
-    throw std::out_of_range(message);
+    throw std::out_of_range(stream.str());
   };
 
   std::function<void(T &)> itemReleaseCallback = nullptr;
