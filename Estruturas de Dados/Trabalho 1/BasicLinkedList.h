@@ -70,7 +70,7 @@ public:
   Node *push() {
     Node *node = new Node;
 
-    profiler->addComparison(2);
+    profiler->addComparison();
     if (firstNode == NULL) {
       firstNode = node;
       lastChosenNode = node;
