@@ -35,15 +35,24 @@ public:
   }
 
   static void selectionSort(DerivedRef);
-  static void insertionSort(DerivedRef);
+
+  static void insertionSort(DerivedRef list) {
+    for (size_t i = 1; i < list.getLength(); i++) {
+      T temp = list[i];
+      for (size_t j = i; j > 0 && temp < list[j - 1]; j--) {
+        swap(list[j], list[j - 1]);
+      }
+    }
+  }
+
   static void shellSort(DerivedRef);
   static void quickSort(DerivedRef);
   static void mergeSort(DerivedRef);
 
   static void swap(T &a, T &b) {
     T temp = std::move(a);
-    a = b;
-    b = temp;
+    a = std::move(b);
+    b = std::move(temp);
   }
 
 private:
