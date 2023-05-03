@@ -9,7 +9,8 @@ template <typename TItem, typename TReturn = void>
 using ItemIndexCallback =
     const std::function<TReturn(TItem &item, const size_t index)> &;
 
-template <typename T, class Derived, class Iterator> class BaseList {
+template <typename T, class Derived = void, class Iterator = void>
+class BaseList {
 private:
   void throwOutOfRange(size_t index) {
     std::ostringstream stream;
