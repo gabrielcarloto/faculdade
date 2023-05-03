@@ -24,7 +24,15 @@ public:
 
   auto operator->() -> BaseListDerived * { return &list; }
 
-  static void bubbleSort(DerivedRef list);
+  static void bubbleSort(DerivedRef list) {
+    for (size_t lastSortedIndex = list.getLength(); lastSortedIndex > 0;
+         lastSortedIndex--) {
+      for (size_t i = 0; i < lastSortedIndex - 1; i++) {
+        if (list[i] > list[i + 1])
+          swap(list[i], list[i + 1]);
+      }
+    }
+  }
 
   static void selectionSort(DerivedRef);
   static void insertionSort(DerivedRef);
