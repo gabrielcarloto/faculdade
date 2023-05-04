@@ -55,7 +55,19 @@ public:
     }
   }
 
-  static void shellSort(DerivedRef);
+  static void shellSort(DerivedRef list) {
+    for (size_t interval = list.length() / 2; interval > 0; interval /= 2) {
+      for (size_t i = interval; i < list.length(); i++) {
+        T temp = list[i];
+
+        // clang-format off
+        for (size_t j = i; j >= interval && temp < list[j - interval]; j -= interval)
+          // clang-format on
+          swap(list[j], list[j - interval]);
+      }
+    }
+  }
+
   static void quickSort(DerivedRef);
   static void mergeSort(DerivedRef);
 
