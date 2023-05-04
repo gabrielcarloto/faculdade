@@ -34,7 +34,17 @@ public:
     }
   }
 
-  static void selectionSort(DerivedRef);
+  static void selectionSort(DerivedRef list) {
+    for (size_t i = 0; i < list.getLength() - 1; i++) {
+      size_t minValueIndex = i;
+
+      for (size_t j = i + 1; j < list.getLength(); j++)
+        if (list[j] < list[minValueIndex])
+          minValueIndex = j;
+
+      swap(list[i], list[minValueIndex]);
+    }
+  }
 
   static void insertionSort(DerivedRef list) {
     for (size_t i = 1; i < list.getLength(); i++) {
