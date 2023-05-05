@@ -7,7 +7,7 @@ template <typename T, class BaseListDerived = BaseList<T>> class SortedList {
 
 public:
   using SortFunction = std::function<void(DerivedRef)>;
-  using CompareFunction = std::function<int(T &)>;
+  using CompareFunction = std::function<short int(T &)>;
 
   SortedList(const SortFunction &fn) : sortFn(fn) {
     assertListDerivedFromBaseList();
