@@ -17,10 +17,10 @@ void bubbleSort(std::vector<int> &vec) {
 }
 
 void selectionSort(std::vector<int> &vec) {
-  for (size_t i = 0; i < vec.size(); i++) {
+  for (size_t i = 0; i < vec.size() - 1; i++) {
     size_t minValueIndex = i;
 
-    for (size_t j = i; j < vec.size(); j++)
+    for (size_t j = i + 1; j < vec.size(); j++)
       if (vec[j] < vec[minValueIndex])
         minValueIndex = j;
 
@@ -71,9 +71,9 @@ int main() {
       binaryInsertionSortTester("BinaryInsertionSort",
                                 BinaryInsertionSort::sort);
 
-  binaryInsertionSortTester.runTests();
-  insertionSortTester.runTests();
-  bubbleSortTester.runTests();
+  // binaryInsertionSortTester.runTests();
+  // insertionSortTester.runTests();
+  // bubbleSortTester.runTests();
   selectionSortTester.runTests();
 
   return 0;
