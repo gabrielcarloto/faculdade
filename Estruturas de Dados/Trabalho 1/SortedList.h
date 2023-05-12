@@ -25,6 +25,9 @@ public:
 
   auto operator->() -> BaseListDerived * { return &list; }
 
+  typename BaseListDerived::TIterator begin() { return list.begin(); }
+  typename BaseListDerived::TIterator end() { return list.end(); }
+
   static void bubbleSort(DerivedRef list) {
     for (size_t lastSortedIndex = list.getLength(); lastSortedIndex > 0;
          lastSortedIndex--) {

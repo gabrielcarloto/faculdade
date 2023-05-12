@@ -239,4 +239,6 @@ public:
   virtual Iterator end() = 0;
 
   Profiler *getProfiler() { return &profiler; }
+
+  using TIterator = Iterator;
 };
