@@ -6,7 +6,7 @@
 #include <random>
 #include <vector>
 
-#define VEC_LEN 100000 // Length of the vector for large test cases
+#define VEC_LEN 12000000 // Length of the vector for large test cases
 
 // nice AI generated code 👍
 class SortTester {

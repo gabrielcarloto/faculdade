@@ -207,8 +207,8 @@ int main() {
       quickSortTester("QuickSort", QuickSort::sort),
       mergeSortTester("MergeSort", MergeSort::sort);
 
-  insertionSortTester.runTests();
-  binaryInsertionSortTester.runTests();
+  // insertionSortTester.runTests();
+  // binaryInsertionSortTester.runTests();
   // bubbleSortTester.runTests();
   // selectionSortTester.runTests();
   quickSortTester.runTests();
