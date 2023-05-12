@@ -5,5 +5,7 @@ compile_commands.json
 .cache/
 main
 test
+sorted
+teste_sortedlist.cpp
 valgrind-out.txt
 *.debug
