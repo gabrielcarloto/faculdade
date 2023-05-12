@@ -102,7 +102,7 @@ private:
       size_t pivotIndex = medianThree(list, start, end), partitionIndex = start;
 
       swap(list[pivotIndex], list[end]);
-      const int &pivotValue = list[end];
+      const T &pivotValue = list[end];
 
       for (size_t i = start; i < end; i++) {
         if (list[i] < pivotValue) {
