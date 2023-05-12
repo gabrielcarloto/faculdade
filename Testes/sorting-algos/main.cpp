@@ -68,14 +68,35 @@ public:
 };
 
 class QuickSort {
-  static void quickSort(std::vector<int> &list, size_t start, size_t end) {
+  static void quickSortNoThread(std::vector<int> &list, size_t start,
+                                size_t end) {
     if (start >= end)
       return;
 
     auto pivotIndex = partition(list, start, end);
 
-    quickSort(list, start, pivotIndex);
-    quickSort(list, pivotIndex + 1, end);
+    quickSortNoThread(list, start, pivotIndex);
+    quickSortNoThread(list, pivotIndex + 1, end);
+  }
+
+  static void quickSort(std::vector<int> &list, size_t start, size_t end,
+                        unsigned int currentThreads = 1,
+                        bool shouldThread = true) {
+    if (start >= end)
+      return;
+
+    auto pivotIndex = partition(list, start, end);
+
+    if (shouldThread && currentThreads < maxThreads) {
+      auto thread = std::async(std::launch::async, quickSort, std::ref(list),
+                               start, pivotIndex, currentThreads * 2, true);
+
+      quickSort(list, pivotIndex + 1, end, currentThreads * 2, true);
+      thread.wait();
+    } else {
+      quickSortNoThread(list, start, pivotIndex);
+      quickSortNoThread(list, pivotIndex + 1, end);
+    }
   }
 
   static size_t partition(std::vector<int> &list, size_t start, size_t end) {
@@ -109,7 +130,9 @@ class QuickSort {
   }
 
 public:
-  static void sort(std::vector<int> &vec) { quickSort(vec, 0, vec.size() - 1); }
+  static void sort(std::vector<int> &vec) {
+    quickSort(vec, 0, vec.size() - 1, 1, vec.size() > 200);
+  }
 };
 
 class MergeSort {
