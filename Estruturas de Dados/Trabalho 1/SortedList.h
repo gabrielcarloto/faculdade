@@ -60,8 +60,8 @@ public:
   }
 
   static void shellSort(DerivedRef list) {
-    for (size_t interval = list.length() / 2; interval > 0; interval /= 2) {
-      for (size_t i = interval; i < list.length(); i++) {
+    for (size_t interval = list.getLength() / 2; interval > 0; interval /= 2) {
+      for (size_t i = interval; i < list.getLength(); i++) {
         T temp = list[i];
 
         // clang-format off
@@ -87,8 +87,11 @@ private:
   SortFunction sortFn;
 
   void assertListDerivedFromBaseList() {
-    static_assert(std::is_base_of<BaseList<T>, BaseListDerived>::value,
-                  "Template BaseListDerived is not derived from BaseList");
+    static_assert(
+        std::is_base_of<
+            BaseList<T, BaseListDerived, typename BaseListDerived::TIterator>,
+            BaseListDerived>::value,
+        "Template BaseListDerived is not derived from BaseList");
   }
 
   class QuickSort {
