@@ -119,10 +119,12 @@ private:
   inline static size_t medianThree(std::vector<int>& list, size_t start, size_t end) {
       // clang-format on
       size_t mid = (start + end) / 2;
+      const T &startValue = list[start], &midValue = list[mid],
+              &endValue = list[end];
 
-      if ((list[start] > list[mid]) ^ (list[start] > list[end]))
+      if ((startValue > midValue) ^ (startValue > endValue))
         return start;
-      if ((list[mid] < list[start]) ^ (list[mid] < list[end]))
+      if ((midValue < startValue) ^ (midValue < endValue))
         return mid;
 
       return end;
