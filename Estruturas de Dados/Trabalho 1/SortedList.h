@@ -2,7 +2,7 @@
 #include <functional>
 #include <type_traits>
 
-template <typename T, class BaseListDerived = BaseList<T>> class SortedList {
+template <typename T, class BaseListDerived> class SortedList {
   using DerivedRef = BaseListDerived &;
 
 public:
