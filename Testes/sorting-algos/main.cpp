@@ -64,17 +64,64 @@ public:
   }
 };
 
+class QuickSort {
+  static void quickSort(std::vector<int> &list, size_t start, size_t end) {
+    if (start >= end)
+      return;
+
+    auto pivotIndex = partition(list, start, end);
+
+    quickSort(list, start, pivotIndex);
+    quickSort(list, pivotIndex + 1, end);
+  }
+
+  static size_t partition(std::vector<int> &list, size_t start, size_t end) {
+    size_t pivotIndex = medianOfThree(list, start, end), partitionIndex = start;
+
+    std::swap(list[pivotIndex], list[end]);
+    const int &pivotValue = list[end];
+
+    for (size_t i = start; i < end; i++) {
+      if (list[i] < pivotValue) {
+        std::swap(list[i], list[partitionIndex]);
+        partitionIndex++;
+      }
+    }
+
+    std::swap(list[partitionIndex], list[end]);
+    return partitionIndex;
+  }
+
+  // clang-format off
+  inline static size_t medianOfThree(std::vector<int>& list, size_t start, size_t end) {
+    // clang-format on
+    size_t mid = (start + end) / 2;
+
+    if ((list[start] > list[mid]) ^ (list[start] > list[end]))
+      return start;
+    if ((list[mid] < list[start]) ^ (list[mid] < list[end]))
+      return mid;
+
+    return end;
+  }
+
+public:
+  static void sort(std::vector<int> &vec) { quickSort(vec, 0, vec.size() - 1); }
+};
+
 int main() {
   SortTester insertionSortTester("InsertionSort", insertionSort),
       bubbleSortTester("BubbleSort", bubbleSort),
       selectionSortTester("SelectionSort", selectionSort),
       binaryInsertionSortTester("BinaryInsertionSort",
-                                BinaryInsertionSort::sort);
+                                BinaryInsertionSort::sort),
+      quickSortTester("QuickSort", QuickSort::sort);
 
-  // binaryInsertionSortTester.runTests();
-  // insertionSortTester.runTests();
+  insertionSortTester.runTests();
+  binaryInsertionSortTester.runTests();
   // bubbleSortTester.runTests();
-  selectionSortTester.runTests();
+  // selectionSortTester.runTests();
+  quickSortTester.runTests();
 
   return 0;
 }
