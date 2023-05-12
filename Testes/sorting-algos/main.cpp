@@ -205,18 +205,11 @@ class MergeSort {
     merge(vec, temp, (intmax_t)start, (intmax_t)mid + 1, (intmax_t)end);
   }
 
-  static void fillWithZeros(std::vector<int> &vec, size_t size) {
-    for (size_t i = 0; i < size; i++) {
-      vec.push_back(0);
-    }
-  }
-
 public:
   static void sort(std::vector<int> &vec) {
     std::vector<int> temp;
     temp.reserve(vec.size());
 
-    fillWithZeros(temp, vec.size());
     mergeSort(vec, temp, 0, vec.size() - 1, 1, vec.size() > 200);
   }
 };
