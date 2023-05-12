@@ -13,6 +13,7 @@ public:
     assertListDerivedFromBaseList();
   };
 
+  auto getList() const -> BaseListDerived & { return list; }
   void setSortFunction(const SortFunction &fn) { sortFn = fn; }
 
   void sort() { sortFn(list); };
