@@ -123,7 +123,7 @@ private:
     }
 
     // clang-format off
-  inline static size_t medianThree(std::vector<int>& list, size_t start, size_t end) {
+  inline static size_t medianThree(DerivedRef list, size_t start, size_t end) {
       // clang-format on
       size_t mid = (start + end) / 2;
       const T &startValue = list[start], &midValue = list[mid],
