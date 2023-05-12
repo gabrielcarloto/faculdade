@@ -68,7 +68,8 @@ public:
     }
   }
 
-  static void quickSort(DerivedRef);
+  inline static void quickSort(DerivedRef list) { QuickSort::sort(list); }
+
   static void mergeSort(DerivedRef);
 
   static void swap(T &a, T &b) {
@@ -85,4 +86,51 @@ private:
     static_assert(std::is_base_of<BaseList<T>, BaseListDerived>::value,
                   "Template BaseListDerived is not derived from BaseList");
   }
+
+  class QuickSort {
+    static void quickSort(DerivedRef list, size_t start, size_t end) {
+      if (start >= end)
+        return;
+
+      auto pivotIndex = partition(list, start, end);
+
+      quickSort(list, start, pivotIndex);
+      quickSort(list, pivotIndex + 1, end);
+    }
+
+    static size_t partition(DerivedRef list, size_t start, size_t end) {
+      size_t pivotIndex = medianThree(list, start, end), partitionIndex = start;
+
+      swap(list[pivotIndex], list[end]);
+      const int &pivotValue = list[end];
+
+      for (size_t i = start; i < end; i++) {
+        if (list[i] < pivotValue) {
+          swap(list[i], list[partitionIndex]);
+          partitionIndex++;
+        }
+      }
+
+      swap(list[partitionIndex], list[end]);
+      return partitionIndex;
+    }
+
+    // clang-format off
+  inline static size_t medianThree(std::vector<int>& list, size_t start, size_t end) {
+      // clang-format on
+      size_t mid = (start + end) / 2;
+
+      if ((list[start] > list[mid]) ^ (list[start] > list[end]))
+        return start;
+      if ((list[mid] < list[start]) ^ (list[mid] < list[end]))
+        return mid;
+
+      return end;
+    }
+
+  public:
+    inline static void sort(DerivedRef vec) {
+      quickSort(vec, 0, vec.size() - 1);
+    }
+  };
 };
