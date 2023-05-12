@@ -1,4 +1,7 @@
 #include "SortTester.cpp"
+#include <future>
+
+const unsigned int maxThreads = std::thread::hardware_concurrency();
 
 void insertionSort(std::vector<int> &vec) {
   for (size_t i = 1; i < vec.size(); i++) {
@@ -109,19 +112,107 @@ public:
   static void sort(std::vector<int> &vec) { quickSort(vec, 0, vec.size() - 1); }
 };
 
+class MergeSort {
+  static void merge(std::vector<int> &results, std::vector<int> &temp,
+                    intmax_t start, intmax_t mid, intmax_t end) {
+    intmax_t endLeft = mid - 1, tempPos = start, size = end - start + 1;
+
+    while (start <= endLeft && mid <= end) {
+      if (results[start] <= results[mid]) {
+        temp[tempPos] = results[start];
+        tempPos++;
+        start++;
+      } else {
+        temp[tempPos] = results[mid];
+        tempPos++;
+        mid++;
+      }
+    }
+
+    while (start <= endLeft) {
+      temp[tempPos] = results[start];
+      tempPos++;
+      start++;
+    }
+
+    while (mid <= end) {
+      temp[tempPos] = results[mid];
+      tempPos++;
+      mid++;
+    }
+
+    for (intmax_t i = 0; i < size; i++) {
+      results[end] = temp[end];
+      end--;
+    }
+  }
+
+  static void mergeSortNoThread(std::vector<int> &vec, std::vector<int> &temp,
+                                size_t start, size_t end) {
+    if (end <= start)
+      return;
+
+    size_t mid = (start + end) / 2;
+    mergeSortNoThread(vec, temp, start, mid);
+    mergeSortNoThread(vec, temp, mid + 1, end);
+    merge(vec, temp, (intmax_t)start, (intmax_t)mid + 1, (intmax_t)end);
+  }
+
+  static void mergeSort(std::vector<int> &vec, std::vector<int> &temp,
+                        size_t start, size_t end,
+                        unsigned int currentThreads = 1,
+                        bool shouldThread = true) {
+    if (end <= start)
+      return;
+
+    size_t mid = (start + end) / 2;
+
+    if (shouldThread && currentThreads < maxThreads) {
+      auto thread =
+          std::async(std::launch::async, mergeSort, std::ref(vec),
+                     std::ref(temp), start, mid, currentThreads * 2, true);
+
+      mergeSort(vec, temp, mid + 1, end, currentThreads * 2, true);
+      thread.wait();
+    } else {
+      mergeSortNoThread(vec, temp, start, mid);
+      mergeSortNoThread(vec, temp, mid + 1, end);
+    }
+
+    merge(vec, temp, (intmax_t)start, (intmax_t)mid + 1, (intmax_t)end);
+  }
+
+  static void fillWithZeros(std::vector<int> &vec, size_t size) {
+    for (size_t i = 0; i < size; i++) {
+      vec.push_back(0);
+    }
+  }
+
+public:
+  static void sort(std::vector<int> &vec) {
+    std::vector<int> temp;
+    temp.reserve(vec.size());
+
+    fillWithZeros(temp, vec.size());
+    mergeSort(vec, temp, 0, vec.size() - 1, 1, vec.size() > 200);
+  }
+};
+
 int main() {
   SortTester insertionSortTester("InsertionSort", insertionSort),
       bubbleSortTester("BubbleSort", bubbleSort),
       selectionSortTester("SelectionSort", selectionSort),
       binaryInsertionSortTester("BinaryInsertionSort",
                                 BinaryInsertionSort::sort),
-      quickSortTester("QuickSort", QuickSort::sort);
+      quickSortTester("QuickSort", QuickSort::sort),
+      mergeSortTester("MergeSort", MergeSort::sort);
 
   insertionSortTester.runTests();
   binaryInsertionSortTester.runTests();
   // bubbleSortTester.runTests();
   // selectionSortTester.runTests();
   quickSortTester.runTests();
+  mergeSortTester.runTests();
 
   return 0;
 }
