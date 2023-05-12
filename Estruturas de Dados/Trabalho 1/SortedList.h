@@ -131,8 +131,8 @@ private:
     }
 
   public:
-    inline static void sort(DerivedRef vec) {
-      quickSort(vec, 0, vec.size() - 1);
+    inline static void sort(DerivedRef list) {
+      quickSort(list, 0, list.getLength() - 1);
     }
   };
 };
