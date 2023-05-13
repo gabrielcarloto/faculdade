@@ -1,5 +1,8 @@
 #include "BaseList.h"
+#include "List.h"
+#include "Vector.h"
 #include <functional>
+#include <future>
 #include <type_traits>
 
 template <typename T, class BaseListDerived> class SortedList {
@@ -74,7 +77,7 @@ public:
 
   inline static void quickSort(DerivedRef list) { QuickSort::sort(list); }
 
-  static void mergeSort(DerivedRef);
+  inline static void mergeSort(DerivedRef list) { MergeSort::sort(list); }
 
   static void swap(T &a, T &b) {
     T temp = std::move(a);
@@ -93,6 +96,8 @@ private:
             BaseListDerived>::value,
         "Template BaseListDerived is not derived from BaseList");
   }
+
+  static const unsigned int maxThreads;
 
   class QuickSort {
     static void quickSort(DerivedRef list, size_t start, size_t end) {
@@ -142,4 +147,90 @@ private:
       quickSort(list, 0, list.getLength() - 1);
     }
   };
+
+  class MergeSort {
+    static void merge(DerivedRef results, DerivedRef temp, intmax_t start,
+                      intmax_t mid, intmax_t end) {
+      intmax_t endLeft = mid - 1, tempPos = start, size = end - start + 1;
+
+      while (start <= endLeft && mid <= end) {
+        if (results[start] <= results[mid]) {
+          temp[tempPos] = results[start];
+          tempPos++;
+          start++;
+        } else {
+          temp[tempPos] = results[mid];
+          tempPos++;
+          mid++;
+        }
+      }
+
+      while (start <= endLeft) {
+        temp[tempPos] = results[start];
+        tempPos++;
+        start++;
+      }
+
+      while (mid <= end) {
+        temp[tempPos] = results[mid];
+        tempPos++;
+        mid++;
+      }
+
+      for (intmax_t i = 0; i < size; i++) {
+        results[end] = temp[end];
+        end--;
+      }
+    }
+
+    static void mergeSortNoThread(DerivedRef list, DerivedRef temp,
+                                  size_t start, size_t end) {
+      if (end <= start)
+        return;
+
+      size_t mid = (start + end) / 2;
+      mergeSortNoThread(list, temp, start, mid);
+      mergeSortNoThread(list, temp, mid + 1, end);
+      merge(list, temp, (intmax_t)start, (intmax_t)mid + 1, (intmax_t)end);
+    }
+
+    static void mergeSort(DerivedRef list, DerivedRef temp, size_t start,
+                          size_t end, unsigned int currentThreads = 1,
+                          bool shouldThread = true) {
+      if (end <= start)
+        return;
+
+      size_t mid = (start + end) / 2;
+
+      if (shouldThread && currentThreads < maxThreads) {
+        auto thread =
+            std::async(std::launch::async, mergeSort, std::ref(list),
+                       std::ref(temp), start, mid, currentThreads * 2, true);
+
+        mergeSort(list, temp, mid + 1, end, currentThreads * 2, true);
+        thread.wait();
+      } else {
+        mergeSortNoThread(list, temp, start, mid);
+        mergeSortNoThread(list, temp, mid + 1, end);
+      }
+
+      merge(list, temp, (intmax_t)start, (intmax_t)mid + 1, (intmax_t)end);
+    }
+
+  public:
+    static void sort(DerivedRef list) {
+      BaseListDerived temp;
+
+      if constexpr (std::is_same_v<BaseListDerived, Vector<int>>)
+        temp.reserve(list.getLength());
+      else if constexpr (std::is_same_v<BaseListDerived, List<int>>)
+        temp.allocate(list.getLength());
+
+      mergeSort(list, temp, 0, list.getLength() - 1, 1, list.getLength() > 200);
+    }
+  };
 };
+
+// clang-format off
+template <typename T, class B>
+const unsigned int SortedList<T, B>::maxThreads(std::thread::hardware_concurrency());
