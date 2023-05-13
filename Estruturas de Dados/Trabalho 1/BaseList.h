@@ -123,8 +123,7 @@ public:
       _push(item);
       return profiler.end();
     } else if (index == getLength() - 1) {
-      assertIndexIsValid(index);
-      T &lastItem = _at(index);
+      T lastItem = std::move(_at(index));
       _replace(item, index);
       _push(lastItem);
       return profiler.end();
@@ -165,8 +164,7 @@ public:
       _push(item);
       return profiler.end();
     } else if (index == getLength() - 1) {
-      assertIndexIsValid(index);
-      T &lastItem = _at(index);
+      T lastItem = std::move(_at(index));
       _replace(item, index);
       _push(lastItem);
       return profiler.end();
@@ -187,8 +185,7 @@ public:
       _push(item);
       return profiler.end();
     } else if (i == getLength() - 1) {
-      assertIndexIsValid(index);
-      T &lastItem = _at(i);
+      T lastItem = std::move(_at(i));
       _replace(item, i);
       _push(lastItem);
       return profiler.end();
