@@ -221,9 +221,9 @@ private:
     static void sort(DerivedRef list) {
       BaseListDerived temp;
 
-      if constexpr (std::is_same_v<BaseListDerived, Vector<int>>)
+      if constexpr (std::is_same_v<BaseListDerived, Vector<T>>)
         temp.reserve(list.getLength());
-      else if constexpr (std::is_same_v<BaseListDerived, List<int>>)
+      else if constexpr (std::is_same_v<BaseListDerived, List<T>>)
         temp.allocate(list.getLength());
 
       mergeSort(list, temp, 0, list.getLength() - 1, 1, list.getLength() > 200);
