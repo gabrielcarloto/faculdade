@@ -22,8 +22,17 @@ public:
   void sort() { sortFn(list); };
 
   T &at(size_t index) { return list.at(index); }
-  void add(const T &);
-  void add(const T &&);
+
+  void add(const T &item) {
+    size_t index = searchIndexForItem(item);
+    list.insert(item, index);
+  }
+
+  void add(const T &&item) {
+    size_t index = searchIndexForItem(item);
+    list.insert(item, index);
+  }
+
   auto search(const SearchCompareFunction &) -> T &;
   auto searchIndex(const SearchCompareFunction &) -> size_t;
 
@@ -100,6 +109,24 @@ private:
   }
 
   static const unsigned int maxThreads;
+
+  size_t searchIndexForItem(const T &item) {
+    size_t start = 0, end = list.getLength() - 1, mid = (start + end) / 2;
+
+    while (start < end && mid > 0) {
+      mid = (start + end) / 2;
+
+      if (list[mid] == item)
+        return mid;
+
+      if (item < list[mid])
+        end = mid - 1;
+      else
+        start = mid + 1;
+    }
+
+    return start + (item > list[start]);
+  }
 
   class QuickSort {
     static void quickSort(DerivedRef list, size_t start, size_t end) {
