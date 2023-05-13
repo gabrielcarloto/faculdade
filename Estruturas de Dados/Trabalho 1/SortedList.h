@@ -21,12 +21,14 @@ public:
 
   void sort() { sortFn(list); };
 
+  T &at(size_t index) { return list.at(index); }
   void add(const T &);
   void add(const T &&);
   auto search(const SearchCompareFunction &) -> T &;
   auto searchIndex(const SearchCompareFunction &) -> size_t;
 
   auto operator->() -> BaseListDerived * { return &list; }
+  auto operator[](size_t index) -> T & { return list[index]; }
 
   typename BaseListDerived::TIterator begin() { return list.begin(); }
   typename BaseListDerived::TIterator end() { return list.end(); }
