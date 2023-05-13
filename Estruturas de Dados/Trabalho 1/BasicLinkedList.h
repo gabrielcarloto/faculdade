@@ -142,4 +142,21 @@ public:
     length++;
     return newNode;
   }
+
+  /**
+   * @brief Allocates new nodes in the list without adding data. This function
+   * can be used to access arbitrary indexes before adding any data, for
+   * example, when dealing with a non-in-place sorting algorithm.
+   *
+   * Note that calling this function with a value of X will create X new nodes,
+   * affecting the current size of the list. If you subsequently push an item
+   * to the list, it will be added post the last node.
+   */
+  void allocate(size_t size) {
+    if (size < length)
+      return;
+
+    for (size_t i = length; i < size; i++)
+      push();
+  }
 };

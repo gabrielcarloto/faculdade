@@ -200,4 +200,6 @@ public:
   ListIterator<T> begin() override { return ListIterator<T>(nodes.first()); }
 
   ListIterator<T> end() override { return ListIterator<T>(nullptr); }
+
+  inline void allocate(size_t size) { return nodes.allocate(size); }
 };
