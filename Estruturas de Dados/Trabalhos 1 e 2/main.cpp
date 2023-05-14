@@ -197,6 +197,7 @@ std::string askForName() {
   std::string name;
 
   std::cout << "Digite o nome: ";
+  std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
   std::cin >> name;
 
   return name;
