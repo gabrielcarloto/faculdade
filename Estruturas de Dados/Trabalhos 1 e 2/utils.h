@@ -13,6 +13,12 @@ template <typename T> class Vector;
 struct Person {
   std::string name;
   unsigned int id = 0;
+
+  bool operator<(Person &p) { return id < p.id; }
+  bool operator<=(Person &p) { return id <= p.id; }
+  bool operator>(Person &p) { return id > p.id; }
+  bool operator>=(Person &p) { return id >= p.id; }
+  bool operator==(Person &p) { return id == p.id; }
 };
 
 namespace utils {
