@@ -28,13 +28,13 @@ void Profiler::addMove(unsigned int n) {
     moves += n;
 }
 
-std::chrono::milliseconds Profiler::getDuration() {
+std::chrono::milliseconds Profiler::getDuration() const {
   return std::chrono::duration_cast<std::chrono::milliseconds>(endTime -
                                                                startTime);
 }
 
-unsigned int Profiler::getComparisons() { return comparisons; }
-unsigned int Profiler::getMoves() { return moves; }
+unsigned int Profiler::getComparisons() const { return comparisons; }
+unsigned int Profiler::getMoves() const { return moves; }
 
 std::string Profiler::getName() { return name; }
 void Profiler::setName(std::string n) { name = n; }

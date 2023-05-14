@@ -24,10 +24,9 @@ public:
 
   void addMove(unsigned int n = 1);
 
-  std::chrono::milliseconds getDuration();
-
-  unsigned int getComparisons();
-  unsigned int getMoves();
+  std::chrono::milliseconds getDuration() const;
+  unsigned int getComparisons() const;
+  unsigned int getMoves() const;
 
   std::string getName();
   void setName(std::string);
