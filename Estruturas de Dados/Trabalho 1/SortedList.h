@@ -273,7 +273,7 @@ private:
 
   public:
     inline static void sort(DerivedRef list, Profiler &prof) {
-      quickSort(list, 0, list.getLength() - 1, prof);
+      quickSort(list, 0, list.getLength() - 1, prof, 1, list.getLength() > 200);
     }
   };
 
