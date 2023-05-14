@@ -202,22 +202,26 @@ std::string askForName() {
   return name;
 };
 
+template <typename T> T askAndCheck() {
+  T value;
+
+  while (!(std::cin >> value)) {
+    std::cout << "Entrada inválida. Por favor, tente novamente: ";
+    std::cin.clear();
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+  }
+
+  return value;
+}
+
 unsigned int askForID() {
-  unsigned int id;
-
   std::cout << "Digite o RG: ";
-  std::cin >> id;
-
-  return id;
+  return askAndCheck<unsigned int>();
 };
 
 size_t askForIndex() {
-  size_t index;
-
   std::cout << "Digite o indice: ";
-  std::cin >> index;
-
-  return index;
+  return askAndCheck<size_t>();
 };
 
 template <typename T, typename I> void printToStdout(BaseListType<T, I> &list) {
