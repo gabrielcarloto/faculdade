@@ -18,6 +18,7 @@ public:
 
   auto getList() const -> BaseListDerived & { return list; }
   void setSortFunction(const SortFunction &fn) { sortFn = fn; }
+  [[nodiscard]] auto getLength() const -> size_t { return list.getLength(); }
 
   void sort() { sortFn(list); };
 
