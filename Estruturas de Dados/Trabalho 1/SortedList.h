@@ -33,8 +33,36 @@ public:
     list.insert(item, index);
   }
 
-  auto search(const SearchCompareFunction &) -> T &;
-  auto searchIndex(const SearchCompareFunction &) -> size_t;
+  auto search(const T &item, bool *found) -> T & {
+    size_t index = searchIndex(item, found);
+    return list[index];
+  }
+
+  auto searchIndex(const T &item, bool *found) -> size_t {
+    size_t start = 0, end = list.getLength() - 1, mid = (start + end) / 2;
+
+    while (start < end && mid > 0) {
+      mid = (start + end) / 2;
+
+      if (list[mid] == item) {
+        *found = true;
+        return mid;
+      }
+
+      if (item < list[mid])
+        end = mid - 1;
+      else
+        start = mid + 1;
+    }
+
+    if (list[start] == item) {
+      *found = true;
+      return start;
+    }
+
+    *found = false;
+    return 0;
+  }
 
   auto operator->() -> BaseListDerived * { return &list; }
   auto operator[](size_t index) -> T & { return list[index]; }
