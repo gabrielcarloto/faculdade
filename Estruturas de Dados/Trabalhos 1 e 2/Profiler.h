@@ -28,7 +28,7 @@ public:
   unsigned int getComparisons() const;
   unsigned int getMoves() const;
 
-  std::string getName();
+  std::string getName() const;
   void setName(std::string);
   void printInfo(bool = true);
 };

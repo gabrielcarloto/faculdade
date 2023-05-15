@@ -1,6 +1,8 @@
 #include "Profiler.h"
 #include "utils.h"
 
+#define absolute(x) (x > 0 ? x : -x)
+
 template <class T> class BasicLinkedList {
 public:
   struct Node {
@@ -22,9 +24,16 @@ private:
   void compareIndices(size_t index) {
     size_t distanceFirst = index;
     size_t distanceLast = length - 1 - index;
-    size_t distanceCurrent =
-        absolute(static_cast<intmax_t>(index) -
-                 static_cast<intmax_t>(lastChosenNodeIndex));
+    size_t distanceCurrent = absolute(
+        static_cast<intmax_t>(index) -
+        static_cast<intmax_t>(
+            lastChosenNodeIndex)); // BUG: usar o absolute causa overflow em
+                                   // alguns casos, fazendo com que a lista
+                                   // demore mais para encontrar o índice. Isso
+                                   // deve ser trocado pelo std::abs, no entanto
+                                   // isso também leva a problemas para
+                                   // encontrar o índice, então deve ser
+                                   // investigado.
 
     profiler->addComparison(2);
 

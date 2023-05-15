@@ -1,37 +1,45 @@
-#define _DEBUG
 #include "BaseList.h"
 #include "List.h"
 #include "Menu.cpp"
 #include "Profiler.h"
+#include "SortedList.h"
 #include "Vector.h"
 #include "utils.h"
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
+#include <stdexcept>
 
 #define FILES_PATH "./arquivos/"
 #define FILES_BASENAME "NomeRG"
 #define FILES_EXTENSION ".txt"
 
+#define FG_GREEN "\033[32m"
+#define RESET_COLOR "\033[39;49m"
+
+using SortedVector = SortedList<Person *, Vector<Person *>>;
+using SortedLinkedList = SortedList<Person *, List<Person *>>;
+template <class Derived> using SortedBaseList = SortedList<Person *, Derived>;
+
 template <typename T, typename I> using BaseListType = BaseList<Person *, T, I>;
 
-template <typename T, typename I> void printToStdout(BaseListType<T, I> &list);
-template <typename T, typename I>
-void saveToFile(BaseListType<T, I> &list, std::string filePath);
-void pushLinesToLists(Profiler *, Profiler *, std::string, List<Person *> &,
-                      Vector<Person *> &);
-template <typename T, typename I>
-void insertList(BaseListType<T, I> &list, Profiler *profiler, std::string &name,
+template <class T> void printToStdout(SortedBaseList<T> &list);
+template <class T>
+void saveToFile(SortedBaseList<T> &list, std::string filePath);
+void pushLinesToLists(Profiler *, Profiler *, std::string, SortedLinkedList &,
+                      SortedVector &);
+template <class T>
+void insertList(SortedBaseList<T> &list, Profiler *profiler, std::string &name,
                 unsigned int id, size_t index);
-template <typename T, typename I>
-void removeList(BaseListType<T, I> &list, Profiler *profiler, size_t index);
+template <class T>
+void removeList(SortedBaseList<T> &list, Profiler *profiler, size_t index);
 
-template <typename T, typename I>
-void searchListName(BaseListType<T, I> &list, Profiler *profiler,
+template <class T>
+void searchListName(SortedBaseList<T> &list, Profiler *profiler,
                     std::string &name) {
   size_t index;
-  bool found = list.findIndex(
+  bool found = list->findIndex(
       [&](auto item, auto) { return item->name == name; }, index);
 
   if (!found) {
@@ -48,12 +56,12 @@ void searchListName(BaseListType<T, I> &list, Profiler *profiler,
   std::cout << "\tNome: " << fromList->name << ", RG: " << fromList->id << "\n";
 }
 
-template <typename T, typename I>
-void searchListID(BaseListType<T, I> &list, Profiler *profiler,
+template <class T>
+void searchListID(SortedBaseList<T> &list, Profiler *profiler,
                   unsigned int id) {
   size_t index;
   bool found =
-      list.findIndex([&](auto item, auto) { return item->id == id; }, index);
+      list->findIndex([&](auto item, auto) { return item->id == id; }, index);
 
   if (!found) {
     std::cout << profiler->getName() << " nao encontrou o item\n";
@@ -67,6 +75,62 @@ void searchListID(BaseListType<T, I> &list, Profiler *profiler,
   std::cout << "Item encontrado no indice " << index << " do "
             << profiler->getName() << "\n";
   std::cout << "\tNome: " << fromList->name << ", RG: " << fromList->id << "\n";
+}
+
+template <class T>
+void binarySearchListID(SortedBaseList<T> &list, unsigned int id) {
+  bool found = false;
+
+  auto person = new Person;
+  person->id = id;
+
+  size_t index = list.searchIndex(person, &found);
+
+  if (!found) {
+    std::cout << list->getProfiler()->getName() << " nao encontrou o item\n";
+    return;
+  }
+
+  list->getProfiler()->printInfo();
+  utils::prettyPrintResults(list.getProfiler(), "Pesquisa", true, 2);
+
+  utils::prettyPrintResults(index, list.at(index));
+}
+
+template <class T>
+void orderedInsert(SortedBaseList<T> &list, std::string name, unsigned int id);
+
+template <class T> void sortList(SortedBaseList<T> &list) {
+  list.sort();
+  list->getProfiler()->printInfo();
+  utils::prettyPrintResults(list.getProfiler(), "Ordenacao", true, 2);
+}
+
+template <class T>
+typename SortedBaseList<T>::ValueCompareFunctions createCompareFunctions() {
+  typename SortedBaseList<T>::ValueCompareFunctions fns;
+
+  // TODO: possivelmente isso deixa tudo muito mais lento
+  // quem sabe, ao invés de chamar também o operator< de cada pessoa,
+  // fazer a comparação direta seja melhor
+  fns.less = [](Person *const &a, Person *const &b) { return *a < *b; };
+  fns.lessEqual = [](Person *const &a, Person *const &b) -> bool {
+    return *a <= *b;
+  };
+
+  fns.greater = [](Person *const &a, Person *const &b) -> bool {
+    return *a > *b;
+  };
+
+  fns.greaterEqual = [](Person *const &a, Person *const &b) -> bool {
+    return *a >= *b;
+  };
+
+  fns.equal = [](Person *const &a, Person *const &b) -> bool {
+    return *a == *b;
+  };
+
+  return fns;
 }
 
 size_t askForIndex();
@@ -91,16 +155,20 @@ int main() {
 
   std::cout << std::string("Lendo o arquivo ") + fileName + "...\n";
 
-  Vector<Person *> peopleVector;
-  List<Person *> peopleList;
-  Profiler *vectorProfiler = peopleVector.getProfiler(),
-           *listProfiler = peopleList.getProfiler();
+  auto vecFns = createCompareFunctions<Vector<Person *>>();
+  auto listFns = createCompareFunctions<List<Person *>>();
 
-  listProfiler->setName("List (encadeada)");
-  vectorProfiler->setName("Vector (sequencial)");
-  peopleVector.reserve(sizes[chosenFile]);
-  peopleVector.registerItemReleaseCallback();
-  peopleList.registerItemReleaseCallback();
+  SortedVector peopleVector(SortedVector::bubbleSort, vecFns);
+  SortedLinkedList peopleList(SortedLinkedList::bubbleSort, listFns);
+
+  Profiler *listProfiler = peopleList->getProfiler();
+  Profiler *vectorProfiler = peopleVector->getProfiler();
+
+  listProfiler->setName("Encadeada");
+  vectorProfiler->setName("Sequencial");
+  peopleVector->reserve(sizes[chosenFile]);
+  peopleVector->registerItemReleaseCallback();
+  peopleList->registerItemReleaseCallback();
 
   pushLinesToLists(vectorProfiler, listProfiler, filePath, peopleList,
                    peopleVector);
@@ -108,57 +176,101 @@ int main() {
   menu.clear();
   menu.setTitle("Menu");
 
+  auto sortMenu = menu.addNestedMenu("Ordenar " FG_GREEN "(novo)");
+
+  sortMenu->addOption("BubbleSort", [&](auto) {
+    peopleVector.setSortFunction(SortedVector::bubbleSort);
+    peopleList.setSortFunction(SortedLinkedList::bubbleSort);
+
+    sortList(peopleVector);
+    sortList(peopleList);
+  });
+
+  sortMenu->addOption("SelectionSort", [&](auto) {
+    peopleVector.setSortFunction(SortedVector::selectionSort);
+    peopleList.setSortFunction(SortedLinkedList::selectionSort);
+
+    sortList(peopleVector);
+    sortList(peopleList);
+  });
+
+  sortMenu->addOption("InsertionSort", [&](auto) {
+    peopleVector.setSortFunction(SortedVector::insertionSort);
+    peopleList.setSortFunction(SortedLinkedList::insertionSort);
+
+    sortList(peopleVector);
+    sortList(peopleList);
+  });
+
+  sortMenu->addOption("ShellSort", [&](auto) {
+    peopleVector.setSortFunction(SortedVector::shellSort);
+    peopleList.setSortFunction(SortedLinkedList::shellSort);
+
+    sortList(peopleVector);
+    sortList(peopleList);
+  });
+
+  auto quickSortMenu = sortMenu->addNestedMenu("QuickSort");
+
+  quickSortMenu->addOption("Sequencial", [&](auto) {
+    peopleVector.setSortFunction(SortedVector::quickSort);
+    sortList(peopleVector);
+  });
+
+  quickSortMenu->addOption("Encadeada", [&](auto) {
+    peopleList.setSortFunction(SortedLinkedList::quickSort);
+    sortList(peopleList);
+  });
+
+  auto mergeSortMenu = sortMenu->addNestedMenu("MergeSort");
+
+  mergeSortMenu->addOption("Sequencial", [&](auto) {
+    peopleVector.setSortFunction(SortedVector::mergeSort);
+    sortList(peopleVector);
+  });
+
+  mergeSortMenu->addOption("Encadeada", [&](auto) {
+    peopleList.setSortFunction(SortedLinkedList::mergeSort);
+    sortList(peopleList);
+  });
+
   auto insertMenu = menu.addNestedMenu("Inserir");
 
-  insertMenu->addOption("no inicio", [&](auto) {
-    const size_t index = 0;
+  auto insertCommonLogic = [&](size_t index) {
     std::string name = askForName();
     unsigned int id = askForID();
 
     insertList(peopleList, listProfiler, name, id, index);
     insertList(peopleVector, vectorProfiler, name, id, index);
-  });
+  };
 
-  insertMenu->addOption("em um indice", [&](auto) {
-    const size_t index = askForIndex();
-    std::string name = askForName();
-    unsigned int id = askForID();
+  insertMenu->addOption("no inicio", [&](auto) { insertCommonLogic(0); });
+  insertMenu->addOption("em um indice",
+                        [&](auto) { insertCommonLogic(askForIndex()); });
+  insertMenu->addOption(
+      "no fim", [&](auto) { insertCommonLogic(peopleVector.getLength()); });
 
-    insertList(peopleList, listProfiler, name, id, index);
-    insertList(peopleVector, vectorProfiler, name, id, index);
-  });
+  insertMenu->addOption("ordenadamente" FG_GREEN " (novo)" RESET_COLOR,
+                        [&](auto) {
+                          std::string name = askForName();
+                          unsigned int id = askForID();
 
-  insertMenu->addOption("no fim", [&](auto) {
-    const size_t index = peopleVector.getLength();
-    std::string name = askForName();
-    unsigned int id = askForID();
-
-    insertList(peopleList, listProfiler, name, id, index);
-    insertList(peopleVector, vectorProfiler, name, id, index);
-  });
+                          orderedInsert(peopleVector, name, id);
+                          orderedInsert(peopleList, name, id);
+                        });
 
   auto removeMenu = menu.addNestedMenu("Remover");
 
-  removeMenu->addOption("no inicio", [&](auto) {
-    const size_t index = 0;
-
+  auto removeCommonLogic = [&](size_t index) {
     removeList(peopleList, listProfiler, index);
     removeList(peopleVector, vectorProfiler, index);
-  });
+  };
 
-  removeMenu->addOption("em um indice", [&](auto) {
-    const size_t index = askForIndex();
-
-    removeList(peopleList, listProfiler, index);
-    removeList(peopleVector, vectorProfiler, index);
-  });
-
-  removeMenu->addOption("no fim", [&](auto) {
-    const size_t index = peopleVector.getLength() - 1;
-
-    removeList(peopleList, listProfiler, index);
-    removeList(peopleVector, vectorProfiler, index);
-  });
+  removeMenu->addOption("no inicio", [&](auto) { removeCommonLogic(0); });
+  removeMenu->addOption("em um indice",
+                        [&](auto) { removeCommonLogic(askForIndex()); });
+  removeMenu->addOption(
+      "no fim", [&](auto) { removeCommonLogic(peopleVector.getLength() - 1); });
 
   auto searchMenu = menu.addNestedMenu("Procurar");
 
@@ -174,6 +286,12 @@ int main() {
 
     searchListID(peopleVector, vectorProfiler, id);
     searchListID(peopleList, listProfiler, id);
+  });
+
+  searchMenu->addOption("RG com busca binária " FG_GREEN "(novo)", [&](auto) {
+    auto id = askForID();
+    binarySearchListID(peopleVector, id);
+    binarySearchListID(peopleList, id);
   });
 
   auto saveMenu = menu.addNestedMenu("Salvar no arquivo");
@@ -225,20 +343,20 @@ size_t askForIndex() {
   return askAndCheck<size_t>();
 };
 
-template <typename T, typename I> void printToStdout(BaseListType<T, I> &list) {
+template <class T> void printToStdout(SortedBaseList<T> &list) {
   std::string content = "";
 
-  list.forEach(
+  list->forEach(
       [&](auto item, auto) { content += utils::personToString(item) + '\n'; });
 
   std::cout << content << "\n";
-  list.getProfiler()->printInfo();
+  list->getProfiler()->printInfo();
 }
 
-template <typename T, typename I>
-void removeList(BaseListType<T, I> &list, Profiler *profiler, size_t index) {
+template <class T>
+void removeList(SortedBaseList<T> &list, Profiler *profiler, size_t index) {
   try {
-    list.remove(index);
+    list->remove(index);
     profiler->printInfo();
 
     Person *fromList;
@@ -249,51 +367,44 @@ void removeList(BaseListType<T, I> &list, Profiler *profiler, size_t index) {
       fromList = list.at(index - 1);
     }
 
-    std::cout << "Item removido no " << profiler->getName()
-              << ". O item atual neste indice agora eh \n";
-    std::cout << "\tNome: " << fromList->name << ", RG: " << fromList->id
-              << "\n";
+    utils::prettyPrintResults(index, fromList);
   } catch (...) {
     std::cout << "O indice esta fora de alcance.\n";
   }
 }
 
-template <typename T, typename I>
-void insertList(BaseListType<T, I> &list, Profiler *profiler, std::string &name,
+template <class T>
+void insertList(SortedBaseList<T> &list, Profiler *profiler, std::string &name,
                 unsigned int id, size_t index) {
-  Person *newPerson = new Person;
+  auto *newPerson = new Person;
 
   newPerson->name = name;
   newPerson->id = id;
 
   try {
-    list.insert(newPerson, index);
+    list->insert(newPerson, index);
+
     profiler->printInfo();
-
-    Person *fromList = list.at(index);
-
-    std::cout << "Item inserido no " << profiler->getName() << ": \n";
-    std::cout << "\tNome: " << fromList->name << ", RG: " << fromList->id
-              << "\n";
+    utils::prettyPrintResults(index, list.at(index));
   } catch (...) {
     std::cout << "O indice esta fora de alcance.\n";
   }
 }
 
-template <typename T, typename I>
-void saveToFile(BaseListType<T, I> &list, std::string filePath) {
+template <class T>
+void saveToFile(SortedBaseList<T> &list, std::string filePath) {
   std::string content = "";
 
-  list.forEach(
+  list->forEach(
       [&](auto item, auto) { content += utils::personToString(item) + '\n'; });
 
   utils::writeFile(filePath, content);
-  list.getProfiler()->printInfo();
+  list->getProfiler()->printInfo();
 }
 
 void pushLinesToLists(Profiler *vectorProfiler, Profiler *listProfiler,
-                      std::string filePath, List<Person *> &peopleList,
-                      Vector<Person *> &peopleVector) {
+                      std::string filePath, SortedLinkedList &peopleList,
+                      SortedVector &peopleVector) {
   Profiler fileReadProfiler;
 
   fileReadProfiler.start();
@@ -313,9 +424,12 @@ void pushLinesToLists(Profiler *vectorProfiler, Profiler *listProfiler,
     parsed2->name = parsed1->name;
     parsed2->id = parsed1->id;
 
-    peopleList.push(parsed1);
-    peopleVector.push(parsed2);
+    peopleList->push(parsed1);
+    peopleVector->push(parsed2);
   });
+
+  if (!peopleList->getLength() || !peopleVector.getLength())
+    throw std::runtime_error("Todas as linhas foram ignoradas");
 
   fileReadProfiler.end();
   vectorProfiler->end();
@@ -327,4 +441,17 @@ void pushLinesToLists(Profiler *vectorProfiler, Profiler *listProfiler,
 
   vectorProfiler->printInfo(false);
   listProfiler->printInfo(false);
+}
+
+template <class T>
+void orderedInsert(SortedBaseList<T> &list, std::string name, unsigned int id) {
+  auto newPerson = new Person;
+
+  newPerson->name = name;
+  newPerson->id = id;
+
+  auto index = list.add(newPerson);
+  list->getProfiler()->printInfo();
+  utils::prettyPrintResults(list.getProfiler(), "Ordenada", true, 2);
+  utils::prettyPrintResults(index, list.at(index));
 }

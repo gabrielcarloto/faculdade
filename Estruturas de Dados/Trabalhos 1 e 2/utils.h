@@ -1,12 +1,10 @@
 #pragma once
-#include "debug.h"
+#include "Profiler.h"
 #include <chrono>
 #include <functional>
 #include <future>
 #include <iostream>
 #include <thread>
-
-#define absolute(x) (x > 0 ? x : -x)
 
 template <typename T> class Vector;
 
@@ -14,11 +12,11 @@ struct Person {
   std::string name;
   unsigned int id = 0;
 
-  bool operator<(Person &p) { return id < p.id; }
-  bool operator<=(Person &p) { return id <= p.id; }
-  bool operator>(Person &p) { return id > p.id; }
-  bool operator>=(Person &p) { return id >= p.id; }
-  bool operator==(Person &p) { return id == p.id; }
+  bool operator<(const Person &p) const { return id < p.id; }
+  bool operator<=(const Person &p) const { return id <= p.id; }
+  bool operator>(const Person &p) const { return id > p.id; }
+  bool operator>=(const Person &p) const { return id >= p.id; }
+  bool operator==(const Person &p) const { return id == p.id; }
 };
 
 namespace utils {
@@ -33,6 +31,10 @@ Person *strToPerson(std::string &str);
 std::string personToString(Person *);
 
 bool verifyString(std::string &);
+void prettyPrintResults(const Profiler &, const char * = nullptr, bool = true,
+                        size_t = 1);
+
+void prettyPrintResults(size_t, Person * = nullptr);
 
 // https://stackoverflow.com/a/56268886
 template <typename TF, typename TDuration, class... TArgs>

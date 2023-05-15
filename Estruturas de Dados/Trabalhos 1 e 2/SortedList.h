@@ -10,38 +10,62 @@ template <typename T, class BaseListDerived> class SortedList {
   using DerivedRef = BaseListDerived &;
 
 public:
-  using SortFunction = std::function<void(DerivedRef, Profiler &)>;
-  using SearchCompareFunction = std::function<short int(T &, T &)>;
+  struct ValueCompareFunctions {
+    std::function<bool(const T &, const T &)> less =
+        [](const T &a, const T &b) -> bool { return a < b; };
+
+    std::function<bool(const T &, const T &)> lessEqual =
+        [](const T &a, const T &b) -> bool { return a <= b; };
+
+    std::function<bool(const T &, const T &)> greater =
+        [](const T &a, const T &b) -> bool { return a > b; };
+
+    std::function<bool(const T &, const T &)> greaterEqual =
+        [](const T &a, const T &b) -> bool { return a >= b; };
+
+    std::function<bool(const T &, const T &)> equal =
+        [](const T &a, const T &b) -> bool { return a == b; };
+  };
+
+  using SortFunction =
+      std::function<void(DerivedRef, Profiler &, ValueCompareFunctions &)>;
 
   SortedList(const SortFunction &fn) : sortFn(fn) {
     assertListDerivedFromBaseList();
   };
 
+  SortedList(const SortFunction &fn, ValueCompareFunctions &valFn)
+      : sortFn(fn), comp(std::move(valFn)) {
+    assertListDerivedFromBaseList();
+  };
+
   auto getList() const -> BaseListDerived & { return list; }
-  void setSortFunction(const SortFunction &fn) { sortFn = fn; }
+  void setSortFunction(const SortFunction &fn) { sortFn = std::move(fn); }
   auto getProfiler() const -> const Profiler & { return profiler; }
   [[nodiscard]] auto getLength() const -> size_t { return list.getLength(); }
 
   void sort() {
     profiler.start();
-    sortFn(list, profiler);
+    sortFn(list, profiler, comp);
     profiler.end();
   };
 
-  T &at(size_t index) const { return list.at(index); }
+  T &at(size_t index) { return list.at(index); }
 
-  void add(const T &item) {
+  size_t add(const T &item) {
     profiler.start();
     size_t index = searchIndexForItem(item);
     list.insert(item, index);
     profiler.end();
+    return index;
   }
 
-  void add(const T &&item) {
+  size_t add(const T &&item) {
     profiler.start();
     size_t index = searchIndexForItem(item);
     list.insert(item, index);
     profiler.end();
+    return index;
   }
 
   auto search(const T &item, bool *found) -> T & {
@@ -57,21 +81,21 @@ public:
       mid = (start + end) / 2;
 
       profiler.addComparison();
-      if (list[mid] == item) {
+      if (comp.equal(list[mid], item)) {
         *found = true;
         profiler.end();
         return mid;
       }
 
       profiler.addComparison();
-      if (item < list[mid])
+      if (comp.less(item, list[mid]))
         end = mid - 1;
       else
         start = mid + 1;
     }
 
     profiler.addComparison();
-    if (list[start] == item) {
+    if (comp.equal(list[start], item)) {
       *found = true;
       profiler.end();
       return start;
@@ -88,26 +112,28 @@ public:
   typename BaseListDerived::TIterator begin() { return list.begin(); }
   typename BaseListDerived::TIterator end() { return list.end(); }
 
-  static void bubbleSort(DerivedRef list, Profiler &prof) {
+  static void bubbleSort(DerivedRef list, Profiler &prof,
+                         ValueCompareFunctions &comp) {
     for (size_t lastSortedIndex = list.getLength(); lastSortedIndex > 0;
          lastSortedIndex--) {
       prof.addComparison();
       for (size_t i = 0; i < lastSortedIndex - 1; i++) {
         prof.addComparison();
-        if (list[i] > list[i + 1])
+        if (comp.greater(list[i], list[i + 1]))
           swap(list[i], list[i + 1], prof);
       }
     }
   }
 
-  static void selectionSort(DerivedRef list, Profiler &prof) {
+  static void selectionSort(DerivedRef list, Profiler &prof,
+                            ValueCompareFunctions &comp) {
     for (size_t i = 0; i < list.getLength() - 1; i++) {
       size_t minValueIndex = i;
       prof.addComparison();
 
       for (size_t j = i + 1; j < list.getLength(); j++) {
         prof.addComparison();
-        if (list[j] < list[minValueIndex])
+        if (comp.less(list[j], list[minValueIndex]))
           minValueIndex = j;
       }
 
@@ -115,19 +141,21 @@ public:
     }
   }
 
-  static void insertionSort(DerivedRef list, Profiler &prof) {
+  static void insertionSort(DerivedRef list, Profiler &prof,
+                            ValueCompareFunctions &comp) {
     for (size_t i = 1; i < list.getLength(); i++) {
       prof.addComparison();
       T temp = list[i];
 
-      for (size_t j = i; j > 0 && temp < list[j - 1]; j--) {
+      for (size_t j = i; j > 0 && comp.less(temp, list[j - 1]); j--) {
         swap(list[j], list[j - 1], prof);
         prof.addComparison();
       }
     }
   }
 
-  static void shellSort(DerivedRef list, Profiler &prof) {
+  static void shellSort(DerivedRef list, Profiler &prof,
+                        ValueCompareFunctions &comp) {
     for (size_t interval = list.getLength() / 2; interval > 0; interval /= 2) {
       prof.addComparison();
       for (size_t i = interval; i < list.getLength(); i++) {
@@ -135,7 +163,7 @@ public:
         T temp = list[i];
 
         // clang-format off
-        for (size_t j = i; j >= interval && temp < list[j - interval]; j -= interval) {
+        for (size_t j = i; j >= interval && comp.less(temp, list[j - interval]); j -= interval) {
           // clang-format on
           prof.addComparison();
           swap(list[j], list[j - interval], prof);
@@ -144,12 +172,14 @@ public:
     }
   }
 
-  static inline void quickSort(DerivedRef list, Profiler &prof) {
-    QuickSort::sort(list, prof);
+  static inline void quickSort(DerivedRef list, Profiler &prof,
+                               ValueCompareFunctions &comp) {
+    QuickSort::sort(list, prof, comp);
   }
 
-  static inline void mergeSort(DerivedRef list, Profiler &prof) {
-    MergeSort::sort(list, prof);
+  static inline void mergeSort(DerivedRef list, Profiler &prof,
+                               ValueCompareFunctions &comp) {
+    MergeSort::sort(list, prof, comp);
   }
 
   static void swap(T &a, T &b, Profiler &prof) {
@@ -163,6 +193,7 @@ private:
   BaseListDerived list;
   SortFunction sortFn;
   mutable Profiler profiler;
+  ValueCompareFunctions comp;
 
   void assertListDerivedFromBaseList() {
     static_assert(
@@ -182,60 +213,62 @@ private:
       mid = (start + end) / 2;
 
       profiler.addComparison();
-      if (list[mid] == item)
+      if (comp.equal(list[mid], item))
         return mid;
 
       profiler.addComparison();
-      if (item < list[mid])
+      if (comp.less(item, list[mid]))
         end = mid - 1;
       else
         start = mid + 1;
     }
 
     profiler.addComparison();
-    return start + (item > list[start]);
+    return start + comp.greater(item, list[start]);
   }
 
   class QuickSort {
     static void quickSortNoThread(DerivedRef list, size_t start, size_t end,
-                                  Profiler &prof) {
+                                  Profiler &prof, ValueCompareFunctions &comp) {
       prof.addComparison();
       if (start >= end)
         return;
 
-      auto pivotIndex = partition(list, start, end, prof);
+      auto pivotIndex = partition(list, start, end, prof, comp);
 
-      quickSortNoThread(list, start, pivotIndex, prof);
-      quickSortNoThread(list, pivotIndex + 1, end, prof);
+      quickSortNoThread(list, start, pivotIndex, prof, comp);
+      quickSortNoThread(list, pivotIndex + 1, end, prof, comp);
     }
 
     static void quickSort(DerivedRef list, size_t start, size_t end,
-                          Profiler &prof, unsigned int currentThreads = 1,
+                          Profiler &prof, ValueCompareFunctions &comp,
+                          unsigned int currentThreads = 1,
                           bool shouldThread = false) {
       prof.addComparison();
       if (start >= end)
         return;
 
-      auto pivotIndex = partition(list, start, end, prof);
+      auto pivotIndex = partition(list, start, end, prof, comp);
 
       prof.addComparison();
       if (shouldThread && currentThreads < maxThreads) {
-        auto thread =
-            std::async(std::launch::async, quickSort, std::ref(list), start,
-                       pivotIndex, std::ref(prof), currentThreads * 2, true);
+        auto thread = std::async(std::launch::async, quickSort, std::ref(list),
+                                 start, pivotIndex, std::ref(prof),
+                                 std::ref(comp), currentThreads * 2, true);
 
-        quickSort(list, pivotIndex + 1, end, prof, currentThreads * 2, true);
+        quickSort(list, pivotIndex + 1, end, prof, comp, currentThreads * 2,
+                  true);
         thread.wait();
       } else {
-        quickSortNoThread(list, start, pivotIndex, prof);
-        quickSortNoThread(list, pivotIndex + 1, end, prof);
+        quickSortNoThread(list, start, pivotIndex, prof, comp);
+        quickSortNoThread(list, pivotIndex + 1, end, prof, comp);
       }
     }
 
     // clang-format off
-    static size_t partition(DerivedRef list, size_t start, size_t end, Profiler &prof) {
+    static size_t partition(DerivedRef list, size_t start, size_t end, Profiler &prof, ValueCompareFunctions &comp) {
       // clang-format on
-      size_t pivotIndex = medianThree(list, start, end, prof),
+      size_t pivotIndex = medianThree(list, start, end, prof, comp),
              partitionIndex = start;
 
       swap(list[pivotIndex], list[end], prof);
@@ -243,7 +276,7 @@ private:
 
       for (size_t i = start; i < end; i++) {
         prof.addComparison(2);
-        if (list[i] < pivotValue) {
+        if (comp.less(list[i], pivotValue)) {
           swap(list[i], list[partitionIndex], prof);
           partitionIndex++;
         }
@@ -253,45 +286,57 @@ private:
       return partitionIndex;
     }
 
-    // clang-format off
-  inline static size_t medianThree(DerivedRef list, size_t start, size_t end, Profiler &prof) {
-      // clang-format on
+    inline static size_t medianThree(DerivedRef list, size_t start, size_t end,
+                                     Profiler &prof,
+                                     ValueCompareFunctions &comp) {
       size_t mid = (start + end) / 2;
       const T &startValue = list[start], &midValue = list[mid],
               &endValue = list[end];
 
       prof.addComparison();
-      if ((startValue > midValue) ^ (startValue > endValue))
+      if (comp.greater(startValue, midValue) ^
+          comp.greater(startValue, endValue))
         return start;
 
       prof.addComparison();
-      if ((midValue < startValue) ^ (midValue < endValue))
+      if (comp.less(midValue, startValue) ^ comp.less(midValue, endValue))
         return mid;
 
       return end;
     }
 
   public:
-    inline static void sort(DerivedRef list, Profiler &prof) {
-      quickSort(list, 0, list.getLength() - 1, prof, 1, list.getLength() > 200);
+    inline static void sort(DerivedRef list, Profiler &prof,
+                            ValueCompareFunctions &comp) {
+      bool shouldThread = list.getLength() > 200;
+
+      if constexpr (std::is_same_v<BaseListDerived, List<T>>)
+        shouldThread = false;
+
+      prof.addComparison();
+      quickSort(list, 0, list.getLength() - 1, prof, comp, 1, shouldThread);
     }
   };
 
   class MergeSort {
     static void merge(DerivedRef results, DerivedRef temp, intmax_t start,
-                      intmax_t mid, intmax_t end, Profiler &prof) {
+                      intmax_t mid, intmax_t end, Profiler &prof,
+                      ValueCompareFunctions &comp) {
       intmax_t endLeft = mid - 1, tempPos = start, size = end - start + 1;
 
       while (start <= endLeft && mid <= end) {
         prof.addComparison(2);
         prof.addMove();
 
-        if (results[start] <= results[mid]) {
-          temp[tempPos] = results[start]; // cópia conta como movimentação?
+        T &tempValue = temp[tempPos], &resStart = results[start],
+          &resMid = results[mid];
+
+        if (comp.lessEqual(resStart, resMid)) {
+          tempValue = resStart; // cópia conta como movimentação?
           tempPos++;
           start++;
         } else {
-          temp[tempPos] = results[mid];
+          tempValue = resMid;
           tempPos++;
           mid++;
         }
@@ -322,20 +367,22 @@ private:
     }
 
     static void mergeSortNoThread(DerivedRef list, DerivedRef temp,
-                                  size_t start, size_t end, Profiler &prof) {
+                                  size_t start, size_t end, Profiler &prof,
+                                  ValueCompareFunctions &comp) {
       prof.addComparison();
       if (end <= start)
         return;
 
       size_t mid = (start + end) / 2;
-      mergeSortNoThread(list, temp, start, mid, prof);
-      mergeSortNoThread(list, temp, mid + 1, end, prof);
-      merge(list, temp, (intmax_t)start, (intmax_t)mid + 1, (intmax_t)end,
-            prof);
+      mergeSortNoThread(list, temp, start, mid, prof, comp);
+      mergeSortNoThread(list, temp, mid + 1, end, prof, comp);
+      merge(list, temp, (intmax_t)start, (intmax_t)mid + 1, (intmax_t)end, prof,
+            comp);
     }
 
     static void mergeSort(DerivedRef list, DerivedRef temp, size_t start,
                           size_t end, Profiler &prof,
+                          ValueCompareFunctions &comp,
                           unsigned int currentThreads = 1,
                           bool shouldThread = true) {
       prof.addComparison();
@@ -348,30 +395,38 @@ private:
       if (shouldThread && currentThreads < maxThreads) {
         auto thread = std::async(std::launch::async, mergeSort, std::ref(list),
                                  std::ref(temp), start, mid, std::ref(prof),
-                                 currentThreads * 2, true);
+                                 std::ref(comp), currentThreads * 2, true);
 
-        mergeSort(list, temp, mid + 1, end, prof, currentThreads * 2, true);
+        mergeSort(list, temp, mid + 1, end, prof, comp, currentThreads * 2,
+                  true);
         thread.wait();
       } else {
-        mergeSortNoThread(list, temp, start, mid, prof);
-        mergeSortNoThread(list, temp, mid + 1, end, prof);
+        mergeSortNoThread(list, temp, start, mid, prof, comp);
+        mergeSortNoThread(list, temp, mid + 1, end, prof, comp);
       }
 
-      merge(list, temp, (intmax_t)start, (intmax_t)mid + 1, (intmax_t)end,
-            prof);
+      merge(list, temp, (intmax_t)start, (intmax_t)mid + 1, (intmax_t)end, prof,
+            comp);
     }
 
   public:
-    static void sort(DerivedRef list, Profiler &prof) {
+    static void sort(DerivedRef list, Profiler &prof,
+                     ValueCompareFunctions &comp) {
       BaseListDerived temp;
+      bool shouldThread = list.getLength() > 200;
 
-      if constexpr (std::is_same_v<BaseListDerived, Vector<T>>)
+      if constexpr (std::is_same_v<BaseListDerived, Vector<T>>) {
         temp.reserve(list.getLength());
-      else if constexpr (std::is_same_v<BaseListDerived, List<T>>)
+      } else if constexpr (std::is_same_v<BaseListDerived, List<T>>) {
         temp.allocate(list.getLength());
+        // BUG: as threads atualmente estão levando a um data race. Por
+        // enquanto, apenas tirei o multithreading do List pois em algum momento
+        // o gotoIndex retornava um nullptr, crashando o programa
+        shouldThread = false;
+      }
 
-      mergeSort(list, temp, 0, list.getLength() - 1, prof, 1,
-                list.getLength() > 200);
+      mergeSort(list, temp, 0, list.getLength() - 1, prof, comp, 1,
+                shouldThread);
     }
   };
 };

@@ -1,4 +1,5 @@
 #include "Profiler.h"
+#include "utils.h"
 #include <chrono>
 #include <iostream>
 
@@ -36,15 +37,16 @@ std::chrono::milliseconds Profiler::getDuration() const {
 unsigned int Profiler::getComparisons() const { return comparisons; }
 unsigned int Profiler::getMoves() const { return moves; }
 
-std::string Profiler::getName() { return name; }
+std::string Profiler::getName() const { return name; }
 void Profiler::setName(std::string n) { name = n; }
 
 void Profiler::printInfo(bool withExecTime) {
-  std::cout << name << " fez " << getComparisons() << " comparacoes e "
-            << getMoves() << " movimentacoes";
-
-  if (withExecTime)
-    std::cout << " em " << getDuration().count() << "ms";
-
-  std::cout << ".\n";
+  // std::cout << name << " fez " << getComparisons() << " comparacoes e "
+  //           << getMoves() << " movimentacoes";
+  //
+  // if (withExecTime)
+  //   std::cout << " em " << getDuration().count() << "ms";
+  //
+  // std::cout << ".\n";
+  utils::prettyPrintResults(*this, nullptr, withExecTime);
 }
