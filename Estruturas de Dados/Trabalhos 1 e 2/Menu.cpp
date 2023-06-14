@@ -1,5 +1,4 @@
-#include <functional>
-#include <iostream>
+#include "Menu.h"
 #include <memory>
 #include <utility>
 #include <vector>
@@ -8,130 +7,104 @@ constexpr auto MENU_TITLE_COLOR = "\033[30;47m";
 constexpr auto MENU_OPT_NUM_COLOR = "\033[90m";
 constexpr auto RESET_CONSOLE = "\033[0m";
 
-class Menu {
-  using FunctionType = const std::function<void(unsigned int)>;
+void Menu::addBasicOptions() {
+  if (nestedLevel > 0)
+    addOption("Voltar", [](auto) { return; });
 
-  std::vector<std::pair<std::string, FunctionType>> opts;
-  bool alreadyAddedBasicOptions = false;
-  bool continueLooping = false;
+  addOption("Sair", [](auto) { std::exit(0); });
 
-  const unsigned int nestedLevel = 0;
-  Menu *menuToReturn = NULL;
-  std::string title;
+  alreadyAddedBasicOptions = true;
+}
 
-  void addBasicOptions() {
-    if (nestedLevel > 0)
-      addOption("Voltar", [](auto) { return; });
+std::string Menu::generateBreadcrumbs() {
+  std::vector<std::string> titles;
+  Menu *prevMenu = menuToReturn;
 
-    addOption("Sair", [](auto) { std::exit(0); });
-
-    alreadyAddedBasicOptions = true;
+  while (prevMenu != NULL) {
+    titles.push_back(prevMenu->title);
+    prevMenu = prevMenu->menuToReturn;
   }
 
-  std::string generateBreadcrumbs() {
-    std::vector<std::string> titles;
-    Menu *prevMenu = menuToReturn;
+  std::string breadcrumb = "";
 
-    while (prevMenu != NULL) {
-      titles.push_back(prevMenu->title);
-      prevMenu = prevMenu->menuToReturn;
-    }
-
-    std::string breadcrumb = "";
-
-    for (intmax_t i = titles.size() - 1; i >= 0; i--) {
-      breadcrumb += titles[i] + " > ";
-    }
-
-    breadcrumb += title;
-
-    return breadcrumb;
+  for (intmax_t i = static_cast<intmax_t>(titles.size()) - 1; i >= 0; i--) {
+    breadcrumb += titles[i] + " > ";
   }
 
-  inline unsigned int printOptionsAndGetChoice() {
-    std::cout << MENU_TITLE_COLOR << " " << generateBreadcrumbs() << " "
-              << RESET_CONSOLE << "\n\n";
+  breadcrumb += title;
 
-    size_t i = 0;
-    for (const auto &item : opts) {
-      if (i == opts.size() - (1 + !!nestedLevel))
-        std::cout << "\n";
+  return breadcrumb;
+}
 
-      std::cout << MENU_OPT_NUM_COLOR << i + 1 << ". " << RESET_CONSOLE
-                << item.first << "\n";
+inline unsigned int Menu::printOptionsAndGetChoice() {
+  std::cout << MENU_TITLE_COLOR << " " << generateBreadcrumbs() << " "
+            << RESET_CONSOLE << "\n\n";
 
-      i++;
-    }
+  size_t i = 0;
+  for (const auto &item : opts) {
+    if (i == opts.size() - (1 + !!nestedLevel))
+      std::cout << "\n";
 
-    std::cout << "\nInsira uma das alternativas: ";
+    std::cout << MENU_OPT_NUM_COLOR << i + 1 << ". " << RESET_CONSOLE
+              << item.first << "\n";
 
-    unsigned int choice;
-    std::cin >> choice;
-    choice--;
-
-    return choice;
+    i++;
   }
 
-  inline void _display() {
-    unsigned int choice = printOptionsAndGetChoice();
+  std::cout << "\nInsira uma das alternativas: ";
 
-    while (choice >= opts.size()) {
-      std::cout << "Esta opcao nao existe.\n\n";
-      choice = printOptionsAndGetChoice();
-    }
+  unsigned int choice;
+  std::cin >> choice;
+  choice--;
 
-    return opts[choice].second(choice);
+  return choice;
+}
+
+void Menu::addOption(std::string option, FunctionType &fn) {
+  opts.emplace_back(option, std::move(fn));
+}
+
+void Menu::_display() {
+  unsigned int choice = printOptionsAndGetChoice();
+
+  while (choice >= opts.size()) {
+    std::cout << "Esta opcao nao existe.\n\n";
+    choice = printOptionsAndGetChoice();
   }
 
-  void stopChainedLoop() {
-    continueLooping = false;
-    Menu *prevMenu = menuToReturn;
+  return opts[choice].second(choice);
+}
 
-    while (prevMenu != NULL)
-      prevMenu->continueLooping = false;
-  }
+std::unique_ptr<Menu> Menu::addNestedMenu(std::string option) {
+  std::unique_ptr<Menu> menu(new Menu(option, this, nestedLevel + 1));
+  addOption(option, [&menu](auto) { menu->display(); });
 
-  Menu(std::string name, Menu *parent, unsigned int level)
-      : nestedLevel(level), menuToReturn(parent), title(name){};
+  return menu;
+}
 
-public:
-  Menu(std::string name = "") : title(name){};
+void Menu::setTitle(std::string newTitle) { title = newTitle; }
 
-  void addOption(std::string option, FunctionType &fn) {
-    opts.push_back(std::make_pair(option, std::move(fn)));
-  }
+void Menu::display() {
+  if (!alreadyAddedBasicOptions)
+    addBasicOptions();
 
-  std::unique_ptr<Menu> addNestedMenu(std::string option) {
-    std::unique_ptr<Menu> menu(new Menu(option, this, nestedLevel + 1));
-    addOption(option, [&menu](auto) { menu->display(); });
+  _display();
+}
 
-    return menu;
-  }
+void Menu::loopDisplay() {
+  continueLooping = true;
 
-  void setTitle(std::string newTitle) { title = newTitle; }
+  if (!alreadyAddedBasicOptions)
+    addBasicOptions();
 
-  void display() {
-    if (!alreadyAddedBasicOptions)
-      addBasicOptions();
-
+  while (continueLooping) {
     _display();
   }
+}
 
-  void loopDisplay() {
-    continueLooping = true;
+void Menu::stopLoop() { stopChainedLoop(); }
 
-    if (!alreadyAddedBasicOptions)
-      addBasicOptions();
-
-    while (continueLooping) {
-      _display();
-    }
-  }
-
-  void stopLoop() { stopChainedLoop(); }
-
-  void clear() {
-    opts.clear();
-    alreadyAddedBasicOptions = false;
-  }
-};
+void Menu::clear() {
+  opts.clear();
+  alreadyAddedBasicOptions = false;
+}
