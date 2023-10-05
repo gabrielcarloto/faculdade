@@ -105,19 +105,18 @@ Trie *delete(Trie *root, char *word) {
     return root;
 
   if (*word != '\0') {
-    int nextCharIndex = word[0] - 'a';
+    int nextCharIndex = *word - 'a';
     Trie *nextChar = root->keys[nextCharIndex];
 
     if (!nextChar)
       return root;
 
     root->keys[nextCharIndex] = delete (nextChar, word + 1);
-
   } else {
     root->end = FALSE;
   }
 
-  if (!has_children(root)) {
+  if (!root->end && !has_children(root)) {
     free(root);
     root = NULL;
   }
