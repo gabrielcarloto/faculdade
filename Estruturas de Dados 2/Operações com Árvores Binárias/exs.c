@@ -31,8 +31,7 @@ Arvore *inserir(Arvore *a, int v) {
 
 //========= Q1 - remover
 Arvore *remover(Arvore *a, int v) {
-  if (a == NULL)
-    return NULL;
+  if (a == NULL) return NULL;
 
   if (v < a->info) {
     a->esq = remover(a->esq, v);
@@ -57,14 +56,12 @@ Arvore *remover(Arvore *a, int v) {
 
   Arvore *temp = a->esq;
 
-  while (temp->dir)
-    temp = temp->dir;
+  while(temp->dir) temp = temp->dir;
 
   a->info = temp->info;
   temp->info = v;
 
   a->esq = remover(a->esq, v);
-
   return a;
 }
 
