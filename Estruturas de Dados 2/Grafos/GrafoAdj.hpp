@@ -80,8 +80,10 @@ template <bool Direcionado> class GrafoAdj<Direcionado>::DFS {
 
   struct InfoVertice {
     enum Status { NAO_VISITADO, VISITADO, COMPLETO };
+    enum Particao { UM, DOIS, INDEFINIDO };
 
     Status status = NAO_VISITADO; // igual as cores
+    Particao particao = INDEFINIDO;
     NoAdj *pai = nullptr;
 
     unsigned int momentoVisitado = 0;
@@ -91,6 +93,7 @@ template <bool Direcionado> class GrafoAdj<Direcionado>::DFS {
   std::vector<std::vector<int>> componentes;
   std::vector<InfoVertice> vertices;
   unsigned int tempo = 0;
+  bool bipartido = true;
 
   void buscaProfundidade() {
     for (int i = 0; i < grafo.nos.size(); i++) {
@@ -101,13 +104,17 @@ template <bool Direcionado> class GrafoAdj<Direcionado>::DFS {
     }
   }
 
-  void dfs_visita(int no, int tempo = 0) {
+  void dfs_visita(int no, int tempo = 0, int part = InfoVertice::Particao::UM) {
     componentes[componentes.size() - 1].push_back(no);
     InfoVertice &vertice = vertices[no];
     NoAdj *no_ptr = grafo.nos[no];
 
     vertice.status = InfoVertice::Status::VISITADO;
     vertice.momentoVisitado = ++tempo;
+    vertice.particao = (typename InfoVertice::Particao)part;
+
+    part = part == InfoVertice::Particao::UM ? InfoVertice::Particao::DOIS
+                                             : InfoVertice::Particao::UM;
 
     for (int i = 0; i < no_ptr->adjacencias.size(); i++) {
       Adjacencia *adj = no_ptr->adjacencias[i];
@@ -116,9 +123,13 @@ template <bool Direcionado> class GrafoAdj<Direcionado>::DFS {
       if (verticeAdj.status == InfoVertice::Status::NAO_VISITADO) {
         verticeAdj.pai = no_ptr;
         std::cout << "Aresta árvore: (" << no << " - " << adj->no->id << ")\n";
-        dfs_visita(adj->no->id, tempo);
+        dfs_visita(adj->no->id, tempo, part);
       } else {
         std::cout << "Aresta outra: (" << no << " - " << adj->no->id << ")\n";
+      }
+
+      if (bipartido && verticeAdj.particao == vertice.particao) {
+        bipartido = false;
       }
     }
 
@@ -141,6 +152,12 @@ template <bool Direcionado> class GrafoAdj<Direcionado>::DFS {
       : grafo(g), vertices(g.nos.size(), (InfoVertice){}) {
     buscaProfundidade();
     imprimirComponentes();
+
+    if (bipartido) {
+      std::cout << "Grafo bipartido\n";
+    } else {
+      std::cout << "Grafo não bipartido\n";
+    }
   }
 
   friend GrafoAdj;
