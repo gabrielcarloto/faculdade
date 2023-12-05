@@ -2,11 +2,13 @@
 #include <array>
 #include <cstdlib>
 #include <iostream>
+#include <queue>
 #include <vector>
 
 template <bool Direcionado = false> class GrafoAdj {
   struct NoAdj;
   class DFS;
+  class BFS;
 
   struct Adjacencia {
     int peso;
@@ -73,6 +75,7 @@ public:
   }
 
   void buscaProfundidade() { DFS(*this); }
+  void buscaLargura() { BFS(*this); }
 };
 
 template <bool Direcionado> class GrafoAdj<Direcionado>::DFS {
@@ -159,6 +162,82 @@ template <bool Direcionado> class GrafoAdj<Direcionado>::DFS {
       std::cout << "Grafo não bipartido\n";
     }
   }
+
+  friend GrafoAdj;
+};
+
+template <bool D> class GrafoAdj<D>::BFS {
+  struct InfoVertice {
+    enum Status { NAO_VISITADO, VISITADO, COMPLETO };
+
+    Status status = NAO_VISITADO;
+    unsigned int distancia = 0;
+    NoAdj *pai = nullptr;
+  };
+
+  std::vector<InfoVertice> vertices;
+  const GrafoAdj<D> &grafo;
+  std::queue<int> fila;
+
+  void buscaLargura() {
+    fila.push(0);
+
+    while (!fila.empty()) {
+      int no = fila.front();
+      bfs_visita(no);
+      fila.pop();
+    }
+  }
+
+  void bfs_visita(int no) {
+    auto &vertice = vertices[no];
+    auto no_ptr = grafo.nos[no];
+    vertice.status = InfoVertice::Status::VISITADO;
+
+    for (auto adj : no_ptr->adjacencias) {
+      NoAdj *noAdj = adj->no;
+      InfoVertice &verticeAdj = vertices[noAdj->id];
+
+      if (verticeAdj.status == InfoVertice::NAO_VISITADO) {
+        verticeAdj.status = InfoVertice::Status::VISITADO;
+        verticeAdj.distancia = vertice.distancia + 1;
+        verticeAdj.pai = no_ptr;
+        fila.push(noAdj->id);
+      }
+    }
+
+    vertice.status = InfoVertice::Status::COMPLETO;
+  }
+
+  void imprimeResultados() {
+    for (int i = 0; i < vertices.size(); i++) {
+      InfoVertice &vertice = vertices[i];
+      NoAdj *no = grafo.nos[i];
+      std::cout << i << " = ";
+
+      if (!vertice.status == InfoVertice::Status::COMPLETO) {
+        std::cout << "Não visitado";
+        continue;
+      }
+
+      std::cout << "[d: ";
+
+      if (i != 0 && vertice.distancia == 0) {
+        std::cout << "inf.";
+      } else {
+        std::cout << vertice.distancia;
+      }
+
+      std::cout << ", pai: " << (int)(vertice.pai ? vertice.pai->id : -1)
+                << "]\n";
+    }
+  }
+
+  BFS(const GrafoAdj<D> &g)
+      : grafo(g), vertices(g.nos.size(), (InfoVertice){}) {
+    buscaLargura();
+    imprimeResultados();
+  };
 
   friend GrafoAdj;
 };
