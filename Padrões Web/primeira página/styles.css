@@ -222,11 +222,13 @@ figure {
 footer {
   & > .centralizado {
     display: grid;
-    grid-template-columns: 1fr 1fr;
     gap: 16px;
 
+    --border: solid 1px #e7e2dfaa;
+
     & div:not(:last-child) {
-      border-right: solid 1px #e7e2dfaa;
+      padding-bottom: 16px;
+      border-bottom: var(--border);
     }
   }
 
@@ -251,6 +253,18 @@ footer {
 
     img {
       width: 20px;
+    }
+  }
+}
+
+@media screen and (min-width: 768px) {
+  footer > .centralizado {
+    grid-template-columns: 1fr 1fr;
+
+    & div:not(:last-child) {
+      border-right: var(--border);
+      border-bottom: 0;
+      padding-right: 16px;
     }
   }
 }
