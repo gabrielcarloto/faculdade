@@ -236,21 +236,23 @@ footer {
     list-style-type: none;
   }
 
-  .contatos {
-    a {
-      color: white;
-      vertical-align: middle;
+  a {
+    color: white;
+    vertical-align: middle;
+
+    &:hover {
+      color: #e7e2df;
+    }
+
+    &:has(.link-social) {
       text-decoration: none;
-
-      &:hover {
-        color: #e7e2df;
-      }
-
-      .link-social {
+      & > .link-social {
         text-decoration: underline;
       }
     }
+  }
 
+  .contatos {
     img {
       width: 20px;
     }
