@@ -3,47 +3,55 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Situação do curso BSI de Gabriel Carloto</title>
+
+    <link rel="stylesheet" href="./styles.css" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
+      rel="stylesheet"
+    />
   </head>
 
   <body>
     <header>
-      <h1>Situação do curso BSI de Gabriel Carloto</h1>
+      <div class="centralizado">
+        <h1>Situação do curso BSI de Gabriel Carloto</h1>
 
-      <img
-        src="./logo utfpr.png"
-        alt="Logo da Universidade Tecnológica Federal do Paraná (UTFPR), Campus Curitiba"
-      />
+        <dl class="meta">
+          <dt>Ingresso</dt>
+          <dd>02/2022</dd>
 
-      <dl class="meta">
-        <dt>Ingresso</dt>
-        <dd>02/2022</dd>
+          <dt>Previsão de conclusão</dt>
+          <dd>02/2028</dd>
 
-        <dt>Previsão de conclusão</dt>
-        <dd>02/2028</dd>
-      </dl>
+          <dt>Data do relatório</dt>
+          <dd><time datetime="2025-09-03">03 de setembro de 2025</time></dd>
+        </dl>
 
-      <p>
-        Relatório escrito em
-        <time datetime="2025-09-03">03 de setembro de 2025</time>
-      </p>
+        <img
+          src="./logo utfpr.png"
+          alt="Logo da Universidade Tecnológica Federal do Paraná (UTFPR)"
+        />
 
-      <address class="contato">
-        <p>
-          <abbr title="Departamento Acadêmico de Informática">DAINF</abbr>,
-          <abbr title="Universidade Tecnológica Federal do Paraná">UTFPR</abbr>,
-          <abbr title="Avenida">Av.</abbr> Sete de Setembro, 3165 - Rebouças,
-          Curitiba, Paraná
-        </p>
+        <address class="contato">
+          <p>
+            <abbr title="Departamento Acadêmico de Informática">DAINF</abbr>,
+            <abbr title="Universidade Tecnológica Federal do Paraná">UTFPR</abbr
+            >, Avenida Sete de Setembro, 3165 - Rebouças, Curitiba, Paraná
+          </p>
 
-        <p>
-          <a href="mailto:gabrielcarloto@alunos.utfpr.edu.br">
-            gabrielcarloto@alunos.utfpr.edu.br
-          </a>
-        </p>
-      </address>
+          <p>
+            <a href="mailto:gabrielcarloto@alunos.utfpr.edu.br">
+              gabrielcarloto@alunos.utfpr.edu.br
+            </a>
+          </p>
+        </address>
+      </div>
     </header>
 
-    <nav>
+    <nav class="centralizado">
       <h2>Sumário</h2>
       <ul>
         <li><a href="#situacao-atual">Situação atual</a></li>
@@ -54,7 +62,7 @@
       </ul>
     </nav>
 
-    <main>
+    <main class="centralizado">
       <section id="situacao-atual">
         <h2>Situação atual</h2>
         <dl>
@@ -66,9 +74,8 @@
 
           <dt>Carga horária</dt>
           <dd>
-            <meter min="0" value="1410" max="3190">1.410h de 3.190h</meter>
-            (faltam <span class="ch-faltante">1.780h</span>)
-            <!-- Não pergunte como estou no 8° período) -->
+            1.410h de 3.190h (faltam <span class="ch-faltante">1.780h</span>)
+            <!-- Não pergunte como estou no 8° período -->
           </dd>
 
           <dt><abbr title="Coeficiente de Rendimento">CR</abbr></dt>
@@ -186,16 +193,28 @@
     </main>
 
     <footer>
-      <div>
-        <a
-          href="https://github.com/gabrielcarloto"
-          rel="noopener"
-          target="_blank"
-        >
-          <img src="./github-mark.svg" alt="" /> Github
-        </a>
+      <div class="centralizado">
+        <div>
+          <h2>Outros contatos</h2>
+          <ul class="contatos">
+            <li>
+              <a
+                href="https://github.com/gabrielcarloto"
+                rel="noopener"
+                target="_blank"
+              >
+                <img src="./github-mark.svg" alt="" />
+                <span class="link-social">Github</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <div>
+          <h2>Copyright</h2>
+          <p>num tem</p>
+        </div>
       </div>
-      <p>Copyright: num tem</p>
     </footer>
   </body>
 </html>
