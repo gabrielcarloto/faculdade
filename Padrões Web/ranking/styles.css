@@ -115,7 +115,6 @@ figure {
     display: block;
     border-radius: 8px;
     border: 2px solid #e7e2df;
-    transition: all 0.3s ease;
     max-width: 500px;
     max-height: 350px;
     object-fit: cover;
@@ -185,5 +184,16 @@ footer {
 
   h3 {
     color: #faf7f5;
+  }
+}
+
+/* Ajustes para dispositivos móveis */
+@media (max-width: 768px) {
+  figure img {
+    max-width: 300px;
+    max-height: 400px;
+    aspect-ratio: 3/4;
+    object-fit: cover;
+    object-position: center top;
   }
 }
