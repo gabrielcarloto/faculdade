@@ -1,0 +1,19 @@
+{
+  "name": "arquivos-via-udp",
+  "type": "module",
+  "scripts": {
+    "server": "tsx ./server.ts",
+    "client": "tsx ./client.ts",
+    "test": "tsx --test ./not-http.test.ts"
+  },
+  "dependencies": {
+    "@types/node": "^24.3.1",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
+  },
+  "devDependencies": {
+    "@types/pino": "^7.0.4",
+    "pino": "^9.9.5",
+    "pino-pretty": "^13.1.1"
+  }
+}
