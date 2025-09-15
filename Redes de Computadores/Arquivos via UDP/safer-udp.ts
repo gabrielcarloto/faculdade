@@ -19,6 +19,7 @@ const logger = pino({ level: 'debug' }, pretty({ colorize: true }));
 
 const DEFAULT_TIMEOUT_MS = 250;
 const MAX_BATCH = 5;
+const DEFAULT_PACKET_LOSS_RATE = 0.25;
 
 // TODO: lidar com desconexão?
 
@@ -31,6 +32,7 @@ export class SaferUDP {
     | { address: string | undefined; port: number }
     | null = null;
 
+  private packetLossRate: number = DEFAULT_PACKET_LOSS_RATE;
   private maxBatchMessages = 1;
   private outgoingMessagesQueue = new Map<
     number,
@@ -40,16 +42,68 @@ export class SaferUDP {
       timedOut: boolean;
       retries: number;
       buf: Buffer;
+      timeout: NodeJS.Timeout | null;
     }
   >();
 
-  private timeouts: Record<
-    'sentMessages' | 'receivedAck',
-    null | NodeJS.Timeout
-  > = {
-    sentMessages: null,
+  private timeouts: Record<'receivedAck', null | NodeJS.Timeout> = {
     receivedAck: null,
   };
+
+  private updateTimeout(
+    timeoutKey: keyof typeof this.timeouts,
+    callback: () => void,
+    timeMs: number,
+  ) {
+    if (this.timeouts[timeoutKey]) {
+      clearTimeout(this.timeouts[timeoutKey]!);
+    }
+    this.timeouts[timeoutKey] = setTimeout(callback, timeMs);
+  }
+
+  private setChunkTimeout(chunk: number, timeMs: number) {
+    const context = this.outgoingMessagesQueue.get(chunk);
+    if (!context) return;
+
+    if (context.timeout) {
+      clearTimeout(context.timeout);
+    }
+
+    const timeout = setTimeout(() => {
+      this.handleChunkTimeout(chunk);
+    }, timeMs);
+
+    this.outgoingMessagesQueue.set(chunk, {
+      ...context,
+      timeout,
+    });
+  }
+
+  private clearChunkTimeout(chunk: number) {
+    const context = this.outgoingMessagesQueue.get(chunk);
+    if (context?.timeout) {
+      clearTimeout(context.timeout);
+      this.outgoingMessagesQueue.set(chunk, {
+        ...context,
+        timeout: null,
+      });
+    }
+  }
+
+  private handleChunkTimeout(chunk: number) {
+    const context = this.outgoingMessagesQueue.get(chunk);
+    if (!context) return;
+
+    logger.info(`Chunk ${chunk} deu timeout`);
+
+    this.outgoingMessagesQueue.set(chunk, {
+      ...context,
+      timedOut: true,
+      timeout: null,
+    });
+
+    this.handleMessageQueue();
+  }
 
   private lastSentChunk: number = -1;
   private receivedMessages = new Map<
@@ -59,8 +113,12 @@ export class SaferUDP {
 
   private messageCallback: ((msg: Message) => void) | undefined;
 
-  constructor(messageCallback: typeof this.messageCallback) {
+  constructor(
+    messageCallback: typeof this.messageCallback,
+    options: { packetLossRate?: number } = {},
+  ) {
     this.messageCallback = messageCallback;
+    this.packetLossRate = options.packetLossRate ?? DEFAULT_PACKET_LOSS_RATE;
 
     this.socket.on('message', (msg, remoteInfo) => {
       if (
@@ -101,6 +159,10 @@ export class SaferUDP {
     );
   }
 
+  private simulatePacketLoss(): boolean {
+    return Math.random() < this.packetLossRate;
+  }
+
   ack(chunk?: number) {
     if (!this.remote) {
       throw new Error('É necessário uma remote para enviar mensagens');
@@ -111,6 +173,11 @@ export class SaferUDP {
     if (typeof ack !== 'number') return;
 
     const message = this.serialize({ ack });
+
+    if (this.simulatePacketLoss()) {
+      logger.debug(`ACK ${ack} perdido (simulação)`);
+      return;
+    }
 
     this.socket.send(
       message,
@@ -125,7 +192,10 @@ export class SaferUDP {
 
         Array.from(this.receivedMessages.entries()).forEach(
           ([chunk, context]) => {
-            if (chunk <= ack) context.acked = true;
+            if (chunk <= ack) {
+              context.acked = true;
+              this.clearChunkTimeout(chunk);
+            }
           },
         );
       },
@@ -146,27 +216,34 @@ export class SaferUDP {
   }
 
   private getNextAck() {
-    const chunksAwaitingAck: Array<number> = [];
+    const receivedChunks = Array.from(this.receivedMessages.keys())
+      .filter((chunk) => !this.receivedMessages.get(chunk)!.acked)
+      .sort((a, b) => a - b);
 
-    for (const [chunk, context] of this.receivedMessages.entries()) {
-      if (!context.acked) chunksAwaitingAck.push(chunk);
-    }
-
-    if (!chunksAwaitingAck.length) {
+    if (receivedChunks.length === 0) {
       return;
     }
 
-    const sortedChunks = chunksAwaitingAck.sort((a, b) => (a < b ? -1 : 0));
+    const lastAcked = Array.from(this.receivedMessages.keys())
+      .filter((chunk) => this.receivedMessages.get(chunk)!.acked)
+      .sort((a, b) => a - b)
+      .at(-1);
 
-    let nextAck = sortedChunks[0];
-    let i;
+    let lastSequentialChunk = lastAcked ?? receivedChunks[0]!;
 
-    for (i = 0; i < sortedChunks.length - 1; i++) {
-      if (sortedChunks[i] === sortedChunks[i + 1]! - 1)
-        nextAck = sortedChunks[i + 1];
+    for (const chunk of receivedChunks) {
+      if (chunk === lastSequentialChunk + 1) {
+        lastSequentialChunk = chunk;
+      } else {
+        break;
+      }
     }
 
-    return nextAck;
+    if (lastSequentialChunk >= 0) {
+      return lastSequentialChunk;
+    }
+
+    return;
   }
 
   send(
@@ -189,6 +266,7 @@ export class SaferUDP {
       complete: headers.complete,
       retries: 0,
       buf: message,
+      timeout: null,
     });
 
     this.handleMessageQueue();
@@ -215,11 +293,6 @@ export class SaferUDP {
   }
 
   private sendMessagesBatch(chunks: number[]) {
-    if (this.timeouts.sentMessages) {
-      clearTimeout(this.timeouts.sentMessages);
-      this.timeouts.sentMessages = null;
-    }
-
     // TODO: eu deveria enviar mensagens completas uma de cada vez?
 
     const queue = this.outgoingMessagesQueue;
@@ -235,6 +308,13 @@ export class SaferUDP {
       const context = queue.get(chunk)!;
       queue.set(chunk, { ...context, sent: true });
 
+      if (this.simulatePacketLoss()) {
+        logger.info(`Chunk ${chunk} perdido`);
+        const timeout = DEFAULT_TIMEOUT_MS * 2;
+        this.setChunkTimeout(chunk, timeout);
+        return;
+      }
+
       this.socket.send(
         context.buf,
         this.remote!.port,
@@ -248,31 +328,10 @@ export class SaferUDP {
           }
 
           const timeout = DEFAULT_TIMEOUT_MS * 2;
-
-          if (this.timeouts.sentMessages) {
-            clearTimeout(this.timeouts.sentMessages);
-          }
-
-          this.timeouts.sentMessages = setTimeout(
-            () => this.handleSentMessagesTimeout(chunk),
-            timeout,
-          );
+          this.setChunkTimeout(chunk, timeout);
         },
       );
     });
-  }
-
-  private handleSentMessagesTimeout(lastChunk: number) {
-    this.timeouts.sentMessages = null;
-    const queue = this.outgoingMessagesQueue;
-    const chunks = Array.from(queue.keys()).sort((a, b) => (a < b ? -1 : 1));
-
-    chunks.forEach((chunk) => {
-      const context = queue.get(chunk)!;
-      if (chunk <= lastChunk) queue.set(chunk, { ...context, timedOut: true });
-    });
-
-    this.handleMessageQueue();
   }
 
   private retryMessages(chunks: number[]) {
@@ -289,6 +348,16 @@ export class SaferUDP {
         timedOut: false,
       });
 
+      if (this.simulatePacketLoss()) {
+        logger.debug(`Retry do chunk ${chunk} perdido`);
+
+        const timeout =
+          DEFAULT_TIMEOUT_MS * 2 * (queue.get(chunk)!.retries + 1);
+
+        this.setChunkTimeout(chunk, timeout);
+        return;
+      }
+
       this.socket.send(
         context.buf,
         this.remote!.port,
@@ -302,17 +371,10 @@ export class SaferUDP {
             );
           }
 
-          if (this.timeouts.sentMessages) {
-            clearTimeout(this.timeouts.sentMessages);
-          }
-
           const timeout =
             DEFAULT_TIMEOUT_MS * 2 * (queue.get(chunk)!.retries + 1);
 
-          this.timeouts.sentMessages = setTimeout(
-            () => this.handleSentMessagesTimeout(chunk),
-            timeout,
-          );
+          this.setChunkTimeout(chunk, timeout);
         },
       );
     });
@@ -336,15 +398,7 @@ export class SaferUDP {
         message,
       });
 
-      if (this.timeouts.receivedAck) {
-        clearTimeout(this.timeouts.receivedAck);
-        this.timeouts.receivedAck = null;
-      }
-
-      this.timeouts.receivedAck = setTimeout(
-        () => this.ack(),
-        DEFAULT_TIMEOUT_MS,
-      );
+      this.updateTimeout('receivedAck', () => this.ack(), DEFAULT_TIMEOUT_MS);
 
       if (message.headers.complete) {
         this.messageCallback?.(message);
@@ -356,10 +410,14 @@ export class SaferUDP {
     logger.info('ACK recebido: ' + ack);
 
     Array.from(this.outgoingMessagesQueue.keys()).forEach((chunk) => {
-      if (chunk <= ack) this.outgoingMessagesQueue.delete(chunk);
+      if (chunk <= ack) {
+        this.clearChunkTimeout(chunk);
+        this.outgoingMessagesQueue.delete(chunk);
+      }
     });
 
     this.maxBatchMessages = Math.min(this.maxBatchMessages + 1, MAX_BATCH);
+    this.handleMessageQueue();
   }
 
   private checkIntegrity(body: Buffer, checksum: string) {
