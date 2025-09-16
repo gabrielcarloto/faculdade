@@ -19,7 +19,7 @@ const logger = pino({ level: 'debug' }, pretty({ colorize: true }));
 
 const DEFAULT_TIMEOUT_MS = 250;
 const MAX_BATCH = 5;
-const DEFAULT_PACKET_LOSS_RATE = 0.25;
+const DEFAULT_PACKET_LOSS_RATE = 0.05;
 
 // TODO: lidar com desconexão?
 
@@ -108,10 +108,12 @@ export class SaferUDP {
   private lastSentChunk: number = -1;
   private receivedMessages = new Map<
     number,
-    { acked: boolean; message: Message }
+    { acked: boolean; joined: boolean; message: Message }
   >();
 
-  private messageCallback: ((msg: Message) => void) | undefined;
+  private messageCallback:
+    | ((ctx: { messages: Message[]; buffer: Buffer }) => void)
+    | undefined;
 
   constructor(
     messageCallback: typeof this.messageCallback,
@@ -246,18 +248,20 @@ export class SaferUDP {
     return;
   }
 
-  send(
-    data: Buffer,
-    headers = {
-      chunk: ++this.lastSentChunk,
-      sum: this.generateChecksum(data),
-      ack: undefined,
-      complete: true,
-    } satisfies Headers,
-  ) {
+  send(data: Buffer, _headers: Partial<Headers> = {}) {
     if (!this.remote) {
       throw new Error('É necessário uma remote para enviar mensagens');
     }
+
+    const headers = Object.assign(
+      {
+        chunk: ++this.lastSentChunk,
+        sum: this.generateChecksum(data),
+        ack: undefined,
+        complete: true,
+      } satisfies Headers,
+      _headers,
+    );
 
     const message = this.serialize(headers, data);
     this.outgoingMessagesQueue.set(headers.chunk, {
@@ -392,17 +396,19 @@ export class SaferUDP {
     ) {
       logger.debug('Mensagem confiável recebida: ' + this.prettyPrint(message));
 
-      // TODO: ignorar completos
       this.receivedMessages.set(message.headers.chunk!, {
         acked: false,
+        joined: false,
         message,
       });
 
       this.updateTimeout('receivedAck', () => this.ack(), DEFAULT_TIMEOUT_MS);
+      const messages = this.getNextCompleteMessage();
 
-      if (message.headers.complete) {
-        this.messageCallback?.(message);
-      }
+      if (!messages) return;
+
+      const buffer = this.getCompleteBuffer(messages);
+      this.messageCallback?.({ messages, buffer });
     }
   }
 
@@ -420,6 +426,40 @@ export class SaferUDP {
     this.handleMessageQueue();
   }
 
+  private getNextCompleteMessage() {
+    const queue = this.receivedMessages;
+
+    const pendingMessages = Array.from(queue.keys()).filter((chunk) => {
+      return !queue.get(chunk)!.joined;
+    });
+
+    const canComplete = pendingMessages.findLast(
+      (chunk) => queue.get(chunk)!.message.headers.complete,
+    );
+
+    if (!canComplete) return null;
+
+    const completeMessage: Message[] = [];
+
+    for (const chunk of pendingMessages) {
+      const message = queue.get(chunk)!;
+
+      completeMessage.push(message.message);
+      message.joined = true;
+
+      if (message.message.headers.complete) {
+        break;
+      }
+    }
+
+    return completeMessage;
+  }
+
+  private getCompleteBuffer(messages: Message[]) {
+    const buffers = messages.map((msg) => msg.body);
+    return Buffer.concat(buffers);
+  }
+
   private checkIntegrity(body: Buffer, checksum: string) {
     const hash = this.generateChecksum(body);
     return hash === checksum;
@@ -432,6 +472,4 @@ export class SaferUDP {
   private prettyPrint(msg: Message) {
     return `[${msg.headers.chunk}] ${msg.body.toString()}`;
   }
-
-  private getCompleteMessage() {}
 }
