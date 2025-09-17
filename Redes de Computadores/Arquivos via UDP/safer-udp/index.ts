@@ -1,7 +1,6 @@
-import dgram from 'node:dgram';
 import crypto from 'node:crypto';
-import pino from 'pino';
-import pretty from 'pino-pretty';
+import { logger as pinoLogger } from '../logger.js';
+import { SocketManager } from './socket.js';
 
 type Headers = {
   chunk: number | undefined;
@@ -15,24 +14,17 @@ type Message = {
   body: Buffer;
 };
 
-const logger = pino({ level: 'debug' }, pretty({ colorize: true }));
-
 const DEFAULT_TIMEOUT_MS = 250;
 const MAX_BATCH = 5;
-const DEFAULT_PACKET_LOSS_RATE = 0.05;
+
+const logger = pinoLogger.child({ category: 'SaferUDP' });
 
 // TODO: lidar com desconexão?
 
 export class SaferUDP {
-  private socket = dgram.createSocket('udp4');
+  private socket: SocketManager;
   // private connections = new Map<string, any>()
 
-  private remote:
-    | dgram.RemoteInfo
-    | { address: string | undefined; port: number }
-    | null = null;
-
-  private packetLossRate: number = DEFAULT_PACKET_LOSS_RATE;
   private maxBatchMessages = 1;
   private outgoingMessagesQueue = new Map<
     number,
@@ -119,27 +111,23 @@ export class SaferUDP {
     messageCallback: typeof this.messageCallback,
     options: { packetLossRate?: number } = {},
   ) {
+    this.socket = new SocketManager(options);
     this.messageCallback = messageCallback;
-    this.packetLossRate = options.packetLossRate ?? DEFAULT_PACKET_LOSS_RATE;
 
-    this.socket.on('message', (msg, remoteInfo) => {
+    this.socket.internalSocket.on('message', (msg, remoteInfo) => {
       if (
-        this.remote &&
-        (remoteInfo.address !== this.remote.address ||
-          remoteInfo.port !== this.remote.port)
+        this.socket.remoteInfo &&
+        (remoteInfo.address !== this.socket.remoteInfo.address ||
+          remoteInfo.port !== this.socket.remoteInfo.port)
       ) {
         return;
       }
 
-      if (!this.remote) {
-        this.remote = remoteInfo;
+      if (!this.socket.remoteInfo) {
+        this.socket.connect(remoteInfo.port, remoteInfo.address);
       }
 
       this.handleMessage(this.parse(msg));
-    });
-
-    this.socket.on('close', () => {
-      this.remote = null;
     });
   }
 
@@ -161,60 +149,37 @@ export class SaferUDP {
     );
   }
 
-  private simulatePacketLoss(): boolean {
-    return Math.random() < this.packetLossRate;
-  }
-
-  ack(chunk?: number) {
-    if (!this.remote) {
-      throw new Error('É necessário uma remote para enviar mensagens');
-    }
-
+  async ack(chunk?: number) {
     const ack = chunk ?? this.getNextAck();
 
     if (typeof ack !== 'number') return;
 
     const message = this.serialize({ ack });
 
-    if (this.simulatePacketLoss()) {
-      logger.debug(`ACK ${ack} perdido (simulação)`);
-      return;
+    try {
+      await this.socket.send(message);
+
+      logger.debug('ACK enviado: ' + ack);
+
+      Array.from(this.receivedMessages.entries()).forEach(
+        ([chunk, context]) => {
+          if (chunk <= ack) {
+            context.acked = true;
+            this.clearChunkTimeout(chunk);
+          }
+        },
+      );
+    } catch (e) {
+      if (e instanceof Error) {
+        logger.error('Erro ao enviar ACK: ' + e.message);
+      }
     }
-
-    this.socket.send(
-      message,
-      this.remote.port,
-      this.remote.address,
-      (error) => {
-        if (error) {
-          return logger.error('Erro ao enviar ACK: ' + error.message);
-        }
-
-        logger.debug('ACK enviado: ' + ack);
-
-        Array.from(this.receivedMessages.entries()).forEach(
-          ([chunk, context]) => {
-            if (chunk <= ack) {
-              context.acked = true;
-              this.clearChunkTimeout(chunk);
-            }
-          },
-        );
-      },
-    );
   }
 
   listen(port: number) {
-    this.socket.bind(port, () => logger.info(`Escutando na porta: ${port}`));
-  }
-
-  connect(port: number, address = '127.0.0.1') {
-    this.remote = {
-      address,
-      port,
-    };
-
-    logger.debug('Conectado a ' + address + ':' + port);
+    this.socket.internalSocket.bind(port, () =>
+      logger.info(`Escutando na porta: ${port}`),
+    );
   }
 
   private getNextAck() {
@@ -248,11 +213,7 @@ export class SaferUDP {
     return;
   }
 
-  send(data: Buffer, _headers: Partial<Headers> = {}) {
-    if (!this.remote) {
-      throw new Error('É necessário uma remote para enviar mensagens');
-    }
-
+  async send(data: Buffer, _headers: Partial<Headers> = {}) {
     const headers = Object.assign(
       {
         chunk: ++this.lastSentChunk,
@@ -273,10 +234,14 @@ export class SaferUDP {
       timeout: null,
     });
 
-    this.handleMessageQueue();
+    await this.handleMessageQueue();
   }
 
-  private handleMessageQueue() {
+  connect(port: number, address?: string) {
+    this.socket.connect(port, address);
+  }
+
+  private async handleMessageQueue() {
     const queue = this.outgoingMessagesQueue;
     const chunks = Array.from(queue.keys()).sort((a, b) => (a < b ? -1 : 1));
 
@@ -290,15 +255,14 @@ export class SaferUDP {
       return context.timedOut;
     });
 
-    if (messagesToRetry.length) return this.retryMessages(messagesToRetry);
+    if (messagesToRetry.length)
+      return await this.retryMessages(messagesToRetry);
 
     if (!currentlyAwaitingAck.length && chunks.length)
-      return this.sendMessagesBatch(chunks);
+      return await this.sendMessagesBatch(chunks);
   }
 
-  private sendMessagesBatch(chunks: number[]) {
-    // TODO: eu deveria enviar mensagens completas uma de cada vez?
-
+  private async sendMessagesBatch(chunks: number[]) {
     const queue = this.outgoingMessagesQueue;
 
     const currentBatch = chunks.slice(
@@ -308,80 +272,52 @@ export class SaferUDP {
 
     logger.debug('Enviando batch: ' + currentBatch.join(', '));
 
-    currentBatch.forEach((chunk) => {
+    for (const chunk of currentBatch) {
       const context = queue.get(chunk)!;
-      queue.set(chunk, { ...context, sent: true });
 
-      if (this.simulatePacketLoss()) {
-        logger.info(`Chunk ${chunk} perdido`);
+      try {
+        await this.socket.send(context.buf);
+        queue.set(chunk, { ...context, sent: true });
+      } catch (e) {
+        if (e instanceof Error) {
+          return logger.error(`Erro ao enviar o chunk ${chunk}: ${e.message}`);
+        }
+      } finally {
         const timeout = DEFAULT_TIMEOUT_MS * 2;
         this.setChunkTimeout(chunk, timeout);
-        return;
       }
-
-      this.socket.send(
-        context.buf,
-        this.remote!.port,
-        this.remote!.address,
-        (error) => {
-          if (error) {
-            queue.set(chunk, context);
-            return logger.error(
-              `Erro ao enviar o chunk ${chunk}: ${error.message}`,
-            );
-          }
-
-          const timeout = DEFAULT_TIMEOUT_MS * 2;
-          this.setChunkTimeout(chunk, timeout);
-        },
-      );
-    });
+    }
   }
 
-  private retryMessages(chunks: number[]) {
+  private async retryMessages(chunks: number[]) {
     const queue = this.outgoingMessagesQueue;
 
     logger.debug('Fazendo uma nova tentativa: ' + chunks.join(', '));
 
-    chunks.forEach((chunk) => {
+    for (const chunk of chunks) {
       const context = queue.get(chunk)!;
 
-      queue.set(chunk, {
-        ...context,
-        retries: context.retries + 1,
-        timedOut: false,
-      });
+      try {
+        await this.socket.send(context.buf);
 
-      if (this.simulatePacketLoss()) {
-        logger.debug(`Retry do chunk ${chunk} perdido`);
+        queue.set(chunk, {
+          ...context,
+          retries: context.retries + 1,
+          timedOut: false,
+        });
+      } catch (e) {
+        if (e instanceof Error) {
+          logger.error(
+            `Erro ao enviar novamente o chunk ${chunk}: ${e.message}`,
+          );
+        }
 
         const timeout =
           DEFAULT_TIMEOUT_MS * 2 * (queue.get(chunk)!.retries + 1);
 
         this.setChunkTimeout(chunk, timeout);
-        return;
       }
-
-      this.socket.send(
-        context.buf,
-        this.remote!.port,
-        this.remote!.address,
-        (error) => {
-          if (error) {
-            queue.set(chunk, context);
-
-            return logger.error(
-              `Erro ao enviar novamente o chunk ${chunk}: ${error.message}`,
-            );
-          }
-
-          const timeout =
-            DEFAULT_TIMEOUT_MS * 2 * (queue.get(chunk)!.retries + 1);
-
-          this.setChunkTimeout(chunk, timeout);
-        },
-      );
-    });
+    }
   }
 
   private handleMessage(message: Message) {

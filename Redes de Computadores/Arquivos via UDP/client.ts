@@ -1,4 +1,4 @@
-import { SaferUDP } from './safer-udp.js';
+import { SaferUDP } from './safer-udp/index.js';
 
 const client = new SaferUDP((message) => {
   console.log('Recebi a mensagem!');
@@ -12,8 +12,10 @@ const stringToSend =
 
 const chunks = stringToSend.split(' ');
 
-chunks.forEach((chunk, index) => {
-  client.send(Buffer.from(chunk + ' '), {
+for (let index = 0; index < chunks.length; index++) {
+  const chunk = chunks[index];
+
+  await client.send(Buffer.from(chunk + ' '), {
     complete: index === chunks.length - 1,
   });
-});
+}
