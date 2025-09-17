@@ -2,6 +2,7 @@ import { logger as pinoLogger } from '../logger.js';
 import { SocketManager } from './socket.js';
 import { TimeoutManager, type OptionalTimeout } from './timeout.js';
 import { MessageProtocol, type Message, type Headers } from './protocol.js';
+import { ChunkManager, type Chunk } from './chunk.js';
 
 const MAX_BATCH = 5;
 
@@ -12,44 +13,27 @@ const logger = pinoLogger.child({ category: 'SaferUDP' });
 export class SaferUDP {
   private socket: SocketManager;
   private protocol = new MessageProtocol();
-
-  // private connections = new Map<string, any>()
+  private chunkManager = new ChunkManager();
+  private chunkResponseTimeoutManager = new TimeoutManager();
 
   private maxBatchMessages = 1;
-  private outgoingMessagesQueue = new Map<
-    number,
-    {
-      complete: boolean;
-      sent: boolean;
-      timedOut: boolean;
-      buf: Buffer;
-    }
-  >();
-
-  private chunkResponseTimeoutManager = new TimeoutManager();
   private receivedMessagesTimeout: OptionalTimeout = null;
 
   private handleChunkTimeout(chunk: number) {
-    const context = this.outgoingMessagesQueue.get(chunk);
+    const context = this.chunkManager.getOutgoingChunk(chunk);
     if (!context) return;
 
     logger.info(`Chunk ${chunk} deu timeout`);
 
-    this.outgoingMessagesQueue.set(chunk, {
-      ...context,
+    this.chunkManager.updateChunkStatus(chunk, {
       timedOut: true,
     });
 
     this.maxBatchMessages = 1;
-
     this.handleMessageQueue();
   }
 
-  private lastSentChunk: number = -1;
-  private receivedMessages = new Map<
-    number,
-    { acked: boolean; joined: boolean; message: Message }
-  >();
+  private lastSentChunk: Chunk = -1;
 
   private messageCallback:
     | ((ctx: { messages: Message[]; buffer: Buffer }) => void)
@@ -80,7 +64,7 @@ export class SaferUDP {
   }
 
   async ack(chunk?: number) {
-    const ack = chunk ?? this.getNextAck();
+    const ack = chunk ?? this.chunkManager.calculateNextAckNumber();
 
     if (typeof ack !== 'number') return;
 
@@ -91,15 +75,9 @@ export class SaferUDP {
 
       logger.debug('ACK enviado: ' + ack);
 
-      Array.from(this.receivedMessages.entries()).forEach(
-        ([chunk, context]) => {
-          if (chunk <= ack) {
-            context.acked = true;
-            this.receivedMessagesTimeout = TimeoutManager.clear(
-              this.receivedMessagesTimeout,
-            );
-          }
-        },
+      this.chunkManager.markChunksAsAcknowledged(ack);
+      this.receivedMessagesTimeout = TimeoutManager.clear(
+        this.receivedMessagesTimeout,
       );
     } catch (e) {
       if (e instanceof Error) {
@@ -111,37 +89,6 @@ export class SaferUDP {
 
   listen(port: number) {
     this.socket.bind(port);
-  }
-
-  private getNextAck() {
-    const receivedChunks = Array.from(this.receivedMessages.keys())
-      .filter((chunk) => !this.receivedMessages.get(chunk)!.acked)
-      .sort((a, b) => a - b);
-
-    if (receivedChunks.length === 0) {
-      return;
-    }
-
-    const lastAcked = Array.from(this.receivedMessages.keys())
-      .filter((chunk) => this.receivedMessages.get(chunk)!.acked)
-      .sort((a, b) => a - b)
-      .at(-1);
-
-    let lastSequentialChunk = lastAcked ?? receivedChunks[0]!;
-
-    for (const chunk of receivedChunks) {
-      if (chunk === lastSequentialChunk + 1) {
-        lastSequentialChunk = chunk;
-      } else {
-        break;
-      }
-    }
-
-    if (lastSequentialChunk >= 0) {
-      return lastSequentialChunk;
-    }
-
-    return;
   }
 
   async send(data: Buffer, _headers: Partial<Headers> = {}) {
@@ -156,9 +103,8 @@ export class SaferUDP {
     );
 
     const message = this.protocol.serialize(headers, data);
-    this.outgoingMessagesQueue.set(headers.chunk, {
-      sent: false,
-      timedOut: false,
+
+    this.chunkManager.queueChunk(headers.chunk, {
       complete: headers.complete,
       buf: message,
     });
@@ -171,18 +117,10 @@ export class SaferUDP {
   }
 
   private async handleMessageQueue() {
-    const queue = this.outgoingMessagesQueue;
-    const chunks = Array.from(queue.keys()).sort((a, b) => (a < b ? -1 : 1));
+    const chunks = this.chunkManager.getAllOutgoingChunksSorted();
 
-    const currentlyAwaitingAck = chunks.filter((chunk) => {
-      const context = queue.get(chunk)!;
-      return context.sent;
-    });
-
-    const messagesToRetry = currentlyAwaitingAck.filter((chunk) => {
-      const context = queue.get(chunk)!;
-      return context.timedOut;
-    });
+    const currentlyAwaitingAck = this.chunkManager.getChunksAwaitingAck();
+    const messagesToRetry = this.chunkManager.getTimedOutChunks();
 
     if (messagesToRetry.length)
       return await this.retryMessages(messagesToRetry);
@@ -192,8 +130,6 @@ export class SaferUDP {
   }
 
   private async sendMessagesBatch(chunks: number[]) {
-    const queue = this.outgoingMessagesQueue;
-
     const currentBatch = chunks.slice(
       0,
       Math.min(chunks.length, this.maxBatchMessages),
@@ -202,11 +138,11 @@ export class SaferUDP {
     logger.debug('Enviando batch: ' + currentBatch.join(', '));
 
     for (const chunk of currentBatch) {
-      const context = queue.get(chunk)!;
+      const context = this.chunkManager.getOutgoingChunk(chunk)!;
 
       try {
         await this.socket.send(context.buf);
-        queue.set(chunk, { ...context, sent: true });
+        this.chunkManager.updateChunkStatus(chunk, { sent: true });
       } catch (e) {
         if (e instanceof Error) {
           logger.error(`Erro ao enviar o chunk ${chunk}: ${e.message}`);
@@ -223,27 +159,27 @@ export class SaferUDP {
   }
 
   private async retryMessages(chunks: number[]) {
-    const queue = this.outgoingMessagesQueue;
-
     logger.debug('Fazendo uma nova tentativa: ' + chunks.join(', '));
 
     for (const chunk of chunks) {
-      const context = queue.get(chunk)!;
+      const context = this.chunkManager.getOutgoingChunk(chunk);
 
       try {
         await this.socket.send(context.buf);
-
-        queue.set(chunk, {
-          ...context,
-          timedOut: false,
-        });
+        this.chunkManager.updateChunkStatus(chunk, { timedOut: false });
+        
+        this.chunkResponseTimeoutManager.set(
+          chunk,
+          () => this.handleChunkTimeout(chunk),
+          TimeoutManager.DEFAULT_DELAY * 2,
+        );
       } catch (e) {
         if (e instanceof Error) {
           logger.error(
             `Erro ao enviar novamente o chunk ${chunk}: ${e.message}`,
           );
         }
-      } finally {
+        
         this.chunkResponseTimeoutManager.retry(chunk);
       }
     }
@@ -263,11 +199,7 @@ export class SaferUDP {
         'Mensagem confiável recebida: ' + this.protocol.prettyPrint(message),
       );
 
-      this.receivedMessages.set(message.headers.chunk!, {
-        acked: false,
-        joined: false,
-        message,
-      });
+      this.chunkManager.storeIncomingChunk(message.headers.chunk!, message);
 
       TimeoutManager.clear(this.receivedMessagesTimeout);
 
@@ -279,7 +211,7 @@ export class SaferUDP {
         );
       }, TimeoutManager.DEFAULT_DELAY);
 
-      const messages = this.getNextCompleteMessage();
+      const messages = this.chunkManager.extractCompleteMessage();
 
       if (!messages) return;
 
@@ -291,44 +223,10 @@ export class SaferUDP {
   private handleAck(ack: number) {
     logger.info('ACK recebido: ' + ack);
 
-    Array.from(this.outgoingMessagesQueue.keys()).forEach((chunk) => {
-      if (chunk <= ack) {
-        this.chunkResponseTimeoutManager.remove(chunk);
-        this.outgoingMessagesQueue.delete(chunk);
-      }
-    });
-
+    this.chunkResponseTimeoutManager.remove(ack);
+    this.chunkManager.processAcknowledgment(ack);
     this.maxBatchMessages = Math.min(this.maxBatchMessages + 1, MAX_BATCH);
     this.handleMessageQueue();
-  }
-
-  private getNextCompleteMessage() {
-    const queue = this.receivedMessages;
-
-    const pendingMessages = Array.from(queue.keys()).filter((chunk) => {
-      return !queue.get(chunk)!.joined;
-    });
-
-    const canComplete = pendingMessages.findLast(
-      (chunk) => queue.get(chunk)!.message.headers.complete,
-    );
-
-    if (!canComplete) return null;
-
-    const completeMessage: Message[] = [];
-
-    for (const chunk of pendingMessages) {
-      const message = queue.get(chunk)!;
-
-      completeMessage.push(message.message);
-      message.joined = true;
-
-      if (message.message.headers.complete) {
-        break;
-      }
-    }
-
-    return completeMessage;
   }
 
   private getCompleteBuffer(messages: Message[]) {
