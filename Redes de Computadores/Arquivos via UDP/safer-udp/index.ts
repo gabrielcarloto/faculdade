@@ -1,19 +1,7 @@
-import crypto from 'node:crypto';
 import { logger as pinoLogger } from '../logger.js';
 import { SocketManager } from './socket.js';
 import { TimeoutManager, type OptionalTimeout } from './timeout.js';
-
-type Headers = {
-  chunk: number | undefined;
-  ack: number | undefined;
-  sum: string | undefined;
-  complete: boolean;
-};
-
-type Message = {
-  headers: Headers;
-  body: Buffer;
-};
+import { MessageProtocol, type Message, type Headers } from './protocol.js';
 
 const MAX_BATCH = 5;
 
@@ -23,6 +11,8 @@ const logger = pinoLogger.child({ category: 'SaferUDP' });
 
 export class SaferUDP {
   private socket: SocketManager;
+  private protocol = new MessageProtocol();
+
   // private connections = new Map<string, any>()
 
   private maxBatchMessages = 1;
@@ -85,26 +75,8 @@ export class SaferUDP {
         this.socket.connect(remoteInfo.port, remoteInfo.address);
       }
 
-      this.handleMessage(this.parse(msg));
+      this.handleMessage(this.protocol.parse(msg));
     });
-  }
-
-  parse(buf: Buffer): Message {
-    const message = buf.toString();
-    const lines = message.split('\n');
-
-    const dataSeparatorIndex = lines.findIndex((line) => line === '');
-
-    return {
-      headers: JSON.parse(lines[0]!) as Headers,
-      body: Buffer.from(lines.slice(dataSeparatorIndex + 1).join('\n')),
-    };
-  }
-
-  serialize(headers: object, body?: Buffer) {
-    return Buffer.from(
-      JSON.stringify(headers) + '\n\n' + (body ?? '').toString(),
-    );
   }
 
   async ack(chunk?: number) {
@@ -112,7 +84,7 @@ export class SaferUDP {
 
     if (typeof ack !== 'number') return;
 
-    const message = this.serialize({ ack });
+    const message = this.protocol.serialize({ ack });
 
     try {
       await this.socket.send(message);
@@ -176,14 +148,14 @@ export class SaferUDP {
     const headers = Object.assign(
       {
         chunk: ++this.lastSentChunk,
-        sum: this.generateChecksum(data),
+        sum: this.protocol.generateChecksum(data),
         ack: undefined,
         complete: true,
       } satisfies Headers,
       _headers,
     );
 
-    const message = this.serialize(headers, data);
+    const message = this.protocol.serialize(headers, data);
     this.outgoingMessagesQueue.set(headers.chunk, {
       sent: false,
       timedOut: false,
@@ -285,9 +257,11 @@ export class SaferUDP {
     if (
       'chunk' in message.headers &&
       'sum' in message.headers &&
-      this.checkIntegrity(message.body, message.headers.sum!)
+      this.protocol.checkIntegrity(message.body, message.headers.sum!)
     ) {
-      logger.debug('Mensagem confiável recebida: ' + this.prettyPrint(message));
+      logger.debug(
+        'Mensagem confiável recebida: ' + this.protocol.prettyPrint(message),
+      );
 
       this.receivedMessages.set(message.headers.chunk!, {
         acked: false,
@@ -299,10 +273,11 @@ export class SaferUDP {
 
       this.receivedMessagesTimeout = setTimeout(() => {
         this.ack();
+
         this.receivedMessagesTimeout = TimeoutManager.clear(
           this.receivedMessagesTimeout,
         );
-      });
+      }, TimeoutManager.DEFAULT_DELAY);
 
       const messages = this.getNextCompleteMessage();
 
@@ -359,18 +334,5 @@ export class SaferUDP {
   private getCompleteBuffer(messages: Message[]) {
     const buffers = messages.map((msg) => msg.body);
     return Buffer.concat(buffers);
-  }
-
-  private checkIntegrity(body: Buffer, checksum: string) {
-    const hash = this.generateChecksum(body);
-    return hash === checksum;
-  }
-
-  private generateChecksum(buf: Buffer) {
-    return crypto.createHash('md5').update(buf).digest('binary');
-  }
-
-  private prettyPrint(msg: Message) {
-    return `[${msg.headers.chunk}] ${msg.body.toString()}`;
   }
 }

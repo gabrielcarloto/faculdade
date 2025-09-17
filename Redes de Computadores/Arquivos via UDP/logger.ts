@@ -28,7 +28,7 @@ export const logger = pino(
       const delta = Date.now() - start;
       const relTime = formatRelativeTime(delta);
 
-      return `\t${gray(`[${relTime}]`)}\t${category}${log[messageKey]}`;
+      return `\t${gray(`[${relTime}]`)} ${category}${log[messageKey]}`;
     },
   }),
 );

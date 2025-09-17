@@ -63,12 +63,12 @@ export class TimeoutManager {
     const delay = this.calculateTimeout(timeout.baseDelay, timeout.retries);
 
     timeout.id = setTimeout(() => {
-      timeout.callback(() => this.retry(id));
+      timeout.callback();
       timeout.id = null;
     }, delay);
   }
 
   private calculateTimeout(baseDelay: number, retries: number) {
-    return baseDelay * Math.pow(2, retries);
+    return baseDelay * (retries + 1);
   }
 }
