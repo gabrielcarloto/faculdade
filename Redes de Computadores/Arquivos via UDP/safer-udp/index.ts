@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { logger as pinoLogger } from '../logger.js';
 import { SocketManager } from './socket.js';
+import { TimeoutManager, type OptionalTimeout } from './timeout.js';
 
 type Headers = {
   chunk: number | undefined;
@@ -14,7 +15,6 @@ type Message = {
   body: Buffer;
 };
 
-const DEFAULT_TIMEOUT_MS = 250;
 const MAX_BATCH = 5;
 
 const logger = pinoLogger.child({ category: 'SaferUDP' });
@@ -32,55 +32,12 @@ export class SaferUDP {
       complete: boolean;
       sent: boolean;
       timedOut: boolean;
-      retries: number;
       buf: Buffer;
-      timeout: NodeJS.Timeout | null;
     }
   >();
 
-  private timeouts: Record<'receivedAck', null | NodeJS.Timeout> = {
-    receivedAck: null,
-  };
-
-  private updateTimeout(
-    timeoutKey: keyof typeof this.timeouts,
-    callback: () => void,
-    timeMs: number,
-  ) {
-    if (this.timeouts[timeoutKey]) {
-      clearTimeout(this.timeouts[timeoutKey]!);
-    }
-    this.timeouts[timeoutKey] = setTimeout(callback, timeMs);
-  }
-
-  private setChunkTimeout(chunk: number, timeMs: number) {
-    const context = this.outgoingMessagesQueue.get(chunk);
-    if (!context) return;
-
-    if (context.timeout) {
-      clearTimeout(context.timeout);
-    }
-
-    const timeout = setTimeout(() => {
-      this.handleChunkTimeout(chunk);
-    }, timeMs);
-
-    this.outgoingMessagesQueue.set(chunk, {
-      ...context,
-      timeout,
-    });
-  }
-
-  private clearChunkTimeout(chunk: number) {
-    const context = this.outgoingMessagesQueue.get(chunk);
-    if (context?.timeout) {
-      clearTimeout(context.timeout);
-      this.outgoingMessagesQueue.set(chunk, {
-        ...context,
-        timeout: null,
-      });
-    }
-  }
+  private chunkResponseTimeoutManager = new TimeoutManager();
+  private receivedMessagesTimeout: OptionalTimeout = null;
 
   private handleChunkTimeout(chunk: number) {
     const context = this.outgoingMessagesQueue.get(chunk);
@@ -91,8 +48,9 @@ export class SaferUDP {
     this.outgoingMessagesQueue.set(chunk, {
       ...context,
       timedOut: true,
-      timeout: null,
     });
+
+    this.maxBatchMessages = 1;
 
     this.handleMessageQueue();
   }
@@ -165,21 +123,22 @@ export class SaferUDP {
         ([chunk, context]) => {
           if (chunk <= ack) {
             context.acked = true;
-            this.clearChunkTimeout(chunk);
+            this.receivedMessagesTimeout = TimeoutManager.clear(
+              this.receivedMessagesTimeout,
+            );
           }
         },
       );
     } catch (e) {
       if (e instanceof Error) {
         logger.error('Erro ao enviar ACK: ' + e.message);
+        this.maxBatchMessages = 1;
       }
     }
   }
 
   listen(port: number) {
-    this.socket.internalSocket.bind(port, () =>
-      logger.info(`Escutando na porta: ${port}`),
-    );
+    this.socket.bind(port);
   }
 
   private getNextAck() {
@@ -229,9 +188,7 @@ export class SaferUDP {
       sent: false,
       timedOut: false,
       complete: headers.complete,
-      retries: 0,
       buf: message,
-      timeout: null,
     });
 
     await this.handleMessageQueue();
@@ -280,11 +237,15 @@ export class SaferUDP {
         queue.set(chunk, { ...context, sent: true });
       } catch (e) {
         if (e instanceof Error) {
-          return logger.error(`Erro ao enviar o chunk ${chunk}: ${e.message}`);
+          logger.error(`Erro ao enviar o chunk ${chunk}: ${e.message}`);
+          this.maxBatchMessages = 1;
         }
       } finally {
-        const timeout = DEFAULT_TIMEOUT_MS * 2;
-        this.setChunkTimeout(chunk, timeout);
+        this.chunkResponseTimeoutManager.set(
+          chunk,
+          () => this.handleChunkTimeout(chunk),
+          TimeoutManager.DEFAULT_DELAY * 2,
+        );
       }
     }
   }
@@ -302,7 +263,6 @@ export class SaferUDP {
 
         queue.set(chunk, {
           ...context,
-          retries: context.retries + 1,
           timedOut: false,
         });
       } catch (e) {
@@ -311,11 +271,8 @@ export class SaferUDP {
             `Erro ao enviar novamente o chunk ${chunk}: ${e.message}`,
           );
         }
-
-        const timeout =
-          DEFAULT_TIMEOUT_MS * 2 * (queue.get(chunk)!.retries + 1);
-
-        this.setChunkTimeout(chunk, timeout);
+      } finally {
+        this.chunkResponseTimeoutManager.retry(chunk);
       }
     }
   }
@@ -338,7 +295,15 @@ export class SaferUDP {
         message,
       });
 
-      this.updateTimeout('receivedAck', () => this.ack(), DEFAULT_TIMEOUT_MS);
+      TimeoutManager.clear(this.receivedMessagesTimeout);
+
+      this.receivedMessagesTimeout = setTimeout(() => {
+        this.ack();
+        this.receivedMessagesTimeout = TimeoutManager.clear(
+          this.receivedMessagesTimeout,
+        );
+      });
+
       const messages = this.getNextCompleteMessage();
 
       if (!messages) return;
@@ -353,7 +318,7 @@ export class SaferUDP {
 
     Array.from(this.outgoingMessagesQueue.keys()).forEach((chunk) => {
       if (chunk <= ack) {
-        this.clearChunkTimeout(chunk);
+        this.chunkResponseTimeoutManager.remove(chunk);
         this.outgoingMessagesQueue.delete(chunk);
       }
     });

@@ -16,6 +16,11 @@ export class SocketManager {
 
   constructor(options: { packetLossRate?: number } = {}) {
     this.packetLossRate = options.packetLossRate ?? DEFAULT_PACKET_LOSS_RATE;
+    logger.info(
+      'Simulação de perda de pacotes configurada com chance de ' +
+        this.packetLossRate * 100 +
+        '%',
+    );
 
     this.socket.on('close', () => {
       this.remote = null;
@@ -35,14 +40,12 @@ export class SocketManager {
       address,
       port,
     };
-
-    logger.info('Conectado a ' + address + ':' + port);
   }
 
   send(msg: string | NodeJS.ArrayBufferView | readonly any[]) {
     return new Promise<undefined>((resolve, reject) => {
       if (!this.remote || !this.remote.port) {
-        return reject('Missing remote');
+        return reject(new Error('Missing remote'));
       }
 
       if (this.simulatePacketLoss()) {
@@ -61,6 +64,12 @@ export class SocketManager {
           resolve(undefined);
         },
       );
+    });
+  }
+
+  bind(port: number) {
+    this.socket.bind(port, () => {
+      logger.info(`Escutando na porta: ${port}`);
     });
   }
 
