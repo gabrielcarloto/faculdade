@@ -14,9 +14,12 @@ export type Message = {
 
 export class MessageProtocol {
   private hashingAlgorithm: string;
+  private static readonly separator = '\n\n';
+  public readonly overhead: number;
 
   constructor(hashingAlgo = 'md5') {
     this.hashingAlgorithm = hashingAlgo;
+    this.overhead = this.calculateOverhead();
   }
 
   parse(buf: Buffer): Message {
@@ -33,7 +36,9 @@ export class MessageProtocol {
 
   serialize(headers: object, body?: Buffer) {
     return Buffer.from(
-      JSON.stringify(headers) + '\n\n' + (body ?? '').toString(),
+      JSON.stringify(headers) +
+        MessageProtocol.separator +
+        (body ?? '').toString(),
     );
   }
 
@@ -50,6 +55,18 @@ export class MessageProtocol {
   }
 
   prettyPrint(msg: Message) {
-    return `[${msg.headers.chunk}] ${msg.body.toString()}`;
+    return `[${msg.headers.chunk}] ${msg.body.toString()} (${msg.headers.complete ? 'completa' : 'incompleta'})`;
+  }
+
+  private calculateOverhead() {
+    const WORST_CASE: Required<Headers> = {
+      ack: Number.MAX_SAFE_INTEGER,
+      chunk: Number.MAX_SAFE_INTEGER,
+      complete: false,
+      sum: this.generateChecksum(Buffer.from('some string')),
+    };
+
+    return Buffer.from(JSON.stringify(WORST_CASE) + MessageProtocol.separator)
+      .length;
   }
 }

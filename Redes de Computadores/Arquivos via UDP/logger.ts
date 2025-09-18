@@ -1,6 +1,6 @@
 import pino from 'pino';
 import pretty from 'pino-pretty';
-import { cyan, blue, magenta, yellow, gray, green, red } from 'colorette';
+import { cyan, blue, magenta, yellow, gray, green } from 'colorette';
 
 const categoryColors: Record<string, (msg: string) => string> = {
   Cliente: cyan,
@@ -13,7 +13,7 @@ const categoryColors: Record<string, (msg: string) => string> = {
 const start = Date.now();
 
 export const logger = pino(
-  { level: 'debug' },
+  { level: 'info' },
   pretty({
     colorize: true,
     ignore: 'category,time,pid,hostname',

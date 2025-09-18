@@ -27,6 +27,15 @@ export class SocketManager {
     });
   }
 
+  static get maxPacketSize() {
+    const ethernetMTU = 1500;
+    const ipHeaderLength = 20;
+    const udpHeaderLength = 8;
+    const justToBeSafe = 500;
+
+    return ethernetMTU - (ipHeaderLength + udpHeaderLength + justToBeSafe);
+  }
+
   get internalSocket() {
     return this.socket;
   }

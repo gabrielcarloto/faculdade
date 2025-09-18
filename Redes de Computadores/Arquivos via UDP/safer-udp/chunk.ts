@@ -30,7 +30,7 @@ export class ChunkManager {
       timedOut: false,
       ...meta,
     });
-    
+
     logger.debug(`Chunk ${chunk} enfileirado para envio`);
   }
 
@@ -78,40 +78,46 @@ export class ChunkManager {
     const chunksToRemove = Array.from(this.outgoingChunks.keys()).filter(
       (chunk) => chunk <= ack,
     );
-    
+
     chunksToRemove.forEach((chunk) => {
       this.outgoingChunks.delete(chunk);
     });
-    
+
     if (chunksToRemove.length > 0) {
       logger.debug(`ACK ${ack}: removidos chunks ${chunksToRemove.join(', ')}`);
     }
   }
 
   storeIncomingChunk(chunk: number, message: Message) {
+    const exists = this.incomingChunks.has(chunk);
+
+    if (exists) {
+      return logger.info('Ignorando chunk duplicado: ' + chunk);
+    }
+
     this.incomingChunks.set(chunk, {
       acked: false,
       joined: false,
       message,
     });
-    
+
     logger.debug(`Chunk ${chunk} recebido e armazenado`);
   }
 
   markChunksAsAcknowledged(ack: number) {
     const acknowledgedChunks: number[] = [];
-    
-    Array.from(this.incomingChunks.entries()).forEach(
-      ([chunk, context]) => {
-        if (chunk <= ack && !context.acked) {
-          context.acked = true;
-          acknowledgedChunks.push(chunk);
-        }
-      },
-    );
-    
+
+    Array.from(this.incomingChunks.entries()).forEach(([chunk, context]) => {
+      if (chunk <= ack && !context.acked) {
+        context.acked = true;
+        acknowledgedChunks.push(chunk);
+      }
+    });
+
     if (acknowledgedChunks.length > 0) {
-      logger.debug(`Chunks marcados como ACKed: ${acknowledgedChunks.join(', ')}`);
+      logger.debug(
+        `Chunks marcados como ACKed: ${acknowledgedChunks.join(', ')}`,
+      );
     }
   }
 
@@ -147,17 +153,15 @@ export class ChunkManager {
   }
 
   extractCompleteMessage(): Message[] | null {
-    const pendingMessages = Array.from(this.incomingChunks.keys()).filter(
-      (chunk) => {
-        return !this.incomingChunks.get(chunk)!.joined;
-      },
-    );
+    const pendingMessages = Array.from(this.incomingChunks.keys())
+      .filter((chunk) => !this.incomingChunks.get(chunk)!.joined)
+      .sort((a, b) => (a < b ? -1 : 1));
 
-    const canComplete = pendingMessages.findLast(
+    const canComplete = pendingMessages.find(
       (chunk) => this.incomingChunks.get(chunk)!.message.headers.complete,
     );
 
-    if (!canComplete) return null;
+    if (typeof canComplete === 'undefined') return null;
 
     const completeMessage: Message[] = [];
     const processedChunks: number[] = [];
@@ -174,7 +178,10 @@ export class ChunkManager {
       }
     }
 
-    logger.info(`Mensagem completa extraída dos chunks: ${processedChunks.join(', ')}`);
+    logger.info(
+      `Mensagem completa extraída dos chunks: ${processedChunks.join(', ')}`,
+    );
+
     return completeMessage;
   }
 }

@@ -6,7 +6,9 @@ const PORT = 3000;
 const logger = pinoLogger.child({ category: 'Server' });
 
 const server = new SaferUDP((message) => {
-  logger.info('Recebi a mensagem! Conteúdo: ' + message.buffer.toString());
+  const string = message.buffer.toString();
+  if (string.length < 100) logger.info(string);
+  else logger.info('Mensagem grande recebida');
 });
 
 server.listen(PORT);
