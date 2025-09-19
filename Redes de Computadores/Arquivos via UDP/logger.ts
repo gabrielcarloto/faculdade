@@ -1,6 +1,6 @@
 import pino from 'pino';
 import pretty from 'pino-pretty';
-import { cyan, blue, magenta, yellow, gray, green } from 'colorette';
+import { cyan, blue, magenta, yellow, gray, green, red, white } from 'colorette';
 
 const categoryColors: Record<string, (msg: string) => string> = {
   Cliente: cyan,
@@ -8,6 +8,8 @@ const categoryColors: Record<string, (msg: string) => string> = {
   SocketManager: magenta,
   SaferUDP: yellow,
   ChunkManager: blue,
+  FlowManager: red,
+  Protocol: white,
 };
 
 const start = Date.now();
