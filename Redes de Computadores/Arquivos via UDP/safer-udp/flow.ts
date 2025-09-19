@@ -80,7 +80,7 @@ export class FlowManager {
     );
 
     const chart = asciichart.plot(flows, {
-      height: 40,
+      height: Math.min(40, Math.max(...flows)),
       colors: [asciichart.blue],
       format: (x: number) => x.toFixed(0).padStart(3),
     });

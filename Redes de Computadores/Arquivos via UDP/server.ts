@@ -9,6 +9,8 @@ const server = new SaferUDP((message) => {
   const string = message.buffer.toString();
   if (string.length < 100) logger.info(string);
   else logger.info(`Mensagem grande recebida (${message.buffer.length} bytes)`);
+  
+  logger.info(`Mensagem recebida de ${message.remote.address}:${message.remote.port}`);
 });
 
 server.listen(PORT);

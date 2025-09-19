@@ -1,12 +1,22 @@
 import pino from 'pino';
 import pretty from 'pino-pretty';
-import { cyan, blue, magenta, yellow, gray, green, red, white } from 'colorette';
+import {
+  cyan,
+  blue,
+  magenta,
+  yellow,
+  gray,
+  green,
+  red,
+  white,
+} from 'colorette';
 
 const categoryColors: Record<string, (msg: string) => string> = {
   Cliente: cyan,
   Server: green,
   SocketManager: magenta,
   SaferUDP: yellow,
+  SaferUDPConnection: yellow,
   ChunkManager: blue,
   FlowManager: red,
   Protocol: white,

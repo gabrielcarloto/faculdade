@@ -1,5 +1,6 @@
 import dgram from 'node:dgram';
 import { logger as pinoLogger } from '../logger.js';
+import type { Remote } from './connection.js';
 
 const logger = pinoLogger.child({ category: 'SocketManager' });
 
@@ -9,11 +10,6 @@ export class SocketManager {
   private socket = dgram.createSocket('udp4');
   private packetLossRate: number = DEFAULT_PACKET_LOSS_RATE;
 
-  private remote:
-    | dgram.RemoteInfo
-    | { address: string | undefined; port: number }
-    | null = null;
-
   constructor(options: { packetLossRate?: number } = {}) {
     this.packetLossRate = options.packetLossRate ?? DEFAULT_PACKET_LOSS_RATE;
     logger.info(
@@ -21,10 +17,6 @@ export class SocketManager {
         this.packetLossRate * 100 +
         '%',
     );
-
-    this.socket.on('close', () => {
-      this.remote = null;
-    });
 
     logger.info(
       `Tamanho máximo de um pacote UDP: ${SocketManager.maxPacketSize} bytes`,
@@ -44,39 +36,19 @@ export class SocketManager {
     return this.socket;
   }
 
-  get remoteInfo() {
-    return this.remote;
-  }
-
-  connect(port: number, address = '127.0.0.1') {
-    this.remote = {
-      address,
-      port,
-    };
-  }
-
-  send(msg: string | NodeJS.ArrayBufferView | readonly any[]) {
+  send(msg: string | NodeJS.ArrayBufferView | readonly any[], to: Remote) {
     return new Promise<undefined>((resolve, reject) => {
-      if (!this.remote || !this.remote.port) {
-        return reject(new Error('Missing remote'));
-      }
-
       if (this.simulatePacketLoss()) {
         reject(new Error('Pacote perdido (simulação)'));
       }
 
-      this.socket.send(
-        msg,
-        this.remote!.port,
-        this.remote!.address,
-        (error) => {
-          if (error) {
-            return reject(error);
-          }
+      this.socket.send(msg, to.port, to.address, (error) => {
+        if (error) {
+          return reject(error);
+        }
 
-          resolve(undefined);
-        },
-      );
+        resolve(undefined);
+      });
     });
   }
 

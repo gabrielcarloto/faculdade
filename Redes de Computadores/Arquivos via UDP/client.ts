@@ -9,9 +9,10 @@ const client = new SaferUDP((message) => {
   console.log(message.buffer.toString());
 });
 
-client.connect(3000);
+const remote = { address: 'localhost', port: 3000 };
+const connection = client.connect(remote);
 
-client.send(Buffer.from('Mensagem interessante e pequena para teste'));
+await connection.send(Buffer.from('Mensagem interessante e pequena para teste'));
 
 const largeText = `
 Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. 
@@ -31,8 +32,8 @@ deserunt mollitia animi, id est laborum et dolorum fuga.
 
 logger.info(`Enviando buffer de ${Buffer.from(largeText).length} bytes...`);
 
-await client.send(Buffer.from(largeText));
+await connection.send(Buffer.from(largeText));
 
-await client.send(
+await connection.send(
   Buffer.from('Mais uma mensagem interessante e pequena para teste'),
 );
