@@ -28,23 +28,31 @@ export class MessageProtocol {
   }
 
   parse(buf: Buffer): Message {
-    const message = buf.toString();
-    const lines = message.split('\n');
-
-    const dataSeparatorIndex = lines.findIndex((line) => line === '');
-
+    const separatorBuffer = Buffer.from(MessageProtocol.separator);
+    const separatorIndex = buf.indexOf(separatorBuffer);
+    
+    if (separatorIndex === -1) {
+      throw new Error('Formato de mensagem inválido: separador não encontrado');
+    }
+    
+    const headerBuffer = buf.subarray(0, separatorIndex);
+    const bodyBuffer = buf.subarray(separatorIndex + separatorBuffer.length);
+    
     return {
-      headers: JSON.parse(lines[0]!) as Headers,
-      body: Buffer.from(lines.slice(dataSeparatorIndex + 1).join('\n')),
+      headers: JSON.parse(headerBuffer.toString()) as Headers,
+      body: bodyBuffer,
     };
   }
 
   serialize(headers: object, body?: Buffer) {
-    return Buffer.from(
-      JSON.stringify(headers) +
-        MessageProtocol.separator +
-        (body ?? '').toString(),
-    );
+    const headerString = JSON.stringify(headers);
+    const headerBuffer = Buffer.from(headerString + MessageProtocol.separator);
+    
+    if (body) {
+      return Buffer.concat([headerBuffer, body]);
+    }
+    
+    return headerBuffer;
   }
 
   checkIntegrity(body: Buffer, checksum: string) {

@@ -67,6 +67,8 @@ export class SaferUDPConnection {
   }
 
   async handleMessage(message: Message) {
+    logger.debug('Mensagem recebida');
+
     if (message.headers.ack !== undefined) {
       await this.handleAck(message.headers.ack);
     }
@@ -89,6 +91,16 @@ export class SaferUDPConnection {
 
       const buffer = this.getCompleteBuffer(messages);
       this.messageCallback?.({ messages, buffer });
+    }
+
+    if (
+      'chunk' in message.headers &&
+      'sum' in message.headers &&
+      !this.protocol.checkIntegrity(message.body, message.headers.sum!)
+    ) {
+      logger.debug(
+        'Integridade da mensagem não pode ser garantida, descartando...',
+      );
     }
   }
 

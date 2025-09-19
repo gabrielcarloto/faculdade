@@ -25,7 +25,7 @@ const categoryColors: Record<string, (msg: string) => string> = {
 const start = Date.now();
 
 export const logger = pino(
-  { level: 'info' },
+  { level: 'debug' },
   pretty({
     colorize: true,
     ignore: 'category,time,pid,hostname',
