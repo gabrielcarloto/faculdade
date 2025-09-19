@@ -10,6 +10,7 @@ export class TimeoutManager {
       callback: TimeoutCallback;
       baseDelay: number;
       retries: number;
+      timedOut: boolean;
     }
   >();
 
@@ -34,13 +35,18 @@ export class TimeoutManager {
       retries: 0,
       callback,
       baseDelay: ms,
+      timedOut: false,
       id: setTimeout(() => {
-        callback();
         const current = this.timeouts.get(id);
 
         if (current) {
-          this.timeouts.set(id, Object.assign(current, { id: null }));
+          this.timeouts.set(
+            id,
+            Object.assign(current, { id: null, timedOut: true }),
+          );
         }
+
+        callback();
       }, ms),
     });
   }
@@ -60,12 +66,19 @@ export class TimeoutManager {
     if (!timeout) return;
 
     timeout.retries++;
+    timeout.timedOut = false;
+
     const delay = this.calculateTimeout(timeout.baseDelay, timeout.retries);
 
     timeout.id = setTimeout(() => {
-      timeout.callback();
       timeout.id = null;
+      timeout.timedOut = true;
+      timeout.callback();
     }, delay);
+  }
+
+  hasTimedOut(id: TimeoutMapKey) {
+    return Boolean(this.timeouts.get(id)?.timedOut);
   }
 
   private calculateTimeout(baseDelay: number, retries: number) {

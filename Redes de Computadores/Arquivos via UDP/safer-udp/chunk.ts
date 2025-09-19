@@ -6,7 +6,6 @@ export type Chunk = number;
 type OutgoingMeta = {
   complete: boolean;
   sent: boolean;
-  timedOut: boolean;
   buf: Buffer;
 };
 
@@ -27,7 +26,6 @@ export class ChunkManager {
   queueChunk(chunk: number, meta: Pick<OutgoingMeta, 'complete' | 'buf'>) {
     this.outgoingChunks.set(chunk, {
       sent: false,
-      timedOut: false,
       ...meta,
     });
 
@@ -47,6 +45,10 @@ export class ChunkManager {
     this.outgoingChunks.delete(chunk);
   }
 
+  getAllOutgoing() {
+    return Array.from(this.outgoingChunks.keys());
+  }
+
   getAllOutgoingChunksSorted() {
     return Array.from(this.outgoingChunks.keys()).sort((a, b) =>
       a < b ? -1 : 1,
@@ -57,13 +59,6 @@ export class ChunkManager {
     return this.getAllOutgoingChunksSorted().filter((chunk) => {
       const context = this.outgoingChunks.get(chunk)!;
       return context.sent;
-    });
-  }
-
-  getTimedOutChunks(): Chunk[] {
-    return this.getChunksAwaitingAck().filter((chunk) => {
-      const context = this.outgoingChunks.get(chunk)!;
-      return context.timedOut;
     });
   }
 

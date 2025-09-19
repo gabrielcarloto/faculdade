@@ -4,8 +4,6 @@ import { TimeoutManager, type OptionalTimeout } from './timeout.js';
 import { MessageProtocol, type Message } from './protocol.js';
 import { ChunkManager, type Chunk } from './chunk.js';
 
-const MAX_BATCH = 5;
-
 const logger = pinoLogger.child({ category: 'SaferUDP' });
 
 // TODO: lidar com desconexão?
@@ -46,6 +44,10 @@ export class SaferUDP {
 
       this.handleMessage(this.protocol.parse(msg));
     });
+
+    logger.info(
+      `Tamanho máximo de um pacote SaferUDP: ${SocketManager.maxPacketSize - this.protocol.overhead} bytes`,
+    );
   }
 
   listen(port: number) {
@@ -62,8 +64,8 @@ export class SaferUDP {
         headers: {
           chunk: ++this.lastSentChunk,
           sum: this.protocol.generateChecksum(buf),
-          ack: undefined,
           complete: index === chunks.length - 1,
+          ack: undefined,
         },
         body: buf,
       }),
@@ -91,7 +93,7 @@ export class SaferUDP {
     try {
       await this.socket.send(message);
 
-      logger.debug('ACK enviado: ' + ack);
+      logger.info('ACK enviado: ' + ack);
 
       this.chunkManager.markChunksAsAcknowledged(ack);
       this.receivedMessagesTimeout = TimeoutManager.clear(
@@ -105,9 +107,9 @@ export class SaferUDP {
     }
   }
 
-  private handleMessage(message: Message) {
+  private async handleMessage(message: Message) {
     if (message.headers.ack !== undefined) {
-      this.handleAck(message.headers.ack);
+      await this.handleAck(message.headers.ack);
     }
 
     if (
@@ -120,16 +122,7 @@ export class SaferUDP {
       );
 
       this.chunkManager.storeIncomingChunk(message.headers.chunk!, message);
-
-      TimeoutManager.clear(this.receivedMessagesTimeout);
-
-      this.receivedMessagesTimeout = setTimeout(() => {
-        this.ack();
-
-        this.receivedMessagesTimeout = TimeoutManager.clear(
-          this.receivedMessagesTimeout,
-        );
-      }, TimeoutManager.DEFAULT_DELAY);
+      this.scheduleAck();
 
       const messages = this.chunkManager.extractCompleteMessage();
 
@@ -140,34 +133,34 @@ export class SaferUDP {
     }
   }
 
-  private handleAck(ack: number) {
+  private async handleAck(ack: number) {
     logger.info('ACK recebido: ' + ack);
 
     this.chunkResponseTimeoutManager.remove(ack);
     this.chunkManager.processAcknowledgment(ack);
-    this.maxBatchMessages = Math.min(this.maxBatchMessages + 1, MAX_BATCH);
-    this.handleMessageQueue();
+    this.maxBatchMessages = this.maxBatchMessages + 1;
+
+    await this.handleMessageQueue();
   }
 
-  private handleChunkTimeout(chunk: number) {
+  private async handleChunkTimeout(chunk: number) {
     const context = this.chunkManager.getOutgoingChunk(chunk);
     if (!context) return;
 
     logger.info(`Chunk ${chunk} deu timeout`);
 
-    this.chunkManager.updateChunkStatus(chunk, {
-      timedOut: true,
-    });
-
     this.maxBatchMessages = 1;
-    this.handleMessageQueue();
+    await this.handleMessageQueue();
   }
 
   private async handleMessageQueue() {
     const chunks = this.chunkManager.getAllOutgoingChunksSorted();
 
     const currentlyAwaitingAck = this.chunkManager.getChunksAwaitingAck();
-    const messagesToRetry = this.chunkManager.getTimedOutChunks();
+
+    const messagesToRetry = this.chunkManager
+      .getAllOutgoing()
+      .filter((chunk) => this.chunkResponseTimeoutManager.hasTimedOut(chunk));
 
     if (messagesToRetry.length)
       return await this.retryMessages(messagesToRetry);
@@ -177,10 +170,7 @@ export class SaferUDP {
   }
 
   private async sendMessagesBatch(chunks: number[]) {
-    const currentBatch = chunks.slice(
-      0,
-      Math.min(chunks.length, this.maxBatchMessages),
-    );
+    const currentBatch = this.getBatch(chunks);
 
     logger.debug('Enviando batch: ' + currentBatch.join(', '));
 
@@ -206,27 +196,22 @@ export class SaferUDP {
   }
 
   private async retryMessages(chunks: number[]) {
-    logger.debug('Fazendo uma nova tentativa: ' + chunks.join(', '));
+    const currentBatch = this.getBatch(chunks);
 
-    for (const chunk of chunks) {
+    logger.debug('Fazendo uma nova tentativa: ' + currentBatch.join(', '));
+
+    for (const chunk of currentBatch) {
       const context = this.chunkManager.getOutgoingChunk(chunk);
 
       try {
         await this.socket.send(context.buf);
-        this.chunkManager.updateChunkStatus(chunk, { timedOut: false });
-
-        this.chunkResponseTimeoutManager.set(
-          chunk,
-          () => this.handleChunkTimeout(chunk),
-          TimeoutManager.DEFAULT_DELAY * 2,
-        );
       } catch (e) {
         if (e instanceof Error) {
           logger.error(
             `Erro ao enviar novamente o chunk ${chunk}: ${e.message}`,
           );
         }
-
+      } finally {
         this.chunkResponseTimeoutManager.retry(chunk);
       }
     }
@@ -247,4 +232,21 @@ export class SaferUDP {
 
     return chunks;
   }
+
+  private scheduleAck() {
+    TimeoutManager.clear(this.receivedMessagesTimeout);
+
+    this.receivedMessagesTimeout = setTimeout(() => {
+      this.receivedMessagesTimeout = TimeoutManager.clear(
+        this.receivedMessagesTimeout,
+      );
+
+      this.ack();
+    }, TimeoutManager.DEFAULT_DELAY);
+  }
+
+  private getBatch(chunks: number[]) {
+    return chunks.slice(0, Math.min(chunks.length, this.maxBatchMessages));
+  }
 }
+

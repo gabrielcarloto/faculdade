@@ -1,3 +1,5 @@
+import { logger as pinoLogger } from '../logger.js';
+
 import crypto from 'node:crypto';
 
 export type Headers = {
@@ -12,6 +14,8 @@ export type Message = {
   body: Buffer;
 };
 
+const logger = pinoLogger.child({ category: 'Protocol' });
+
 export class MessageProtocol {
   private hashingAlgorithm: string;
   private static readonly separator = '\n\n';
@@ -20,6 +24,7 @@ export class MessageProtocol {
   constructor(hashingAlgo = 'md5') {
     this.hashingAlgorithm = hashingAlgo;
     this.overhead = this.calculateOverhead();
+    logger.info(`Overhead do protocolo: ${this.overhead} bytes`);
   }
 
   parse(buf: Buffer): Message {
@@ -60,13 +65,12 @@ export class MessageProtocol {
 
   private calculateOverhead() {
     const WORST_CASE: Required<Headers> = {
+      complete: false,
       ack: Number.MAX_SAFE_INTEGER,
       chunk: Number.MAX_SAFE_INTEGER,
-      complete: false,
       sum: this.generateChecksum(Buffer.from('some string')),
     };
 
-    return Buffer.from(JSON.stringify(WORST_CASE) + MessageProtocol.separator)
-      .length;
+    return Buffer.from(this.serialize(WORST_CASE)).length;
   }
 }

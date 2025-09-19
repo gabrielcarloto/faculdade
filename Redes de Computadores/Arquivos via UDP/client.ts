@@ -27,11 +27,7 @@ qui ratione voluptatem sequi nesciunt.
 At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti 
 quos dolores et quas molestias excepturi sint occaecati cupiditate non provident, similique sunt in culpa qui officia 
 deserunt mollitia animi, id est laborum et dolorum fuga.
-
-Esta é uma mensagem de teste grande o suficiente para ser dividida em múltiplos chunks pelo protocolo SaferUDP.
-O novo método send() irá automaticamente dividir este buffer em pedaços menores que cabem no MTU da rede.
-Cada chunk será enviado com checksum MD5 para verificação de integridade e numeração sequencial para reordenação.
-`.repeat(90);
+`.repeat(500);
 
 logger.info(`Enviando buffer de ${Buffer.from(largeText).length} bytes...`);
 

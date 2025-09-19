@@ -25,6 +25,10 @@ export class SocketManager {
     this.socket.on('close', () => {
       this.remote = null;
     });
+
+    logger.info(
+      `Tamanho máximo de um pacote UDP: ${SocketManager.maxPacketSize} bytes`,
+    );
   }
 
   static get maxPacketSize() {
