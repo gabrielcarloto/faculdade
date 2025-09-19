@@ -3,6 +3,7 @@ import { SocketManager } from './socket.js';
 import { TimeoutManager, type OptionalTimeout } from './timeout.js';
 import { MessageProtocol, type Message } from './protocol.js';
 import { ChunkManager, type Chunk } from './chunk.js';
+import { FlowManager } from './flow.js';
 
 const logger = pinoLogger.child({ category: 'SaferUDP' });
 
@@ -13,9 +14,9 @@ export class SaferUDP {
   private protocol = new MessageProtocol();
   private chunkManager = new ChunkManager();
   private chunkResponseTimeoutManager = new TimeoutManager();
+  private flowManager = new FlowManager();
 
   private lastSentChunk: Chunk = -1;
-  private maxBatchMessages = 1;
   private receivedMessagesTimeout: OptionalTimeout = null;
 
   private messageCallback:
@@ -102,7 +103,7 @@ export class SaferUDP {
     } catch (e) {
       if (e instanceof Error) {
         logger.error('Erro ao enviar ACK: ' + e.message);
-        this.maxBatchMessages = 1;
+        this.flowManager.down();
       }
     }
   }
@@ -138,7 +139,7 @@ export class SaferUDP {
 
     this.chunkResponseTimeoutManager.remove(ack);
     this.chunkManager.processAcknowledgment(ack);
-    this.maxBatchMessages = this.maxBatchMessages + 1;
+    this.flowManager.up();
 
     await this.handleMessageQueue();
   }
@@ -149,7 +150,7 @@ export class SaferUDP {
 
     logger.info(`Chunk ${chunk} deu timeout`);
 
-    this.maxBatchMessages = 1;
+    this.flowManager.down();
     await this.handleMessageQueue();
   }
 
@@ -162,19 +163,21 @@ export class SaferUDP {
       .getAllOutgoing()
       .filter((chunk) => this.chunkResponseTimeoutManager.hasTimedOut(chunk));
 
-    if (messagesToRetry.length)
-      return await this.retryMessages(messagesToRetry);
+    if (messagesToRetry.length) {
+      return await this.retryMessages(
+        this.flowManager.getBatch(messagesToRetry),
+      );
+    }
 
-    if (!currentlyAwaitingAck.length && chunks.length)
-      return await this.sendMessagesBatch(chunks);
+    if (!currentlyAwaitingAck.length && chunks.length) {
+      return await this.sendMessagesBatch(this.flowManager.getBatch(chunks));
+    }
   }
 
   private async sendMessagesBatch(chunks: number[]) {
-    const currentBatch = this.getBatch(chunks);
+    logger.debug('Enviando batch: ' + chunks.join(', '));
 
-    logger.debug('Enviando batch: ' + currentBatch.join(', '));
-
-    for (const chunk of currentBatch) {
+    for (const chunk of chunks) {
       const context = this.chunkManager.getOutgoingChunk(chunk)!;
 
       try {
@@ -183,7 +186,7 @@ export class SaferUDP {
       } catch (e) {
         if (e instanceof Error) {
           logger.error(`Erro ao enviar o chunk ${chunk}: ${e.message}`);
-          this.maxBatchMessages = 1;
+          this.flowManager.down();
         }
       } finally {
         this.chunkResponseTimeoutManager.set(
@@ -196,11 +199,9 @@ export class SaferUDP {
   }
 
   private async retryMessages(chunks: number[]) {
-    const currentBatch = this.getBatch(chunks);
+    logger.debug('Fazendo uma nova tentativa: ' + chunks.join(', '));
 
-    logger.debug('Fazendo uma nova tentativa: ' + currentBatch.join(', '));
-
-    for (const chunk of currentBatch) {
+    for (const chunk of chunks) {
       const context = this.chunkManager.getOutgoingChunk(chunk);
 
       try {
@@ -243,10 +244,6 @@ export class SaferUDP {
 
       this.ack();
     }, TimeoutManager.DEFAULT_DELAY);
-  }
-
-  private getBatch(chunks: number[]) {
-    return chunks.slice(0, Math.min(chunks.length, this.maxBatchMessages));
   }
 }
 
