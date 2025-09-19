@@ -8,11 +8,13 @@
   },
   "dependencies": {
     "@types/node": "^24.3.1",
+    "asciichart": "^1.5.25",
     "colorette": "^2.0.20",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2"
   },
   "devDependencies": {
+    "@types/asciichart": "^1.5.8",
     "@types/pino": "^7.0.4",
     "pino": "^9.9.5",
     "pino-pretty": "^13.1.1"

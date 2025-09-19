@@ -246,4 +246,3 @@ export class SaferUDP {
     }, TimeoutManager.DEFAULT_DELAY);
   }
 }
-

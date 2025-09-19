@@ -3,7 +3,7 @@ import { logger as pinoLogger } from '../logger.js';
 
 const logger = pinoLogger.child({ category: 'SocketManager' });
 
-const DEFAULT_PACKET_LOSS_RATE = 0.05;
+const DEFAULT_PACKET_LOSS_RATE = 0.025;
 
 export class SocketManager {
   private socket = dgram.createSocket('udp4');
