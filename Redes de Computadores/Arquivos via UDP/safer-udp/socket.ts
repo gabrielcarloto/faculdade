@@ -4,11 +4,12 @@ import type { Remote } from './connection.js';
 
 const logger = pinoLogger.child({ category: 'SocketManager' });
 
-const DEFAULT_PACKET_LOSS_RATE = 0.025;
+const DEFAULT_PACKET_LOSS_RATE = 0.0;
 
 export class SocketManager {
   private socket = dgram.createSocket('udp4');
   private packetLossRate: number = DEFAULT_PACKET_LOSS_RATE;
+  private isListening = false;
 
   constructor(options: { packetLossRate?: number } = {}) {
     this.packetLossRate = options.packetLossRate ?? DEFAULT_PACKET_LOSS_RATE;
@@ -54,8 +55,13 @@ export class SocketManager {
 
   bind(port: number) {
     this.socket.bind(port, () => {
+      this.isListening = true;
       logger.info(`Escutando na porta: ${port}`);
     });
+  }
+
+  get listening() {
+    return this.isListening;
   }
 
   private simulatePacketLoss(): boolean {

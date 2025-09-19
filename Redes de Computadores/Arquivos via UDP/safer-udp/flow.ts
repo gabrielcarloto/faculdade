@@ -54,10 +54,6 @@ export class FlowManager {
     return chunks.slice(0, Math.min(chunks.length, this.currentFlow));
   }
 
-  getFlowHistory(): FlowHistoryEntry[] {
-    return [...this.history];
-  }
-
   printFlowChart(): void {
     if (this.history.length < 2) {
       console.log(
@@ -73,13 +69,21 @@ export class FlowManager {
     const maxTime = Math.max(...timestamps);
     const duration = maxTime - minTime;
 
+    const maxWidth = 200;
+    let sampledFlows = flows;
+
+    if (flows.length > maxWidth) {
+      const step = Math.ceil(flows.length / maxWidth);
+      sampledFlows = flows.filter((_, index) => index % step === 0);
+    }
+
     console.log('\n📊 Gráfico de Controle de Fluxo vs Tempo');
     console.log(`Duração: ${duration}ms | Entradas: ${this.history.length}`);
     console.log(
       `Fluxo: Min=${Math.min(...flows)} | Max=${Math.max(...flows)} | Atual=${this.currentFlow}`,
     );
 
-    const chart = asciichart.plot(flows, {
+    const chart = asciichart.plot(sampledFlows, {
       height: Math.min(40, Math.max(...flows)),
       colors: [asciichart.blue],
       format: (x: number) => x.toFixed(0).padStart(3),
@@ -87,6 +91,11 @@ export class FlowManager {
 
     console.log(chart);
     console.log('Eixo X: Sequência de eventos | Eixo Y: Tamanho do fluxo');
+    if (sampledFlows.length < flows.length) {
+      console.log(
+        `Nota: Dados amostrados (${sampledFlows.length}/${flows.length} pontos) para caber no terminal`,
+      );
+    }
     console.log('');
   }
 }

@@ -20,8 +20,19 @@ const logger = pinoLogger.child({ category: 'ChunkManager' });
 export class ChunkManager {
   private outgoingChunks = new Map<Chunk, OutgoingMeta>();
   private incomingChunks = new Map<Chunk, ReceivedMeta>();
+  private lastAcked = -1;
 
   constructor() {}
+
+  cleanup() {
+    Array.from(this.outgoingChunks.keys()).forEach((chunk) =>
+      this.outgoingChunks.delete(chunk),
+    );
+
+    Array.from(this.incomingChunks.keys()).forEach((chunk) =>
+      this.incomingChunks.delete(chunk),
+    );
+  }
 
   queueChunk(chunk: number, meta: Pick<OutgoingMeta, 'complete' | 'buf'>) {
     this.outgoingChunks.set(chunk, {
@@ -113,6 +124,8 @@ export class ChunkManager {
       logger.debug(
         `Chunks marcados como ACKed: ${acknowledgedChunks.join(', ')}`,
       );
+
+      this.lastAcked = acknowledgedChunks.sort((a, b) => a - b).at(-1)!;
     }
   }
 
@@ -121,9 +134,7 @@ export class ChunkManager {
       .filter((chunk) => !this.incomingChunks.get(chunk)!.acked)
       .sort((a, b) => a - b);
 
-    if (receivedChunks.length === 0) {
-      return;
-    }
+    if (receivedChunks.length === 0) return;
 
     const lastAcked = Array.from(this.incomingChunks.keys())
       .filter((chunk) => this.incomingChunks.get(chunk)!.acked)
@@ -173,10 +184,14 @@ export class ChunkManager {
       }
     }
 
-    logger.info(
+    logger.debug(
       `Mensagem completa extraída dos chunks: ${processedChunks.join(', ')}`,
     );
 
     return completeMessage;
+  }
+
+  getLastAcked() {
+    return this.lastAcked;
   }
 }

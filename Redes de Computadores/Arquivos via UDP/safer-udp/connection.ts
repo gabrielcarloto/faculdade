@@ -21,27 +21,50 @@ export class SaferUDPConnection {
   private lastSentChunk: Chunk = -1;
   private receivedMessagesTimeout: OptionalTimeout = null;
 
-  private messageCallback:
-    | ((ctx: { messages: Message[]; buffer: Buffer }) => void)
-    | undefined;
+  private lastTimeoutEventTime = 0;
+  private timeoutEventWindow = 10;
+
+  private isClosing = false;
+
+  private messageCallback: (ctx: {
+    messages: Message[];
+    buffer: Buffer;
+  }) => void;
+
+  private onCloseCallback: () => void;
 
   constructor(
     remote: Remote,
     messageCallback: typeof this.messageCallback,
+    onClose: typeof this.onCloseCallback,
     flowManager: FlowManager,
     socketManager: SocketManager,
   ) {
     this.remote = remote;
     this.messageCallback = messageCallback;
+    this.onCloseCallback = onClose;
     this.flowManager = flowManager;
     this.socketManager = socketManager;
   }
 
-  get connectionKey(): string {
-    return `${this.remote.address}:${this.remote.port}`;
+  async close() {
+    this.isClosing = true;
+
+    const message = this.protocol.serialize({ chunk: this.closeChunk });
+
+    this.chunkManager.queueChunk(this.closeChunk, {
+      complete: true,
+      buf: message,
+    });
   }
 
   async send(data: Buffer) {
+    if (this.isClosing) {
+      throw new Error(
+        'Tentativa de enviar uma mensagem para uma conexão fechando',
+      );
+    }
+
     const messages: Message[] = this.splitBuffer(data).map(
       (buf, index, chunks) => ({
         headers: {
@@ -76,7 +99,8 @@ export class SaferUDPConnection {
     if (
       'chunk' in message.headers &&
       'sum' in message.headers &&
-      this.protocol.checkIntegrity(message.body, message.headers.sum!)
+      this.protocol.checkIntegrity(message.body, message.headers.sum!) &&
+      !this.isClosing
     ) {
       logger.debug(
         'Mensagem confiável recebida: ' + this.protocol.prettyPrint(message),
@@ -102,6 +126,15 @@ export class SaferUDPConnection {
         'Integridade da mensagem não pode ser garantida, descartando...',
       );
     }
+
+    if (
+      'chunk' in message.headers &&
+      !Number.isInteger(message.headers.chunk)
+    ) {
+      this.handleCloseMessage();
+      this.chunkManager.storeIncomingChunk(message.headers.chunk!, message);
+      this.scheduleAck(message.headers.chunk!);
+    }
   }
 
   private async ack(chunk?: number) {
@@ -120,6 +153,10 @@ export class SaferUDPConnection {
       this.receivedMessagesTimeout = TimeoutManager.clear(
         this.receivedMessagesTimeout,
       );
+
+      if (this.isClosing && !Number.isInteger(chunk)) {
+        this.closeConnection();
+      }
     } catch (e) {
       if (e instanceof Error) {
         logger.error('Erro ao enviar ACK: ' + e.message);
@@ -130,6 +167,10 @@ export class SaferUDPConnection {
 
   private async handleAck(ack: number) {
     logger.info('ACK recebido: ' + ack);
+
+    if (!Number.isInteger(ack)) {
+      return this.closeConnection();
+    }
 
     this.chunkResponseTimeoutManager.remove(ack);
     this.chunkManager.processAcknowledgment(ack);
@@ -144,7 +185,14 @@ export class SaferUDPConnection {
 
     logger.info(`Chunk ${chunk} deu timeout`);
 
-    this.flowManager.down();
+    const currentTime = Date.now();
+    const timeSinceLastTimeout = currentTime - this.lastTimeoutEventTime;
+
+    if (timeSinceLastTimeout > this.timeoutEventWindow) {
+      this.flowManager.down();
+    }
+
+    this.lastTimeoutEventTime = currentTime;
     await this.handleMessageQueue();
   }
 
@@ -212,6 +260,11 @@ export class SaferUDPConnection {
     }
   }
 
+  private handleCloseMessage() {
+    this.isClosing = true;
+    logger.info('Fechando conexão...');
+  }
+
   private getCompleteBuffer(messages: Message[]) {
     const buffers = messages.map((msg) => msg.body);
     return Buffer.concat(buffers);
@@ -228,7 +281,7 @@ export class SaferUDPConnection {
     return chunks;
   }
 
-  private scheduleAck() {
+  private scheduleAck(ack?: number) {
     TimeoutManager.clear(this.receivedMessagesTimeout);
 
     this.receivedMessagesTimeout = setTimeout(() => {
@@ -236,7 +289,22 @@ export class SaferUDPConnection {
         this.receivedMessagesTimeout,
       );
 
-      this.ack();
+      this.ack(ack);
     }, TimeoutManager.DEFAULT_DELAY);
+  }
+
+  private get closeChunk() {
+    return this.lastSentChunk + 0.5;
+  }
+
+  private closeConnection() {
+    this.chunkManager.cleanup();
+    this.chunkResponseTimeoutManager.cleanup();
+
+    if (!this.socketManager.listening) {
+      this.socketManager.internalSocket.close();
+    }
+
+    this.onCloseCallback();
   }
 }

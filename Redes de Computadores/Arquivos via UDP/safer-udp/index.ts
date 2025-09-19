@@ -43,6 +43,7 @@ export class SaferUDP {
     if (address === 'localhost') {
       return '127.0.0.1';
     }
+
     return address;
   }
 
@@ -76,6 +77,10 @@ export class SaferUDP {
         normalizedRemote,
         (ctx) => {
           this.messageCallback?.({ ...ctx, remote: normalizedRemote });
+        },
+        () => {
+          this.connections.delete(connectionKey);
+          logger.info(`Conexão com ${connectionKey} fechada`);
         },
         this.flowManager,
         this.socket,

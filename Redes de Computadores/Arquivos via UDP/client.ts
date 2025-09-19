@@ -26,3 +26,5 @@ await connection.send(bread);
 await connection.send(
   Buffer.from('Mais uma mensagem interessante e pequena para teste'),
 );
+
+await connection.close();

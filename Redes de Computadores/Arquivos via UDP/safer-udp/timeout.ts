@@ -14,13 +14,17 @@ export class TimeoutManager {
     }
   >();
 
-  constructor() {}
-
   static readonly DEFAULT_DELAY = 250;
+
+  constructor() {}
 
   static clear(timeout: OptionalTimeout) {
     if (timeout) clearTimeout(timeout);
     return null;
+  }
+
+  cleanup() {
+    Array.from(this.timeouts.keys()).forEach((id) => this.timeouts.delete(id));
   }
 
   set(
