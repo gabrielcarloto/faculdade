@@ -4,7 +4,7 @@ import type { Remote } from './connection.js';
 
 const logger = pinoLogger.child({ category: 'SocketManager' });
 
-const DEFAULT_PACKET_LOSS_RATE = 0.0;
+const DEFAULT_PACKET_LOSS_RATE = 0.0025;
 
 export class SocketManager {
   private socket = dgram.createSocket('udp4');

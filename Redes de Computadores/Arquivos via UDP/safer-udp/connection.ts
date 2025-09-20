@@ -24,12 +24,13 @@ export class SaferUDPConnection {
   private lastTimeoutEventTime = 0;
   private timeoutEventWindow = 10;
 
-  private isClosing = false;
+  private isPreparingToClose = false;
 
   private messageCallback: (ctx: {
     messages: Message[];
     buffer: Buffer;
-  }) => void;
+    connection: SaferUDPConnection;
+  }) => void | Promise<void>;
 
   private onCloseCallback: () => void;
 
@@ -47,9 +48,10 @@ export class SaferUDPConnection {
     this.socketManager = socketManager;
   }
 
-  async close() {
-    this.isClosing = true;
+  close() {
+    this.isPreparingToClose = true;
 
+    logger.debug('Enfileirando chunk de fechamento: ' + this.closeChunk);
     const message = this.protocol.serialize({ chunk: this.closeChunk });
 
     this.chunkManager.queueChunk(this.closeChunk, {
@@ -59,7 +61,7 @@ export class SaferUDPConnection {
   }
 
   async send(data: Buffer) {
-    if (this.isClosing) {
+    if (this.isPreparingToClose) {
       throw new Error(
         'Tentativa de enviar uma mensagem para uma conexão fechando',
       );
@@ -100,7 +102,7 @@ export class SaferUDPConnection {
       'chunk' in message.headers &&
       'sum' in message.headers &&
       this.protocol.checkIntegrity(message.body, message.headers.sum!) &&
-      !this.isClosing
+      !this.isPreparingToClose
     ) {
       logger.debug(
         'Mensagem confiável recebida: ' + this.protocol.prettyPrint(message),
@@ -114,7 +116,7 @@ export class SaferUDPConnection {
       if (!messages) return;
 
       const buffer = this.getCompleteBuffer(messages);
-      this.messageCallback?.({ messages, buffer });
+      this.messageCallback?.({ messages, buffer, connection: this });
     }
 
     if (
@@ -129,7 +131,7 @@ export class SaferUDPConnection {
 
     if (
       'chunk' in message.headers &&
-      !Number.isInteger(message.headers.chunk)
+      this.isCloseChunk(message.headers.chunk!)
     ) {
       this.handleCloseMessage();
       this.chunkManager.storeIncomingChunk(message.headers.chunk!, message);
@@ -154,7 +156,8 @@ export class SaferUDPConnection {
         this.receivedMessagesTimeout,
       );
 
-      if (this.isClosing && !Number.isInteger(chunk)) {
+      if (this.isPreparingToClose && this.isCloseChunk(ack)) {
+        logger.debug('Close ACK enviado: ' + ack);
         this.closeConnection();
       }
     } catch (e) {
@@ -168,7 +171,8 @@ export class SaferUDPConnection {
   private async handleAck(ack: number) {
     logger.info('ACK recebido: ' + ack);
 
-    if (!Number.isInteger(ack)) {
+    if (this.isCloseChunk(ack)) {
+      logger.debug('Close ACK recebido: ' + ack);
       return this.closeConnection();
     }
 
@@ -261,7 +265,7 @@ export class SaferUDPConnection {
   }
 
   private handleCloseMessage() {
-    this.isClosing = true;
+    this.isPreparingToClose = true;
     logger.info('Fechando conexão...');
   }
 
@@ -306,5 +310,9 @@ export class SaferUDPConnection {
     }
 
     this.onCloseCallback();
+  }
+
+  private isCloseChunk(chunk: number) {
+    return chunk >= 1 && !Number.isInteger(chunk);
   }
 }

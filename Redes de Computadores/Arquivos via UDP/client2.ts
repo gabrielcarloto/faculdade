@@ -5,7 +5,7 @@ import { logger as pinoLogger } from './logger.js';
 
 const logger = pinoLogger.child({ category: 'Cliente' });
 
-const file = 'pao.jpg';
+const file = 'tsconfig.json';
 
 const client = new SaferUDP(async (message) => {
   const string = message.buffer.toString();
@@ -15,7 +15,7 @@ const client = new SaferUDP(async (message) => {
   }
 
   logger.info('Arquivo recebido!! ');
-  await fs.writeFile('./out/pao.jpeg', message.buffer);
+  await fs.writeFile('./out/tsconfig.json', message.buffer);
 });
 
 const remote = { address: 'localhost', port: 3000 };

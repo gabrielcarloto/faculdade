@@ -15,7 +15,12 @@ export class SaferUDP {
   private flowManager = new FlowManager();
 
   private messageCallback:
-    | ((ctx: { messages: Message[]; buffer: Buffer; remote: Remote }) => void)
+    | ((ctx: {
+        messages: Message[];
+        buffer: Buffer;
+        remote: Remote;
+        connection: SaferUDPConnection;
+      }) => void | Promise<void>)
     | undefined;
 
   constructor(
@@ -75,8 +80,8 @@ export class SaferUDP {
 
       const connection = new SaferUDPConnection(
         normalizedRemote,
-        (ctx) => {
-          this.messageCallback?.({ ...ctx, remote: normalizedRemote });
+        async (ctx) => {
+          await this.messageCallback?.({ ...ctx, remote: normalizedRemote });
         },
         () => {
           this.connections.delete(connectionKey);

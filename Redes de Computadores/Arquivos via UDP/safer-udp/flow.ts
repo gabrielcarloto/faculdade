@@ -26,6 +26,10 @@ export class FlowManager {
       this.printFlowChart();
       process.exit();
     });
+
+    process.on('beforeExit', () => {
+      this.printFlowChart();
+    });
   }
 
   up() {
@@ -69,11 +73,11 @@ export class FlowManager {
     const maxTime = Math.max(...timestamps);
     const duration = maxTime - minTime;
 
-    const maxWidth = 200;
+    const maxEntries = 500;
     let sampledFlows = flows;
 
-    if (flows.length > maxWidth) {
-      const step = Math.ceil(flows.length / maxWidth);
+    if (flows.length > maxEntries) {
+      const step = Math.ceil(flows.length / maxEntries);
       sampledFlows = flows.filter((_, index) => index % step === 0);
     }
 
