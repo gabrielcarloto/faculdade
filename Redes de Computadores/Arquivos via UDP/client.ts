@@ -15,6 +15,13 @@ const client = new SaferUDP(async (message) => {
   }
 
   logger.info('Arquivo recebido!! ');
+
+  try {
+    await fs.mkdir('./out');
+  } catch (_) {
+    // pasta já existe
+  }
+
   await fs.writeFile('./out/pao.jpeg', message.buffer);
 });
 
