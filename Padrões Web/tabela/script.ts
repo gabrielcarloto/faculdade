@@ -15,8 +15,6 @@ const BUTTON_TITLES = {
 };
 
 const rows = parseTable();
-addTotalSales(rows);
-updateRowSpan(rows);
 
 Object.entries(columnsElements).forEach(([key, th]) => {
   const button = th.querySelector('button')!;
@@ -131,12 +129,4 @@ function sortTable(columnKey: keyof typeof columnsElements, ascending = true) {
   });
 
   updateRowSpan(rows);
-}
-
-function addTotalSales(rows: RowData[]) {
-  const total = rows.reduce((sum, row) => sum + row.sales.data, 0);
-
-  document.querySelector('tfoot td:last-child')!.textContent = total
-    .toFixed(1)
-    .replace('.', ',');
 }

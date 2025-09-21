@@ -17,7 +17,10 @@
 
   <body>
     <header>
-      <div class="centralizado"><h1>Álbuns musicais mais vendidos</h1></div>
+      <div class="centralizado">
+        <h1>Álbuns musicais mais vendidos</h1>
+        <noscript>Obs.: Sem JS, você não poderá reordenar a tabela.</noscript>
+      </div>
     </header>
 
     <main class="centralizado">
@@ -46,7 +49,7 @@
             </th>
           </tr>
         </thead>
-        <!-- Dados repetidos são atualizados com rowspan no JS -->
+        <!-- Tabela com todos os dados para usar no JS -->
         <tbody>
           <tr>
             <td>1</td>
@@ -102,14 +105,14 @@
             <td>Guns N’ Roses</td>
             <td>Appetite For Destruction</td>
             <td>1987</td>
-            <td>30,8</td>
+            <td rowspan="2">30,8</td>
           </tr>
           <tr>
             <td>9</td>
             <td>Metallica</td>
             <td>Metallica</td>
             <td>1991</td>
-            <td>30,8</td>
+            <td hidden>30,8</td>
           </tr>
           <tr>
             <td>10</td>
@@ -204,17 +207,17 @@
           </tr>
           <tr>
             <td>23</td>
-            <td>Hootie & The Blowfish</td>
+            <td>Hootie &amp; The Blowfish</td>
             <td>Cracked Rear View</td>
             <td>1994</td>
-            <td>22,3</td>
+            <td rowspan="2">22,3</td>
           </tr>
           <tr>
             <td>24</td>
             <td>Pink Floyd</td>
             <td>Wish You Were Here</td>
             <td>1975</td>
-            <td>22,3</td>
+            <td hidden>22,3</td>
           </tr>
           <tr>
             <td>25</td>
@@ -228,14 +231,14 @@
             <td>Linkin Park</td>
             <td>Hybrid Theory</td>
             <td>2000</td>
-            <td>20,8</td>
+            <td rowspan="2">20,8</td>
           </tr>
           <tr>
             <td>27</td>
             <td>Phil Collins</td>
             <td>... But Seriously</td>
             <td>1989</td>
-            <td>20,8</td>
+            <td hidden>20,8</td>
           </tr>
           <tr>
             <td>28</td>
@@ -253,7 +256,7 @@
           </tr>
           <tr>
             <td>30</td>
-            <td>Simon & Garfunkel</td>
+            <td>Simon &amp; Garfunkel</td>
             <td>Bridge Over Troubled Water</td>
             <td>1970</td>
             <td>19,6</td>
@@ -267,24 +270,24 @@
           </tr>
           <tr>
             <td>32</td>
-            <td>Guns N’ Roses</td>
+            <td rowspan="2">Guns N’ Roses</td>
             <td>Use Your Illusion II</td>
-            <td>1991</td>
+            <td rowspan="2">1991</td>
             <td>18,8</td>
           </tr>
           <tr>
             <td>33</td>
-            <td>Guns N’ Roses</td>
+            <td rowspan="2" hidden>Guns N’ Roses</td>
             <td>Use Your Illusion I</td>
-            <td>1991</td>
-            <td>18,0</td>
+            <td rowspan="2" hidden>1991</td>
+            <td rowspan="2">18,0</td>
           </tr>
           <tr>
             <td>34</td>
             <td>No Doubt</td>
             <td>Tragic Kingdom</td>
             <td>1995</td>
-            <td>18,0</td>
+            <td hidden>18,0</td>
           </tr>
           <tr>
             <td>35</td>
@@ -298,14 +301,14 @@
             <td>Led Zeppelin</td>
             <td>Houses of the Holy</td>
             <td>1973</td>
-            <td>17,7</td>
+            <td rowspan="2">17,7</td>
           </tr>
           <tr>
             <td>37</td>
             <td>Oasis</td>
             <td>(What’s the Story) Morning Glory?</td>
             <td>1995</td>
-            <td>17,7</td>
+            <td hidden>17,7</td>
           </tr>
           <tr>
             <td>38</td>
@@ -354,35 +357,35 @@
             <td>Blink-182</td>
             <td>Enema of the State</td>
             <td>1999</td>
-            <td>16,0</td>
+            <td rowspan="3">16,0</td>
           </tr>
           <tr>
             <td>45</td>
             <td>Blondie</td>
             <td>Paralell Lines</td>
             <td>1978</td>
-            <td>16,0</td>
+            <td hidden>16,0</td>
           </tr>
           <tr>
             <td>46</td>
             <td>R.E.M.</td>
             <td>Out of Time</td>
             <td>1991</td>
-            <td>16,0</td>
+            <td hidden>16,0</td>
           </tr>
           <tr>
             <td>47</td>
             <td>Led Zeppelin</td>
             <td>Led Zeppelin</td>
             <td>1969</td>
-            <td>15,8</td>
+            <td rowspan="2">15,8</td>
           </tr>
           <tr>
             <td>48</td>
             <td>Metallica</td>
             <td>... And Justice for All</td>
             <td>1988</td>
-            <td>15,8</td>
+            <td hidden>15,8</td>
           </tr>
           <tr>
             <td>49</td>
@@ -402,7 +405,7 @@
         <tfoot>
           <tr>
             <td colspan="4">Total de vendas</td>
-            <td>...</td>
+            <td>1151,5</td>
           </tr>
         </tfoot>
       </table>

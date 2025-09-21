@@ -12,8 +12,6 @@ const BUTTON_TITLES = {
     none: 'Ordenar em ordem crescente',
 };
 const rows = parseTable();
-addTotalSales(rows);
-updateRowSpan(rows);
 Object.entries(columnsElements).forEach(([key, th]) => {
     const button = th.querySelector('button');
     button.addEventListener('click', () => {
@@ -92,10 +90,4 @@ function sortTable(columnKey, ascending = true) {
         tableBody.appendChild(row.element);
     });
     updateRowSpan(rows);
-}
-function addTotalSales(rows) {
-    const total = rows.reduce((sum, row) => sum + row.sales.data, 0);
-    document.querySelector('tfoot td:last-child').textContent = total
-        .toFixed(1)
-        .replace('.', ',');
 }
