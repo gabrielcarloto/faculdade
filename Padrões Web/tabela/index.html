@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Ranking álbuns musicais mais vendidos</title>
+
+    <link rel="stylesheet" href="styles.css" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+
+  <body>
+    <header>
+      <div class="centralizado"><h1>Álbuns musicais mais vendidos</h1></div>
+    </header>
+
+    <main class="centralizado">
+      <table>
+        <caption>
+          Ranking — 50 álbuns musicais mais vendidos
+        </caption>
+        <thead>
+          <tr>
+            <th data-col="position" aria-sort="ascending" data-type="number">
+              <button title="Ordenar em ordem descrescente">Posição</button>
+            </th>
+            <th data-col="artist" data-type="string" aria-sort="none">
+              <button title="Ordenar em ordem crescente">Artista</button>
+            </th>
+            <th data-col="album" data-type="string" aria-sort="none">
+              <button title="Ordenar em ordem crescente">Álbum</button>
+            </th>
+            <th data-col="year" data-type="number" aria-sort="none">
+              <button title="Ordenar em ordem crescente">Ano</button>
+            </th>
+            <th data-col="sales" data-type="number" aria-sort="none">
+              <button title="Ordenar em ordem crescente">
+                Vendas (milhões)
+              </button>
+            </th>
+          </tr>
+        </thead>
+        <!-- Dados repetidos são atualizados com rowspan no JS -->
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>Pink Floyd</td>
+            <td>The Dark Side of the Moon</td>
+            <td>1973</td>
+            <td>43,3</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>Led Zeppelin</td>
+            <td>Led Zeppelin IV</td>
+            <td>1971</td>
+            <td>36,8</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>AC/DC</td>
+            <td>Back in Black</td>
+            <td>1980</td>
+            <td>35,8</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>Fleetwood Mac</td>
+            <td>Rumours</td>
+            <td>1977</td>
+            <td>35,5</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>Alanis Morissette</td>
+            <td>Jagged Little Pill</td>
+            <td>1995</td>
+            <td>33,6</td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td>Pink Floyd</td>
+            <td>The Wall</td>
+            <td>1979</td>
+            <td>31,3</td>
+          </tr>
+          <tr>
+            <td>7</td>
+            <td>Dire Straits</td>
+            <td>Brothers in Arms</td>
+            <td>1985</td>
+            <td>30,9</td>
+          </tr>
+          <tr>
+            <td>8</td>
+            <td>Guns N’ Roses</td>
+            <td>Appetite For Destruction</td>
+            <td>1987</td>
+            <td>30,8</td>
+          </tr>
+          <tr>
+            <td>9</td>
+            <td>Metallica</td>
+            <td>Metallica</td>
+            <td>1991</td>
+            <td>30,8</td>
+          </tr>
+          <tr>
+            <td>10</td>
+            <td>Eagles</td>
+            <td>Hotel California</td>
+            <td>1976</td>
+            <td>30,1</td>
+          </tr>
+          <tr>
+            <td>11</td>
+            <td>Bruce Springsteen</td>
+            <td>Born in the U.S.A.</td>
+            <td>1984</td>
+            <td>29,3</td>
+          </tr>
+          <tr>
+            <td>12</td>
+            <td>Nirvana</td>
+            <td>Nevermind</td>
+            <td>1991</td>
+            <td>27,8</td>
+          </tr>
+          <tr>
+            <td>13</td>
+            <td>Meat Loaf</td>
+            <td>Bat Out of Hell</td>
+            <td>1977</td>
+            <td>27,4</td>
+          </tr>
+          <tr>
+            <td>14</td>
+            <td>U2</td>
+            <td>The Joshua Tree</td>
+            <td>1987</td>
+            <td>26,8</td>
+          </tr>
+          <tr>
+            <td>15</td>
+            <td>The Beatles</td>
+            <td>Abbey Road</td>
+            <td>1969</td>
+            <td>26,7</td>
+          </tr>
+          <tr>
+            <td>16</td>
+            <td>Santana</td>
+            <td>Supernatural</td>
+            <td>1999</td>
+            <td>26,0</td>
+          </tr>
+          <tr>
+            <td>17</td>
+            <td>Def Leppard</td>
+            <td>Hysteria</td>
+            <td>1987</td>
+            <td>25,0</td>
+          </tr>
+          <tr>
+            <td>18</td>
+            <td>The Beatles</td>
+            <td>Sgt. Pepper’s Lonely Hearts Club Band</td>
+            <td>1967</td>
+            <td>24,8</td>
+          </tr>
+          <tr>
+            <td>19</td>
+            <td>Eric Clapton</td>
+            <td>Unplugged</td>
+            <td>1992</td>
+            <td>23,7</td>
+          </tr>
+          <tr>
+            <td>20</td>
+            <td>Bon Jovi</td>
+            <td>Slippery When Wet</td>
+            <td>1986</td>
+            <td>23,6</td>
+          </tr>
+          <tr>
+            <td>21</td>
+            <td>Phil Collins</td>
+            <td>No Jacket Required</td>
+            <td>1985</td>
+            <td>23,3</td>
+          </tr>
+          <tr>
+            <td>22</td>
+            <td>Boston</td>
+            <td>Boston</td>
+            <td>1976</td>
+            <td>22,4</td>
+          </tr>
+          <tr>
+            <td>23</td>
+            <td>Hootie & The Blowfish</td>
+            <td>Cracked Rear View</td>
+            <td>1994</td>
+            <td>22,3</td>
+          </tr>
+          <tr>
+            <td>24</td>
+            <td>Pink Floyd</td>
+            <td>Wish You Were Here</td>
+            <td>1975</td>
+            <td>22,3</td>
+          </tr>
+          <tr>
+            <td>25</td>
+            <td>Led Zeppelin</td>
+            <td>Led Zeppelin II</td>
+            <td>1969</td>
+            <td>21,9</td>
+          </tr>
+          <tr>
+            <td>26</td>
+            <td>Linkin Park</td>
+            <td>Hybrid Theory</td>
+            <td>2000</td>
+            <td>20,8</td>
+          </tr>
+          <tr>
+            <td>27</td>
+            <td>Phil Collins</td>
+            <td>... But Seriously</td>
+            <td>1989</td>
+            <td>20,8</td>
+          </tr>
+          <tr>
+            <td>28</td>
+            <td>The Who</td>
+            <td>Tommy</td>
+            <td>1969</td>
+            <td>20,0</td>
+          </tr>
+          <tr>
+            <td>29</td>
+            <td>Green Day</td>
+            <td>Dookie</td>
+            <td>1994</td>
+            <td>19,8</td>
+          </tr>
+          <tr>
+            <td>30</td>
+            <td>Simon & Garfunkel</td>
+            <td>Bridge Over Troubled Water</td>
+            <td>1970</td>
+            <td>19,6</td>
+          </tr>
+          <tr>
+            <td>31</td>
+            <td>The Beatles</td>
+            <td>The Beatles</td>
+            <td>1968</td>
+            <td>19,0</td>
+          </tr>
+          <tr>
+            <td>32</td>
+            <td>Guns N’ Roses</td>
+            <td>Use Your Illusion II</td>
+            <td>1991</td>
+            <td>18,8</td>
+          </tr>
+          <tr>
+            <td>33</td>
+            <td>Guns N’ Roses</td>
+            <td>Use Your Illusion I</td>
+            <td>1991</td>
+            <td>18,0</td>
+          </tr>
+          <tr>
+            <td>34</td>
+            <td>No Doubt</td>
+            <td>Tragic Kingdom</td>
+            <td>1995</td>
+            <td>18,0</td>
+          </tr>
+          <tr>
+            <td>35</td>
+            <td>The Cranberries</td>
+            <td>No Need to Argue</td>
+            <td>1994</td>
+            <td>17,8</td>
+          </tr>
+          <tr>
+            <td>36</td>
+            <td>Led Zeppelin</td>
+            <td>Houses of the Holy</td>
+            <td>1973</td>
+            <td>17,7</td>
+          </tr>
+          <tr>
+            <td>37</td>
+            <td>Oasis</td>
+            <td>(What’s the Story) Morning Glory?</td>
+            <td>1995</td>
+            <td>17,7</td>
+          </tr>
+          <tr>
+            <td>38</td>
+            <td>U2</td>
+            <td>Achtung Baby</td>
+            <td>1991</td>
+            <td>17,5</td>
+          </tr>
+          <tr>
+            <td>39</td>
+            <td>Peter Frampton</td>
+            <td>Frampton Comes Alive!</td>
+            <td>1976</td>
+            <td>17,0</td>
+          </tr>
+          <tr>
+            <td>40</td>
+            <td>Supertramp</td>
+            <td>Breakfast in America</td>
+            <td>1979</td>
+            <td>16,8</td>
+          </tr>
+          <tr>
+            <td>41</td>
+            <td>Evanescence</td>
+            <td>Fallen</td>
+            <td>2003</td>
+            <td>16,7</td>
+          </tr>
+          <tr>
+            <td>42</td>
+            <td>Red Hot Chili Peppers</td>
+            <td>Californication</td>
+            <td>1999</td>
+            <td>16,3</td>
+          </tr>
+          <tr>
+            <td>43</td>
+            <td>Nirvana</td>
+            <td>MTV Unplugged in New York</td>
+            <td>1994</td>
+            <td>16,1</td>
+          </tr>
+          <tr>
+            <td>44</td>
+            <td>Blink-182</td>
+            <td>Enema of the State</td>
+            <td>1999</td>
+            <td>16,0</td>
+          </tr>
+          <tr>
+            <td>45</td>
+            <td>Blondie</td>
+            <td>Paralell Lines</td>
+            <td>1978</td>
+            <td>16,0</td>
+          </tr>
+          <tr>
+            <td>46</td>
+            <td>R.E.M.</td>
+            <td>Out of Time</td>
+            <td>1991</td>
+            <td>16,0</td>
+          </tr>
+          <tr>
+            <td>47</td>
+            <td>Led Zeppelin</td>
+            <td>Led Zeppelin</td>
+            <td>1969</td>
+            <td>15,8</td>
+          </tr>
+          <tr>
+            <td>48</td>
+            <td>Metallica</td>
+            <td>... And Justice for All</td>
+            <td>1988</td>
+            <td>15,8</td>
+          </tr>
+          <tr>
+            <td>49</td>
+            <td>Pearl Jam</td>
+            <td>Ten</td>
+            <td>1991</td>
+            <td>15,7</td>
+          </tr>
+          <tr>
+            <td>50</td>
+            <td>Phil Collins</td>
+            <td>Face Value</td>
+            <td>1981</td>
+            <td>15,6</td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="4">Total de vendas</td>
+            <td>...</td>
+          </tr>
+        </tfoot>
+      </table>
+    </main>
+
+    <script type="text/javascript" src="script.js"></script>
+
+    <footer>
+      <div class="centralizado">
+        <div>
+          <h2>Contatos</h2>
+          <ul class="contatos">
+            <li>
+              <a
+                href="https://github.com/gabrielcarloto"
+                rel="noopener"
+                target="_blank"
+              >
+                <img src="./github-mark.svg" alt="" />
+                <span class="link-social">Github</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <div>
+          <h2>Copyright</h2>
+          <p></p>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
