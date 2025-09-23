@@ -12,27 +12,30 @@ if (config.debug) {
 
 const logger = pinoLogger.child({ category: 'Cliente' });
 
-const client = new SaferUDP(async (message) => {
-  const string = message.buffer.toString();
+const client = new SaferUDP(
+  async (message) => {
+    const string = message.buffer.toString();
 
-  if (string.startsWith('ERRO')) {
-    return logger.fatal('Erro: ' + string);
-  }
+    if (string.startsWith('ERRO')) {
+      return logger.fatal('Erro: ' + string);
+    }
 
-  logger.info('Arquivo recebido!! ');
+    logger.info('Arquivo recebido!! ');
 
-  try {
-    await fs.mkdir('./out');
-  } catch (_) {
-  }
+    try {
+      await fs.mkdir('./out');
+    } catch (_) {}
 
-  await fs.writeFile('./out/pao.jpeg', message.buffer);
-}, {
-  packetLossRate: config.packetLossRate,
-  timeoutDelay: config.timeoutDelay,
-  timeoutEventWindow: config.timeoutEventWindow,
-  initialFlowCeiling: config.initialFlowCeiling,
-});
+    await fs.writeFile('./out/pao.jpeg', message.buffer);
+  },
+  {
+    packetLossRate: config.packetLossRate,
+    timeoutDelay: config.timeoutDelay,
+    timeoutEventWindow: config.timeoutEventWindow,
+    initialFlowCeiling: config.initialFlowCeiling,
+    maxRetries: config.maxRetries,
+  },
+);
 
 const remote = { address: config.address, port: config.port };
 const connection = client.connect(remote);

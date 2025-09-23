@@ -12,34 +12,38 @@ if (config.debug) {
 
 const logger = pinoLogger.child({ category: 'Server' });
 
-const server = new SaferUDP(async (message) => {
-  const string = message.buffer.toString();
+const server = new SaferUDP(
+  async (message) => {
+    const string = message.buffer.toString();
 
-  const [method, path] = string.split(' ');
+    const [method, path] = string.split(' ');
 
-  if (method !== 'GET') {
-    await message.connection.send(Buffer.from('ERRO!! Método inválido'));
-    return await message.connection.close();
-  }
+    if (method !== 'GET') {
+      await message.connection.send(Buffer.from('ERRO!! Método inválido'));
+      return message.connection.close();
+    }
 
-  const files = await fs.readdir('./assets/');
+    const files = await fs.readdir('./assets/');
 
-  if (!path || !files.includes(path)) {
-    await message.connection.send(Buffer.from('ERRO!! Arquivo não existe'));
-    return await message.connection.close();
-  }
+    if (!path || !files.includes(path)) {
+      await message.connection.send(Buffer.from('ERRO!! Arquivo não existe'));
+      return message.connection.close();
+    }
 
-  const file = await fs.readFile('./assets/' + path);
+    const file = await fs.readFile('./assets/' + path);
 
-  logger.info(`Enviando arquivo '${path}'...`);
+    logger.info(`Enviando arquivo '${path}'...`);
 
-  await message.connection.send(file);
-  await message.connection.close();
-}, {
-  packetLossRate: config.packetLossRate,
-  timeoutDelay: config.timeoutDelay,
-  timeoutEventWindow: config.timeoutEventWindow,
-  initialFlowCeiling: config.initialFlowCeiling,
-});
+    await message.connection.send(file);
+    message.connection.close();
+  },
+  {
+    packetLossRate: config.packetLossRate,
+    timeoutDelay: config.timeoutDelay,
+    timeoutEventWindow: config.timeoutEventWindow,
+    initialFlowCeiling: config.initialFlowCeiling,
+    maxRetries: config.maxRetries,
+  },
+);
 
 server.listen(config.port);

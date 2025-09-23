@@ -40,14 +40,27 @@ export class SaferUDPConnection {
     onClose: typeof this.onCloseCallback,
     flowManager: FlowManager,
     socketManager: SocketManager,
-    options: { timeoutDelay?: number; timeoutEventWindow?: number } = {},
+    options: {
+      timeoutDelay?: number;
+      timeoutEventWindow?: number;
+      maxRetries?: number;
+    } = {},
   ) {
     this.remote = remote;
     this.messageCallback = messageCallback;
     this.onCloseCallback = onClose;
     this.flowManager = flowManager;
     this.socketManager = socketManager;
-    this.chunkResponseTimeoutManager = new TimeoutManager(options.timeoutDelay);
+    this.chunkResponseTimeoutManager = new TimeoutManager(
+      options.timeoutDelay,
+      options.maxRetries ?? 10,
+    );
+
+    this.chunkResponseTimeoutManager.setMaxRetriesCallback(() => {
+      logger.error(`Conexão excedeu o limite de retries. Fechando conexão.`);
+      this.closeConnection();
+    });
+
     this.timeoutEventWindow = options.timeoutEventWindow ?? 10;
   }
 
@@ -95,7 +108,7 @@ export class SaferUDPConnection {
   }
 
   async handleMessage(message: Message) {
-    logger.debug('Mensagem recebida');
+    logger.debug('Mensagem recebida: ' + this.protocol.prettyPrint(message));
 
     if (message.headers.ack !== undefined) {
       await this.handleAck(message.headers.ack);
@@ -190,7 +203,12 @@ export class SaferUDPConnection {
     const context = this.chunkManager.getOutgoingChunk(chunk);
     if (!context) return;
 
-    logger.info(`Chunk ${chunk} deu timeout`);
+    const currentRetries = this.chunkResponseTimeoutManager.getRetries(chunk);
+    const maxRetries = this.chunkResponseTimeoutManager.getMaxRetries(chunk);
+
+    logger.info(
+      `Chunk ${chunk} deu timeout (tentativa ${currentRetries + 1}/${maxRetries})`,
+    );
 
     const currentTime = Date.now();
     const timeSinceLastTimeout = currentTime - this.lastTimeoutEventTime;
@@ -316,6 +334,6 @@ export class SaferUDPConnection {
   }
 
   private isCloseChunk(chunk: number) {
-    return chunk >= 1 && !Number.isInteger(chunk);
+    return chunk > 0 && !Number.isInteger(chunk);
   }
 }

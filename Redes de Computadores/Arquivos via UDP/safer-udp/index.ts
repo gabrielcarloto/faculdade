@@ -13,6 +13,7 @@ export interface SaferUDPOptions {
   timeoutDelay?: number;
   timeoutEventWindow?: number;
   initialFlowCeiling?: number;
+  maxRetries?: number;
 }
 
 export class SaferUDP {
@@ -37,9 +38,9 @@ export class SaferUDP {
   ) {
     this.options = options;
     this.socket = new SocketManager(
-      options.packetLossRate !== undefined 
+      options.packetLossRate !== undefined
         ? { packetLossRate: options.packetLossRate }
-        : {}
+        : {},
     );
     this.flowManager = new FlowManager(options.initialFlowCeiling);
     this.messageCallback = messageCallback;
@@ -92,12 +93,19 @@ export class SaferUDP {
         port: remote.port,
       };
 
-      const connectionOptions: { timeoutDelay?: number; timeoutEventWindow?: number } = {};
+      const connectionOptions: {
+        timeoutDelay?: number;
+        timeoutEventWindow?: number;
+        maxRetries?: number;
+      } = {};
       if (this.options.timeoutDelay !== undefined) {
         connectionOptions.timeoutDelay = this.options.timeoutDelay;
       }
       if (this.options.timeoutEventWindow !== undefined) {
         connectionOptions.timeoutEventWindow = this.options.timeoutEventWindow;
+      }
+      if (this.options.maxRetries !== undefined) {
+        connectionOptions.maxRetries = this.options.maxRetries;
       }
 
       const connection = new SaferUDPConnection(

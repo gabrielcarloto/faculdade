@@ -6,6 +6,7 @@ export interface SaferUDPConfig {
   timeoutDelay: number;
   timeoutEventWindow: number;
   initialFlowCeiling: number;
+  maxRetries: number;
   debug: boolean;
 }
 
@@ -40,6 +41,11 @@ const saferUDPOptions = {
     describe: 'Teto inicial do controle de fluxo',
     default: Infinity,
   },
+  'max-retries': {
+    type: 'number' as const,
+    describe: 'Número máximo de tentativas antes de fechar a conexão',
+    default: 10,
+  },
   debug: {
     alias: 'd',
     type: 'boolean' as const,
@@ -70,8 +76,7 @@ export async function parseClientConfig(): Promise<ClientConfig> {
     })
     .options(saferUDPOptions)
     .help()
-    .alias('help', 'h')
-    .argv;
+    .alias('help', 'h').argv;
 
   return {
     port: argv.port,
@@ -81,6 +86,7 @@ export async function parseClientConfig(): Promise<ClientConfig> {
     timeoutDelay: argv['timeout-delay'],
     timeoutEventWindow: argv['timeout-event-window'],
     initialFlowCeiling: argv['initial-flow-ceiling'],
+    maxRetries: argv['max-retries'],
     debug: argv.debug,
   };
 }
@@ -95,8 +101,7 @@ export async function parseServerConfig(): Promise<ServerConfig> {
     })
     .options(saferUDPOptions)
     .help()
-    .alias('help', 'h')
-    .argv;
+    .alias('help', 'h').argv;
 
   return {
     port: argv.port,
@@ -104,6 +109,7 @@ export async function parseServerConfig(): Promise<ServerConfig> {
     timeoutDelay: argv['timeout-delay'],
     timeoutEventWindow: argv['timeout-event-window'],
     initialFlowCeiling: argv['initial-flow-ceiling'],
+    maxRetries: argv['max-retries'],
     debug: argv.debug,
   };
 }

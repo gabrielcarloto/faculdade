@@ -11,18 +11,29 @@ export class TimeoutManager {
       baseDelay: number;
       retries: number;
       timedOut: boolean;
+      maxRetries: number;
     }
   >();
 
   static readonly DEFAULT_DELAY = 250;
   private defaultDelay: number;
+  private maxRetries: number;
+  private onMaxRetriesCallback?: () => void;
 
-  constructor(defaultDelay: number = TimeoutManager.DEFAULT_DELAY) {
+  constructor(
+    defaultDelay: number = TimeoutManager.DEFAULT_DELAY,
+    maxRetries: number = 10,
+  ) {
     this.defaultDelay = defaultDelay;
+    this.maxRetries = maxRetries;
   }
 
   get delay() {
     return this.defaultDelay;
+  }
+
+  setMaxRetriesCallback(callback: () => void) {
+    this.onMaxRetriesCallback = callback;
   }
 
   static clear(timeout: OptionalTimeout) {
@@ -34,11 +45,7 @@ export class TimeoutManager {
     Array.from(this.timeouts.keys()).forEach((id) => this.timeouts.delete(id));
   }
 
-  set(
-    id: TimeoutMapKey,
-    callback: TimeoutCallback,
-    ms = this.defaultDelay,
-  ) {
+  set(id: TimeoutMapKey, callback: TimeoutCallback, ms = this.defaultDelay) {
     const timeout = this.timeouts.get(id);
     if (timeout?.id) clearTimeout(timeout.id);
 
@@ -47,6 +54,7 @@ export class TimeoutManager {
       callback,
       baseDelay: ms,
       timedOut: false,
+      maxRetries: this.maxRetries,
       id: setTimeout(() => {
         const current = this.timeouts.get(id);
 
@@ -79,6 +87,12 @@ export class TimeoutManager {
     timeout.retries++;
     timeout.timedOut = false;
 
+    if (timeout.retries >= timeout.maxRetries) {
+      this.timeouts.delete(id);
+      this.onMaxRetriesCallback?.();
+      return;
+    }
+
     const delay = this.calculateTimeout(timeout.baseDelay, timeout.retries);
 
     timeout.id = setTimeout(() => {
@@ -86,6 +100,14 @@ export class TimeoutManager {
       timeout.timedOut = true;
       timeout.callback();
     }, delay);
+  }
+
+  getRetries(id: TimeoutMapKey): number {
+    return this.timeouts.get(id)?.retries || 0;
+  }
+
+  getMaxRetries(id: TimeoutMapKey): number {
+    return this.timeouts.get(id)?.maxRetries || this.maxRetries;
   }
 
   hasTimedOut(id: TimeoutMapKey) {
