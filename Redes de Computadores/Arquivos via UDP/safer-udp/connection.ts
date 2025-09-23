@@ -15,6 +15,7 @@ export class SaferUDPConnection {
   private protocol = new MessageProtocol();
   private chunkManager = new ChunkManager();
   private chunkResponseTimeoutManager: TimeoutManager;
+  private receivedMessagesTimeoutManager: TimeoutManager;
   private flowManager: FlowManager;
   private socketManager: SocketManager;
 
@@ -56,10 +57,18 @@ export class SaferUDPConnection {
       options.maxRetries ?? 10,
     );
 
-    this.chunkResponseTimeoutManager.setMaxRetriesCallback(() => {
-      logger.error(`Conexão excedeu o limite de retries. Fechando conexão.`);
-      this.closeConnection();
-    });
+    this.receivedMessagesTimeoutManager = new TimeoutManager(
+      options.timeoutDelay,
+      options.maxRetries ?? 10,
+    );
+
+    this.chunkResponseTimeoutManager.setMaxRetriesCallback(() =>
+      this.maxRetriesCallback(),
+    );
+
+    this.receivedMessagesTimeoutManager.setMaxRetriesCallback(() =>
+      this.maxRetriesCallback(),
+    );
 
     this.timeoutEventWindow = options.timeoutEventWindow ?? 10;
   }
@@ -120,16 +129,32 @@ export class SaferUDPConnection {
       this.protocol.checkIntegrity(message.body, message.headers.sum!) &&
       !this.isPreparingToClose
     ) {
-      logger.debug(
-        'Mensagem confiável recebida: ' + this.protocol.prettyPrint(message),
-      );
-
       this.chunkManager.storeIncomingChunk(message.headers.chunk!, message);
       this.scheduleAck();
 
       const messages = this.chunkManager.extractCompleteMessage();
 
-      if (!messages) return;
+      if (!messages) {
+        logger.debug(
+          'Atualizando timeout para recebimento de mensagem completa...',
+        );
+
+        this.receivedMessagesTimeoutManager.set(
+          'complete-message',
+          () => {
+            logger.error(
+              'Timeout para recebimento de mensagens atingido. Fechando conexão...',
+            );
+
+            this.closeConnection();
+          },
+          1000 * 4,
+        );
+
+        return;
+      }
+
+      this.receivedMessagesTimeoutManager.remove('complete-message');
 
       const buffer = this.getCompleteBuffer(messages);
       this.messageCallback?.({ messages, buffer, connection: this });
@@ -168,9 +193,7 @@ export class SaferUDPConnection {
       logger.info('ACK enviado: ' + ack);
 
       this.chunkManager.markChunksAsAcknowledged(ack);
-      this.receivedMessagesTimeout = TimeoutManager.clear(
-        this.receivedMessagesTimeout,
-      );
+      this.receivedMessagesTimeoutManager.remove('send-ack');
 
       if (this.isPreparingToClose && this.isCloseChunk(ack)) {
         logger.debug('Close ACK enviado: ' + ack);
@@ -306,16 +329,17 @@ export class SaferUDPConnection {
     return chunks;
   }
 
-  private scheduleAck(ack?: number) {
-    TimeoutManager.clear(this.receivedMessagesTimeout);
-
-    this.receivedMessagesTimeout = setTimeout(() => {
-      this.receivedMessagesTimeout = TimeoutManager.clear(
-        this.receivedMessagesTimeout,
-      );
-
-      this.ack(ack);
-    }, this.chunkResponseTimeoutManager.delay);
+  private scheduleAck(
+    ack?: number,
+    timeout = this.chunkResponseTimeoutManager.delay,
+  ) {
+    this.receivedMessagesTimeoutManager.set(
+      'send-ack',
+      () => {
+        this.ack(ack);
+      },
+      timeout,
+    );
   }
 
   private get closeChunk() {
@@ -335,5 +359,10 @@ export class SaferUDPConnection {
 
   private isCloseChunk(chunk: number) {
     return chunk > 0 && !Number.isInteger(chunk);
+  }
+
+  private maxRetriesCallback() {
+    logger.error(`Limite de tentativas excedido. Fechando conexão.`);
+    this.closeConnection();
   }
 }
