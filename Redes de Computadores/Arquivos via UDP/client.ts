@@ -26,7 +26,8 @@ const client = new SaferUDP(
       await fs.mkdir('./out');
     } catch (_) {}
 
-    await fs.writeFile('./out/pao.jpeg', message.buffer);
+    const outName = config.outFile ?? config.file;
+    await fs.writeFile(`./out/${outName}`, message.buffer);
   },
   {
     packetLossRate: config.packetLossRate,

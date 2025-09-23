@@ -14,6 +14,7 @@ export interface ClientConfig extends SaferUDPConfig {
   port: number;
   address: string;
   file: string;
+  outFile: string | undefined;
 }
 
 export interface ServerConfig extends SaferUDPConfig {
@@ -74,6 +75,11 @@ export async function parseClientConfig(): Promise<ClientConfig> {
       describe: 'Nome do arquivo a ser requisitado',
       demandOption: true,
     })
+    .option('outFile', {
+      alias: 'o',
+      type: 'string',
+      describe: 'Saída do arquivo requisitado (padrão: mesmo nome do arquivo)',
+    })
     .options(saferUDPOptions)
     .help()
     .alias('help', 'h').argv;
@@ -82,6 +88,7 @@ export async function parseClientConfig(): Promise<ClientConfig> {
     port: argv.port,
     address: argv.address,
     file: argv.file,
+    outFile: argv.outFile,
     packetLossRate: argv['packet-loss-rate'],
     timeoutDelay: argv['timeout-delay'],
     timeoutEventWindow: argv['timeout-event-window'],
