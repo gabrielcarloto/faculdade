@@ -1,9 +1,14 @@
 import fs from 'node:fs/promises';
 
 import { SaferUDP } from './safer-udp/index.js';
+import { parseServerConfig } from './config.js';
 import { logger as pinoLogger } from './logger.js';
 
-const PORT = 3000;
+const config = await parseServerConfig();
+
+if (config.debug) {
+  pinoLogger.level = 'debug';
+}
 
 const logger = pinoLogger.child({ category: 'Server' });
 
@@ -30,6 +35,11 @@ const server = new SaferUDP(async (message) => {
 
   await message.connection.send(file);
   await message.connection.close();
+}, {
+  packetLossRate: config.packetLossRate,
+  timeoutDelay: config.timeoutDelay,
+  timeoutEventWindow: config.timeoutEventWindow,
+  initialFlowCeiling: config.initialFlowCeiling,
 });
 
-server.listen(PORT);
+server.listen(config.port);

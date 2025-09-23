@@ -1,11 +1,16 @@
 import fs from 'node:fs/promises';
 import { SaferUDP } from './safer-udp/index.js';
+import { parseClientConfig } from './config.js';
 
 import { logger as pinoLogger } from './logger.js';
 
-const logger = pinoLogger.child({ category: 'Cliente' });
+const config = await parseClientConfig();
 
-const file = 'pao.jpg';
+if (config.debug) {
+  pinoLogger.level = 'debug';
+}
+
+const logger = pinoLogger.child({ category: 'Cliente' });
 
 const client = new SaferUDP(async (message) => {
   const string = message.buffer.toString();
@@ -19,13 +24,17 @@ const client = new SaferUDP(async (message) => {
   try {
     await fs.mkdir('./out');
   } catch (_) {
-    // pasta já existe
   }
 
   await fs.writeFile('./out/pao.jpeg', message.buffer);
+}, {
+  packetLossRate: config.packetLossRate,
+  timeoutDelay: config.timeoutDelay,
+  timeoutEventWindow: config.timeoutEventWindow,
+  initialFlowCeiling: config.initialFlowCeiling,
 });
 
-const remote = { address: 'localhost', port: 3000 };
+const remote = { address: config.address, port: config.port };
 const connection = client.connect(remote);
 
-await connection.send(Buffer.from(`GET ${file}`));
+await connection.send(Buffer.from(`GET ${config.file}`));

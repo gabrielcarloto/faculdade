@@ -15,8 +15,15 @@ export class TimeoutManager {
   >();
 
   static readonly DEFAULT_DELAY = 250;
+  private defaultDelay: number;
 
-  constructor() {}
+  constructor(defaultDelay: number = TimeoutManager.DEFAULT_DELAY) {
+    this.defaultDelay = defaultDelay;
+  }
+
+  get delay() {
+    return this.defaultDelay;
+  }
 
   static clear(timeout: OptionalTimeout) {
     if (timeout) clearTimeout(timeout);
@@ -30,7 +37,7 @@ export class TimeoutManager {
   set(
     id: TimeoutMapKey,
     callback: TimeoutCallback,
-    ms = TimeoutManager.DEFAULT_DELAY,
+    ms = this.defaultDelay,
   ) {
     const timeout = this.timeouts.get(id);
     if (timeout?.id) clearTimeout(timeout.id);

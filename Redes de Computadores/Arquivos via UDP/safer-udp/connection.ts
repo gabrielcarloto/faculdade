@@ -14,7 +14,7 @@ export class SaferUDPConnection {
 
   private protocol = new MessageProtocol();
   private chunkManager = new ChunkManager();
-  private chunkResponseTimeoutManager = new TimeoutManager();
+  private chunkResponseTimeoutManager: TimeoutManager;
   private flowManager: FlowManager;
   private socketManager: SocketManager;
 
@@ -22,7 +22,7 @@ export class SaferUDPConnection {
   private receivedMessagesTimeout: OptionalTimeout = null;
 
   private lastTimeoutEventTime = 0;
-  private timeoutEventWindow = 10;
+  private timeoutEventWindow: number;
 
   private isPreparingToClose = false;
 
@@ -40,12 +40,15 @@ export class SaferUDPConnection {
     onClose: typeof this.onCloseCallback,
     flowManager: FlowManager,
     socketManager: SocketManager,
+    options: { timeoutDelay?: number; timeoutEventWindow?: number } = {},
   ) {
     this.remote = remote;
     this.messageCallback = messageCallback;
     this.onCloseCallback = onClose;
     this.flowManager = flowManager;
     this.socketManager = socketManager;
+    this.chunkResponseTimeoutManager = new TimeoutManager(options.timeoutDelay);
+    this.timeoutEventWindow = options.timeoutEventWindow ?? 10;
   }
 
   close() {
@@ -238,7 +241,7 @@ export class SaferUDPConnection {
         this.chunkResponseTimeoutManager.set(
           chunk,
           () => this.handleChunkTimeout(chunk),
-          TimeoutManager.DEFAULT_DELAY * 2,
+          this.chunkResponseTimeoutManager.delay * 2,
         );
       }
     }
@@ -294,7 +297,7 @@ export class SaferUDPConnection {
       );
 
       this.ack(ack);
-    }, TimeoutManager.DEFAULT_DELAY);
+    }, this.chunkResponseTimeoutManager.delay);
   }
 
   private get closeChunk() {

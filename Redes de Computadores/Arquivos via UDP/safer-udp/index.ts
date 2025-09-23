@@ -8,11 +8,19 @@ const logger = pinoLogger.child({ category: 'SaferUDP' });
 
 export { SaferUDPConnection, type Remote, type Message };
 
+export interface SaferUDPOptions {
+  packetLossRate?: number;
+  timeoutDelay?: number;
+  timeoutEventWindow?: number;
+  initialFlowCeiling?: number;
+}
+
 export class SaferUDP {
   private socket: SocketManager;
   private protocol = new MessageProtocol();
   private connections = new Map<string, SaferUDPConnection>();
-  private flowManager = new FlowManager();
+  private flowManager: FlowManager;
+  private options: SaferUDPOptions;
 
   private messageCallback:
     | ((ctx: {
@@ -25,9 +33,15 @@ export class SaferUDP {
 
   constructor(
     messageCallback: typeof this.messageCallback,
-    options: { packetLossRate?: number } = {},
+    options: SaferUDPOptions = {},
   ) {
-    this.socket = new SocketManager(options);
+    this.options = options;
+    this.socket = new SocketManager(
+      options.packetLossRate !== undefined 
+        ? { packetLossRate: options.packetLossRate }
+        : {}
+    );
+    this.flowManager = new FlowManager(options.initialFlowCeiling);
     this.messageCallback = messageCallback;
 
     this.socket.internalSocket.on('message', (msg, remoteInfo) => {
@@ -78,6 +92,14 @@ export class SaferUDP {
         port: remote.port,
       };
 
+      const connectionOptions: { timeoutDelay?: number; timeoutEventWindow?: number } = {};
+      if (this.options.timeoutDelay !== undefined) {
+        connectionOptions.timeoutDelay = this.options.timeoutDelay;
+      }
+      if (this.options.timeoutEventWindow !== undefined) {
+        connectionOptions.timeoutEventWindow = this.options.timeoutEventWindow;
+      }
+
       const connection = new SaferUDPConnection(
         normalizedRemote,
         async (ctx) => {
@@ -89,6 +111,7 @@ export class SaferUDP {
         },
         this.flowManager,
         this.socket,
+        connectionOptions,
       );
 
       this.connections.set(connectionKey, connection);

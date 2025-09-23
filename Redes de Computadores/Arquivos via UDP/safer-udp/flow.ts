@@ -11,7 +11,7 @@ interface FlowHistoryEntry {
 export type { FlowHistoryEntry };
 
 export class FlowManager {
-  private ceiling = Infinity;
+  private ceiling: number;
   private currentFlow = 1;
 
   private startTime = Date.now();
@@ -19,7 +19,8 @@ export class FlowManager {
     { flow: 1, timestamp: this.startTime },
   ];
 
-  constructor() {
+  constructor(initialCeiling: number = Infinity) {
+    this.ceiling = initialCeiling;
     logger.info('Configurado para SlowStart');
 
     process.on('SIGINT', () => {
