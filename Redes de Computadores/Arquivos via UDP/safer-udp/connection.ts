@@ -1,5 +1,5 @@
 import { ChunkManager, type Chunk } from './chunk.js';
-import { TimeoutManager, type OptionalTimeout } from './timeout.js';
+import { TimeoutManager } from './timeout.js';
 import { MessageProtocol, type Message } from './protocol.js';
 import { SocketManager } from './socket.js';
 import { FlowManager } from './flow.js';
@@ -20,7 +20,6 @@ export class SaferUDPConnection {
   private socketManager: SocketManager;
 
   private lastSentChunk: Chunk = -1;
-  private receivedMessagesTimeout: OptionalTimeout = null;
 
   private lastTimeoutEventTime = 0;
   private timeoutEventWindow: number;

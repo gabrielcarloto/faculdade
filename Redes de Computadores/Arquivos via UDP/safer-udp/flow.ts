@@ -74,7 +74,7 @@ export class FlowManager {
     const maxTime = Math.max(...timestamps);
     const duration = maxTime - minTime;
 
-    const maxEntries = 500;
+    const maxEntries = 200;
     let sampledFlows = flows;
 
     if (flows.length > maxEntries) {
