@@ -8,8 +8,6 @@ interface FlowHistoryEntry {
   flow: number;
 }
 
-export type { FlowHistoryEntry };
-
 export class FlowManager {
   private ceiling: number;
   private currentFlow = 1;
