@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+		<link rel="stylesheet" href="./styles.css">
+
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
+
+		<title>Formulário incrivelmente musical</title>
+	</head>
+	<body>
+		<form>
+			<fieldset>
+				<legend>Identificação pessoal</legend>
+				<p>Não se preocupe, venderemos seus dados.</p>
+
+				<label for="person-name">Nome completo</label>
+				<input type="text" id="person-name" placeholder="Enzo" required>
+
+				<label for="person-email">Endereço de e-mail</label>
+				<input type="email" id="person-email" placeholder="e@mail.com" required>
+
+				<label for="person-phone">Telefone</label>
+				<input type="text" id="person-phone" placeholder="(41) 99999-9999" required>
+
+				<label for="person-birthdate">Data de nascimento</label>
+				<input type="date" id="person-birthdate" required>
+
+				<label for="person-picture">Foto de perfil</label>
+				<input type="file" id="person-picture" accept="image/*" required>
+			</fieldset>
+
+			<div class="form-ctrl">
+				<button type="reset">Redefinir</button>
+				<button type="submit">Enviar</button>
+			</div>
+		</form>
+
+		<script src="./script.js"></script>
+	</body>
+</html>

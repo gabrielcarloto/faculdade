@@ -1,0 +1,120 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  background-color: whitesmoke;
+  color: #262629;
+
+  font-family:
+    'Inter',
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    Oxygen,
+    Ubuntu,
+    Cantarell,
+    'Open Sans',
+    'Helvetica Neue',
+    sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: 'Crimson Text', Arial, Helvetica, sans-serif;
+  font-weight: 700;
+  font-style: normal;
+  margin-bottom: 16px;
+}
+
+fieldset {
+  border: none;
+  padding: 0;
+  padding-bottom: 16px;
+
+  &:not(:last-of-type) {
+    border-bottom: thin solid gray;
+    margin-bottom: 16px;
+  }
+
+  legend {
+    font-family: 'Crimson Text', Arial, Helvetica, sans-serif;
+    font-weight: 700;
+    font-style: normal;
+    font-size: 24px;
+  }
+}
+
+label:has(+ input[required])::after {
+  content: ' *';
+  color: lightcoral;
+}
+
+label:has(+ input) {
+  display: inline-block;
+  margin-bottom: 4px;
+}
+
+input {
+  display: block;
+  width: 100%;
+  padding: 8px;
+  background-color: white;
+  border: 2px solid lightgray;
+  border-radius: 8px;
+  outline: none;
+  transition: border-color 75ms;
+  font-family: inherit;
+
+  &:has(+ label) {
+    margin-bottom: 16px;
+  }
+
+  /* &:invalid { */
+  /*   border-color: coral; */
+  /* } */
+  /**/
+
+  &:hover {
+    border-color: gray;
+  }
+
+  &:focus-visible {
+    border-color: dimgray;
+  }
+}
+
+button {
+  min-width: 200px;
+  padding: 8px 14px;
+  background: #eff6ff;
+  border: 2px solid #377cfb;
+  border-radius: 8px;
+
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  color: #377cfb;
+
+  cursor: pointer;
+
+  &[type='submit'] {
+    background: #7ee09c;
+    border-color: #57b774;
+    color: #0e2b20;
+    box-shadow: 0 6px 18px rgba(34, 61, 48, 0.06);
+  }
+}
+
+.form-ctrl {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+}
