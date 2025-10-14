@@ -52,7 +52,7 @@ fieldset {
   }
 }
 
-label:has(+ input[required])::after {
+label:has(+ :is(input, select):is([required], [aria-required='true']))::after {
   content: ' *';
   color: lightcoral;
 }
@@ -62,7 +62,7 @@ label:has(+ input) {
   margin-bottom: 4px;
 }
 
-input {
+input:not([type='checkbox']) {
   display: block;
   width: 100%;
   padding: 8px;

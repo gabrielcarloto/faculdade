@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-br">
+
 	<head>
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,26 +13,105 @@
 
 		<title>Formulário incrivelmente musical</title>
 	</head>
+
 	<body>
+		<h1>Bem Vindo Ao Formulário</h1>
 		<form>
-			<fieldset>
+			<fieldset aria-describedby="person-data-info">
 				<legend>Identificação pessoal</legend>
-				<p>Não se preocupe, venderemos seus dados.</p>
+				<p id="person-data-info">Não se preocupe, venderemos seus dados.</p>
 
 				<label for="person-name">Nome completo</label>
-				<input type="text" id="person-name" placeholder="Enzo" required>
+				<input type="text" id="person-name" placeholder="Enzo" aria-required="true" autofocus>
 
 				<label for="person-email">Endereço de e-mail</label>
-				<input type="email" id="person-email" placeholder="e@mail.com" required>
+				<input type="email" id="person-email" placeholder="e@mail.com" aria-required="true">
 
 				<label for="person-phone">Telefone</label>
-				<input type="text" id="person-phone" placeholder="(41) 99999-9999" required>
+				<input type="text" id="person-phone" placeholder="(41) 99999-9999" aria-required="true">
 
 				<label for="person-birthdate">Data de nascimento</label>
-				<input type="date" id="person-birthdate" required>
+				<input type="date" id="person-birthdate" aria-required="true">
 
-				<label for="person-picture">Foto de perfil</label>
-				<input type="file" id="person-picture" accept="image/*" required>
+				<label for="person-picture">Data de nascimento</label>
+				<input type="file" id="person-picture" aria-required="true" accept="image/*">
+			</fieldset>
+
+			<fieldset aria-describedby="musical-style-hint">
+				<legend>Estilos Musicais favoritos</legend>
+				<p id="musical-style-hint">Escolha pelo menos uma opção.</p>
+
+				<label for="rock">
+					Rock
+				</label>
+				<input type="checkbox" id="rock" name="musicalStyle" value="Rock">
+
+				<label for="jazz">
+					Jazz
+				</label>
+				<input type="checkbox" id="jazz" name="musicalStyle" value="Jazz">
+
+				<label for="pop">
+					Pop
+				</label>
+				<input type="checkbox" id="pop" name="musicalStyle" value="Pop">
+			</fieldset>
+
+			<fieldset aria-describedby="favorite-albums-hint">
+				<legend>Álbuns favoritos</legend>
+				<p id="favorite-albums-hint">Escolha pelo menos uma opção.</p>
+
+				<label for="BackinBlack">
+					Back in Black
+				</label>
+				<input type="checkbox"
+				       id="BackinBlack"
+				       name="albunsFavoritos"
+				       value="Back in Black"
+				>
+
+				<br>
+
+				<label for="TheDarkSideoftheMoon">
+					The Dark Side of the Moon
+				</label>
+				<input type="checkbox" id="TheDarkSideoftheMoon" name="albunsFavoritos" value="The Dark Side of the Moon">
+
+				<br>
+
+				<label for="Rumours">
+					Rumours
+				</label>
+				<input type="checkbox" id="Rumours" name="albunsFavoritos" value="Rumours">
+
+				<br>
+
+				<label for="artistas">Artista</label>
+				<select name="artistas" id="artistas" aria-required="true" multiple>
+					<optgroup label="Rock">
+						<option value="Pink Floyd">Pink Floyd</option>
+						<option value="Pearl Jam">Pearl Jam</option>
+						<option value="Nirvana">Pearl Jam</option>
+					</optgroup>
+					<optgroup label="Jazz">
+						<option value="Pink Floyd">Pink Floyd</option>
+						<option value="Pearl Jam">Pearl Jam</option>
+						<option value="Nirvana">Pearl Jam</option>
+					</optgroup>
+					<optgroup label="Pop">
+						<option value="Pink Floyd">Pink Floyd</option>
+						<option value="Pearl Jam">Pearl Jam</option>
+						<option value="Nirvana">Pearl Jam</option>
+					</optgroup>
+				</select>
+				<br>
+
+				<label for="cantor">Cantor Favorito</label>
+				<select name="Cantor" id="cantor" aria-required="true">
+					<option value="Pink Floyd">Pink Floyd</option>
+					<option value="Pearl Jam">Pearl Jam</option>
+					<option value="Nirvana">Pearl Jam</option>
+				</select>
 			</fieldset>
 
 			<div class="form-ctrl">
@@ -41,5 +121,8 @@
 		</form>
 
 		<script src="./script.js"></script>
+		<footer>
+			<p>Régulo Gabriel Nicole</p>
+		</footer>
 	</body>
 </html>

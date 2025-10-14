@@ -1,11 +1,11 @@
-setupValidation('#person-name', {
+setupSingleInputValidation('#person-name', {
   validateEvent: 'blur',
   validate: (name) => {
     return name.trim().length === 0 && 'Digite seu nome';
   },
 });
 
-setupValidation('#person-email', {
+setupSingleInputValidation('#person-email', {
   validateEvent: 'blur',
   validate: (email) => {
     const emailRegex =
@@ -15,7 +15,7 @@ setupValidation('#person-email', {
   },
 });
 
-setupValidation('#person-phone', {
+setupSingleInputValidation('#person-phone', {
   validateEvent: 'blur',
   validate: (phone) => {
     const phoneRegex = /^\(\d\d\) \d{5}-\d{4}$/;
@@ -25,9 +25,13 @@ setupValidation('#person-phone', {
   },
 });
 
-setupValidation('#person-birthdate', {
+setupSingleInputValidation('#person-birthdate', {
   validateEvent: 'blur',
   validate: (dateString) => {
+    if (!dateString) {
+      return 'Adicione sua data de nascimento!!!';
+    }
+
     const date = new Date(dateString);
     const now = new Date();
 
@@ -43,37 +47,121 @@ setupValidation('#person-birthdate', {
   },
 });
 
-function setupValidation(
+setupSingleInputValidation('#person-picture', {
+  validateEvent: 'change',
+  validate: (pic) => {
+    if (!pic) {
+      return 'Adicione uma foto';
+    }
+  },
+});
+
+setupSingleInputValidation('#artistas', {
+  validateEvent: 'change',
+  validate: (artist) => {
+    if (!artist) {
+      return 'Selecione um artista';
+    }
+  },
+});
+
+const musicalStyleCheckboxes = Array.from(
+  document.querySelectorAll<HTMLInputElement>('[name="musicalStyle"]'),
+);
+
+const favoriteAlbumCheckboxes = Array.from(
+  document.querySelectorAll<HTMLInputElement>('[name="albunsFavoritos"]'),
+);
+
+const form = musicalStyleCheckboxes[0].form!;
+
+// Esse listener deve ser o último!!! 😈😈😈😈
+form.addEventListener('submit', () => {
+  if (!checkboxGroupSelected(musicalStyleCheckboxes)) {
+    return alert('Você deve selecionar ao menos um estilo musical');
+  }
+
+  if (!checkboxGroupSelected(favoriteAlbumCheckboxes)) {
+    return alert('Você deve selecionar ao menos um álbum');
+  }
+
+  const hasActiveErrorMessage = form.querySelector(
+    '.error-message:not([hidden=""])',
+  );
+
+  if (hasActiveErrorMessage) return;
+
+  console.log('Form válido!!!');
+});
+
+function setupSingleInputValidation(
   inputSelector: string,
   opts: {
     validate: (
       value: string,
-      input: HTMLInputElement,
+      input: HTMLInputElement | HTMLSelectElement,
     ) => string | boolean | undefined;
     validateEvent: 'change' | 'blur';
   },
 ) {
   const input = document.querySelector(inputSelector) as HTMLInputElement;
-  const errorMessage = document.createElement('p');
+  const errorMessage = createErrorMessage(input);
 
-  errorMessage.setAttribute('class', 'error-message');
-  errorMessage.setAttribute('hidden', '');
-  input.after(errorMessage);
-
-  input.addEventListener(opts.validateEvent, () => {
+  function validateWrapper() {
     const currentValue = input.value;
     const validationResult = opts.validate(currentValue, input);
 
     const isValid = typeof validationResult !== 'string';
 
     if (isValid) {
-      errorMessage.setAttribute('hidden', '');
-      input.setAttribute('aria-invalid', 'false');
-      return;
+      hideErrorMessage(errorMessage, input);
+      return true;
     }
 
-    errorMessage.removeAttribute('hidden');
-    errorMessage.textContent = validationResult;
-    input.setAttribute('aria-invalid', 'true');
+    setErrorMessage(validationResult, errorMessage, input);
+    return false;
+  }
+
+  input.addEventListener(opts.validateEvent, () => {
+    validateWrapper();
   });
+
+  input.form!.addEventListener('submit', (e) => {
+    e.preventDefault();
+    validateWrapper();
+  });
+}
+
+function createErrorMessage(forElement: Element) {
+  const errorMessage = document.createElement('p');
+
+  const errorElementId = forElement.id.replace('#', 'error-');
+
+  errorMessage.setAttribute('class', 'error-message');
+  errorMessage.setAttribute('hidden', '');
+  errorMessage.setAttribute('id', errorElementId);
+  forElement.after(errorMessage);
+
+  return errorMessage;
+}
+
+function hideErrorMessage(errorMessage: HTMLElement, forElement: HTMLElement) {
+  errorMessage.setAttribute('hidden', '');
+  forElement.setAttribute('aria-invalid', 'false');
+  forElement.removeAttribute('aria-describedby');
+}
+
+function setErrorMessage(
+  errorMessage: string,
+  el: HTMLElement,
+  elFor: HTMLElement,
+) {
+  el.removeAttribute('hidden');
+  el.textContent = errorMessage;
+  elFor.setAttribute('aria-invalid', 'true');
+  elFor.setAttribute('aria-describedby', el.id);
+}
+
+function checkboxGroupSelected(inputs: HTMLInputElement[]) {
+  return inputs.some((checkbox) => checkbox.checked);
 }
