@@ -1,3 +1,4 @@
+const validatorMap = {};
 setupSingleInputValidation('#person-name', {
     validateEvent: 'blur',
     validate: (name) => {
@@ -37,8 +38,8 @@ setupSingleInputValidation('#person-birthdate', {
 });
 setupSingleInputValidation('#person-picture', {
     validateEvent: 'change',
-    validate: (pic) => {
-        if (!pic) {
+    validate: (_, input) => {
+        if (!input.files?.length) {
             return 'Adicione uma foto';
         }
     },
@@ -54,8 +55,11 @@ setupSingleInputValidation('#artistas', {
 const musicalStyleCheckboxes = Array.from(document.querySelectorAll('[name="musicalStyle"]'));
 const favoriteAlbumCheckboxes = Array.from(document.querySelectorAll('[name="albunsFavoritos"]'));
 const form = musicalStyleCheckboxes[0].form;
-// Esse listener deve ser o último!!! 😈😈😈😈
 form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    for (const validate of Object.values(validatorMap)) {
+        validate();
+    }
     if (!checkboxGroupSelected(musicalStyleCheckboxes)) {
         return alert('Você deve selecionar ao menos um estilo musical');
     }
@@ -85,27 +89,26 @@ function setupSingleInputValidation(inputSelector, opts) {
     input.addEventListener(opts.validateEvent, () => {
         validateWrapper();
     });
-    input.form.addEventListener('submit', (e) => {
-        e.preventDefault();
-        validateWrapper();
-    });
+    validatorMap[inputSelector] = validateWrapper;
 }
 function createErrorMessage(forElement) {
     const errorMessage = document.createElement('p');
-    const errorElementId = forElement.id.replace('#', 'error-');
-    errorMessage.setAttribute('class', 'error-message');
-    errorMessage.setAttribute('hidden', '');
-    errorMessage.setAttribute('id', errorElementId);
+    const errorElementId = 'error-' + forElement.id;
+    errorMessage.className = 'error-message';
+    errorMessage.hidden = true;
+    errorMessage.id = errorElementId;
+    errorMessage.setAttribute('role', 'alert');
+    errorMessage.setAttribute('aria-live', 'polite');
     forElement.after(errorMessage);
     return errorMessage;
 }
 function hideErrorMessage(errorMessage, forElement) {
-    errorMessage.setAttribute('hidden', '');
+    errorMessage.hidden = true;
     forElement.setAttribute('aria-invalid', 'false');
     forElement.removeAttribute('aria-describedby');
 }
 function setErrorMessage(errorMessage, el, elFor) {
-    el.removeAttribute('hidden');
+    el.hidden = false;
     el.textContent = errorMessage;
     elFor.setAttribute('aria-invalid', 'true');
     elFor.setAttribute('aria-describedby', el.id);
