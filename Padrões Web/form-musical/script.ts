@@ -76,7 +76,7 @@ const favoriteAlbumCheckboxes = Array.from(
 const form = musicalStyleCheckboxes[0].form!;
 
 // Esse listener deve ser o último!!! 😈😈😈😈
-form.addEventListener('submit', () => {
+form.addEventListener('submit', (e) => {
   if (!checkboxGroupSelected(musicalStyleCheckboxes)) {
     return alert('Você deve selecionar ao menos um estilo musical');
   }
@@ -91,7 +91,8 @@ form.addEventListener('submit', () => {
 
   if (hasActiveErrorMessage) return;
 
-  console.log('Form válido!!!');
+  const data = new FormData(form);
+  alert('Formulário válido :)\n\n' + prettyPrintFormData(data));
 });
 
 function setupSingleInputValidation(
@@ -164,4 +165,17 @@ function setErrorMessage(
 
 function checkboxGroupSelected(inputs: HTMLInputElement[]) {
   return inputs.some((checkbox) => checkbox.checked);
+}
+
+function prettyPrintFormData(formData: FormData) {
+  const entries: string[] = [];
+
+  for (const [key, value] of formData.entries()) {
+    if (value instanceof File) {
+      entries.push(`${key}: [File: ${value.name} (${value.size} bytes)]`);
+    } else {
+      entries.push(`${key}: ${value}`);
+    }
+  }
+  return entries.join('\n');
 }
