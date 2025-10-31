@@ -43,18 +43,14 @@ func readMatrix(filename string) *mat.Dense {
 			}
 			data = append(data, float)
 		}
-		rows++
 
-		if rows%10000 == 0 {
-			log.Printf("Lidas %d linhas de %s...", rows, filename)
-		}
+		rows++
 	}
 
 	if rows == 0 {
 		log.Fatalf("O arquivo %s está vazio", filename)
 	}
 
-	log.Printf("Arquivo %s completamente lido: %d linhas x %d colunas", filename, rows, cols)
 	return mat.NewDense(rows, cols, data)
 }
 
@@ -86,17 +82,13 @@ func readVector(filename string) *mat.VecDense {
 			}
 			data = append(data, float)
 		}
-		rows++
 
-		if rows%10000 == 0 {
-			log.Printf("Lidas %d linhas de %s...", rows, filename)
-		}
+		rows++
 	}
 
 	if len(data) == 0 {
 		log.Fatalf("O arquivo %s está vazio", filename)
 	}
 
-	log.Printf("Arquivo %s completamente lido: %d elementos totais", filename, len(data))
 	return mat.NewVecDense(len(data), data)
 }
