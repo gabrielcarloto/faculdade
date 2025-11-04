@@ -82,6 +82,7 @@ func saveBinary(filename string, rows int, cols int, data []float64) error {
 	defer file.Close()
 
 	gzipWriter := gzip.NewWriter(file)
+	io.Writer
 	defer gzipWriter.Close()
 
 	if err := binary.Write(gzipWriter, binary.LittleEndian, int64(rows)); err != nil {
