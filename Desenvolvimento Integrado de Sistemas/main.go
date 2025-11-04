@@ -1,17 +1,16 @@
 package main
 
-const (
-	MAX_ITER = 10
-	MAX_ERR  = 1e-4
-)
+import "log"
 
 func main() {
-	model_h1 := readMatrix("./models/H-1.csv")
-	// model_h2 := readMatrix("./models/H-2.csv")
+	modelH1 := loadModel("H-1")
 
-	signal := readVector("./signals/G-1.csv")
+	signal, err := readVectorCSV("./signals/G-2.csv")
+	if err != nil {
+		log.Fatalf("Não foi possível ler o signal: %s", err)
+	}
 
-	image, iterations, duration := CGNE(model_h1, signal)
+	image, iterations, duration := CGNE(modelH1, signal)
 
 	printCPUUsage()
 	printMemoryUsage()

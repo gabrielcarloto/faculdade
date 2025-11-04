@@ -6,6 +6,11 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
+const (
+	MaxIter = 10
+	MaxErr  = 1e-4
+)
+
 func CGNE(model *mat.Dense, signal *mat.VecDense) (*mat.VecDense, int, time.Duration) {
 	startTime := time.Now()
 
@@ -28,7 +33,7 @@ func CGNE(model *mat.Dense, signal *mat.VecDense) (*mat.VecDense, int, time.Dura
 
 	// NOTE: criar vetores alphaHp, alphaP e HTr antes do loop aparentemente não
 	// muda muito a performance. Na verdade, por algum motivo usa mais memória.
-	for i = 0; i < MAX_ITER; i++ {
+	for i = 0; i < MaxIter; i++ {
 		// alpha_i = (r_i^T * r_i) / (p_i^T * p_i)
 		rTr := mat.Dot(residual, residual)
 		pTp := mat.Dot(p, p)
@@ -53,7 +58,7 @@ func CGNE(model *mat.Dense, signal *mat.VecDense) (*mat.VecDense, int, time.Dura
 		if i > 0 {
 			epsilon := currentResidualNorm - previousResidualNorm
 
-			if epsilon < MAX_ERR {
+			if epsilon < MaxErr {
 				break
 			}
 		}
@@ -62,8 +67,8 @@ func CGNE(model *mat.Dense, signal *mat.VecDense) (*mat.VecDense, int, time.Dura
 
 		// Beta_i = (r_(i+1)^T * r_(i+1)) / (r_i^T * r_i)
 		// (r_i^T * r_i) = rTr
-		rTr_next := mat.Dot(residual, residual)
-		beta := rTr_next / rTr
+		rTrNext := mat.Dot(residual, residual)
+		beta := rTrNext / rTr
 
 		// p_(i+1) = H^T * r_(i+1) + Beta_i * p_i
 		HTr := mat.NewVecDense(cols, nil)
@@ -76,3 +81,6 @@ func CGNE(model *mat.Dense, signal *mat.VecDense) (*mat.VecDense, int, time.Dura
 
 	return image, iterations, duration
 }
+
+// func CGNR(model *mat.Dense, signal *mat.VecDense) (*mat.VecDense, int, time.Duration) {
+// }
