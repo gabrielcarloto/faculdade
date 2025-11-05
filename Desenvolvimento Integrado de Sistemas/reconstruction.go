@@ -11,7 +11,7 @@ const (
 	MaxErr  = 1e-4
 )
 
-func CGNE(model *mat.Dense, signal *mat.VecDense) (*mat.VecDense, int, time.Duration) {
+func CGNE(model *mat.Dense, signal *mat.VecDense) (*mat.VecDense, int, time.Time, time.Time) {
 	startTime := time.Now()
 
 	rows, cols := model.Dims()
@@ -27,8 +27,7 @@ func CGNE(model *mat.Dense, signal *mat.VecDense) (*mat.VecDense, int, time.Dura
 	p := mat.NewVecDense(cols, nil)
 	p.MulVec(model.T(), residual)
 
-	// guardar o valor anterior evita ter que fazer cópias de r
-	var previousResidualNorm float64
+	previousResidualNorm := mat.Norm(residual, 2)
 	var i int
 
 	// NOTE: criar vetores alphaHp, alphaP e HTr antes do loop aparentemente não
@@ -54,13 +53,10 @@ func CGNE(model *mat.Dense, signal *mat.VecDense) (*mat.VecDense, int, time.Dura
 		// como o valor de r não altera mais, podemos fazer a verificação aqui
 		// epsilon = || r_(i+1) ||_2  -  || r_i ||_2
 		currentResidualNorm := mat.Norm(residual, 2)
+		epsilon := currentResidualNorm - previousResidualNorm
 
-		if i > 0 {
-			epsilon := currentResidualNorm - previousResidualNorm
-
-			if epsilon < MaxErr {
-				break
-			}
+		if epsilon < MaxErr {
+			break
 		}
 
 		previousResidualNorm = currentResidualNorm
@@ -76,11 +72,77 @@ func CGNE(model *mat.Dense, signal *mat.VecDense) (*mat.VecDense, int, time.Dura
 		p.AddScaledVec(HTr, beta, p)
 	}
 
-	duration := time.Since(startTime)
+	endTime := time.Now()
 	iterations := i + 1
 
-	return image, iterations, duration
+	return image, iterations, startTime, endTime
 }
 
-// func CGNR(model *mat.Dense, signal *mat.VecDense) (*mat.VecDense, int, time.Duration) {
-// }
+func CGNR(model *mat.Dense, signal *mat.VecDense) (*mat.VecDense, int, time.Time, time.Time) {
+	startTime := time.Now()
+
+	rows, cols := model.Dims()
+
+	// f_0 = 0
+	image := mat.NewVecDense(cols, nil)
+
+	// g = signal
+	// r_0 = g - H * f_0 = g (f_0 = 0)
+	residual := mat.VecDenseCopyOf(signal)
+
+	// z_0 = H^T * r_0
+	z := mat.NewVecDense(cols, nil)
+	z.MulVec(model.T(), residual)
+
+	// p_0 = z_0
+	p := mat.VecDenseCopyOf(z)
+
+	previousResidualNorm := mat.Norm(residual, 2)
+
+	var i int
+
+	for i = 0; i < MaxIter; i++ {
+		// w_i = H * p_i
+		w := mat.NewVecDense(rows, nil)
+		w.MulVec(model, p)
+
+		// alpha_i = || z_i ||^2_2 / || w_i ||^2_2
+		zNorm := mat.Norm(z, 2)
+		zNormSquared := (zNorm * zNorm)
+		wNorm := mat.Norm(w, 2)
+		alpha := zNormSquared / (wNorm * wNorm)
+
+		// f_(i+1) = f_i + alpha_i * p_i
+		alphaP := mat.NewVecDense(cols, nil)
+		alphaP.ScaleVec(alpha, p)
+		image.AddVec(image, alphaP)
+
+		// r_(i+1) = r_i - alpha_i * w_i
+		// alphaW := mat.NewVecDense(rows, nil)
+		// alphaW.ScaleVec(alpha, w)
+		residual.AddScaledVec(residual, alpha*-1, w)
+
+		currentResidualNorm := mat.Norm(residual, 2)
+		epsilon := currentResidualNorm - previousResidualNorm
+
+		if epsilon < MaxErr {
+			break
+		}
+
+		// z_(i+1) = H^T * r_(i+1)
+		z = mat.NewVecDense(cols, nil)
+		z.MulVec(model.T(), residual)
+
+		// Beta_i = || z_(i+1) ||^2_2 / || z_i ||^2_2
+		nextZNorm := mat.Norm(z, 2)
+		beta := (nextZNorm * nextZNorm) / zNormSquared
+
+		// p_(i+1) = z_(i+1) + Beta_i * p_i
+		p.AddScaledVec(z, beta, p)
+	}
+
+	endTime := time.Now()
+	iterations := i + 1
+
+	return image, iterations, startTime, endTime
+}

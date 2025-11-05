@@ -17,12 +17,12 @@ func main() {
 		log.Fatalf("Não foi possível ler o signal: %s", err)
 	}
 
-	image, iterations, duration := CGNE(modelH1, signal)
+	image, iterations, start, end := CGNR(modelH1, signal)
 
-	saveImageWithInfo(image, "./out/teste.png", ImageInfo{
-		Algorithm:  "CGNE",
+	saveImageWithInfo(image, "./out/teste_cgnr.png", ImageInfo{
+		Algorithm:  "CGNR",
 		Iterations: iterations,
-		Duration:   duration,
+		Duration:   end.Sub(start),
 	})
 
 	stopMonitoring()
