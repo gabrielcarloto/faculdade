@@ -77,7 +77,18 @@ func main() {
 
 		signal := mat.NewVecDense(signalLen, reconstructionRequest.Signal)
 
+		memBefore := takeMemSnapshot()
 		image, iterations, start, end := algorithm(model, signal)
+		memAfter := takeMemSnapshot()
+
+		// Log do uso de memória se verbose mode estiver ativo (pode ser configurado)
+		delta := int64(memAfter.HeapAlloc) - int64(memBefore.HeapAlloc)
+		if delta > 1024*1024 { // Se alocou mais de 1MB, loga
+			fmt.Printf("🔍 %s: Δ Heap = %+s, Tempo = %v\n", 
+				reconstructionRequest.Algorithm, 
+				formatBytes(uint64(absInt64(delta))), 
+				end.Sub(start))
+		}
 
 		response := ReconstructionResponse{
 			Image:      image.RawVector().Data,

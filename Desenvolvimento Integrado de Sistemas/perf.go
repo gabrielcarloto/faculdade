@@ -9,26 +9,10 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/shirou/gopsutil/v4/cpu"
+	"github.com/shirou/gopsutil/v4/mem"
 )
-
-func printMemoryUsage() {
-	var stats runtime.MemStats
-	runtime.ReadMemStats(&stats)
-
-	fmt.Printf("Memória em uso     : %s\n", formatBytes(stats.Alloc))
-	fmt.Printf("Total alocado      : %s\n", formatBytes(stats.TotalAlloc))
-	fmt.Printf("Reservado do sistema: %s\n", formatBytes(stats.Sys))
-	fmt.Printf("Rodadas de GC      : %d\n", stats.NumGC)
-	fmt.Printf("Tempo total de GC  : %v\n\n", time.Duration(stats.PauseTotalNs))
-}
-
-func printCPUUsage() {
-	numCPU := runtime.NumCPU()
-	numGoroutines := runtime.NumGoroutine()
-
-	fmt.Printf("CPUs disponíveis   : %d\n", numCPU)
-	fmt.Printf("Goroutines ativas  : %d\n", numGoroutines)
-}
 
 func formatBytes(bytes uint64) string {
 	const (
@@ -50,13 +34,17 @@ func formatBytes(bytes uint64) string {
 }
 
 type Snapshot struct {
-	Time            int64  `json:"time"`
-	CurrentMemUsage uint64 `json:"currentMemUsage"`
-	TotalAlloc      uint64 `json:"totalAlloc"`
-	Reserved        uint64 `json:"reserved"`
-	GcRounds        uint32 `json:"gcRounds"`
-	TotalGCTime     uint64 `json:"totalGCTime"`
-	CurrentRoutines int    `json:"currentRoutines"`
+	Time               int64   `json:"time"`
+	GoHeapAlloc        uint64  `json:"goHeapAlloc"`
+	GoTotalAlloc       uint64  `json:"goTotalAlloc"`
+	GoSysReserved      uint64  `json:"goSysReserved"`
+	GcRounds           uint32  `json:"gcRounds"`
+	TotalGCTime        uint64  `json:"totalGCTime"`
+	NumGoroutines      int     `json:"numGoroutines"`
+	SystemCPUPercent   float64 `json:"systemCPUPercent"`
+	SystemRAMPercent   float64 `json:"systemRAMPercent"`
+	SystemRAMUsage     uint64  `json:"systemRAMUsage"`
+	SystemRAMAvailable uint64  `json:"systemRAMAvailable"`
 }
 
 func resourceSnapshot() Snapshot {
@@ -64,14 +52,24 @@ func resourceSnapshot() Snapshot {
 	runtime.ReadMemStats(&stats)
 	numGoroutines := runtime.NumGoroutine()
 
+	mem := mem.NewExWindows()
+	vmem, _ := mem.VirtualMemory()
+	usedRAM := vmem.PhysTotal - vmem.PhysAvail
+	ramPercent := 100 * float64(usedRAM) / float64(vmem.PhysTotal)
+	cpuPercent, _ := cpu.Percent(0, false)
+
 	return Snapshot{
-		Time:            time.Now().Unix(),
-		CurrentMemUsage: stats.Alloc,
-		TotalAlloc:      stats.TotalAlloc,
-		Reserved:        stats.Sys,
-		GcRounds:        stats.NumGC,
-		TotalGCTime:     stats.PauseTotalNs,
-		CurrentRoutines: numGoroutines,
+		Time:               time.Now().Unix(),
+		GoHeapAlloc:        stats.Alloc,
+		GoTotalAlloc:       stats.TotalAlloc,
+		GoSysReserved:      stats.Sys,
+		GcRounds:           stats.NumGC,
+		TotalGCTime:        stats.PauseTotalNs,
+		NumGoroutines:      numGoroutines,
+		SystemRAMPercent:   ramPercent,
+		SystemCPUPercent:   cpuPercent[0],
+		SystemRAMUsage:     usedRAM,
+		SystemRAMAvailable: vmem.PhysAvail,
 	}
 }
 
@@ -125,10 +123,16 @@ func printPerformanceReport() {
 	fmt.Printf("📸 Total de snapshots: %d\n", len(snapshots))
 	fmt.Printf("🔄 Intervalo entre snapshots: ~%.1fs\n\n", duration.Seconds()/float64(len(snapshots)))
 
-	fmt.Println("💾 MEMÓRIA")
+	fmt.Println("💾 MEMÓRIA GO (HEAP)")
 	fmt.Println(strings.Repeat("─", 80))
-	printMemoryChart("Memória em Uso", snapshots, func(s Snapshot) float64 {
-		return float64(s.CurrentMemUsage) / (1024 * 1024)
+	printMemoryChart("Heap Alocado", snapshots, func(s Snapshot) float64 {
+		return float64(s.GoHeapAlloc) / (1024 * 1024)
+	})
+
+	fmt.Println("\n⚡ CPU DO SISTEMA")
+	fmt.Println(strings.Repeat("─", 80))
+	printPercentChart("Uso Total de CPU", snapshots, func(s Snapshot) float64 {
+		return s.SystemCPUPercent
 	})
 
 	fmt.Println("\n🗑️  GARBAGE COLLECTOR")
@@ -143,25 +147,74 @@ func printPerformanceReport() {
 	fmt.Println("🔀 GOROUTINES")
 	fmt.Println(strings.Repeat("─", 80))
 	printSimpleChart("Goroutines Ativas", snapshots, func(s Snapshot) float64 {
-		return float64(s.CurrentRoutines)
+		return float64(s.NumGoroutines)
 	})
 
 	fmt.Println("\n📈 RESUMO")
 	fmt.Println(strings.Repeat("─", 80))
-	avgMem := calculateAverage(snapshots, func(s Snapshot) float64 {
-		return float64(s.CurrentMemUsage)
+
+	// Heap do Go
+	avgHeap := calculateAverage(snapshots, func(s Snapshot) float64 {
+		return float64(s.GoHeapAlloc)
 	})
-	maxMem := calculateMax(snapshots, func(s Snapshot) float64 {
-		return float64(s.CurrentMemUsage)
+	maxHeap := calculateMax(snapshots, func(s Snapshot) float64 {
+		return float64(s.GoHeapAlloc)
 	})
-	minMem := calculateMin(snapshots, func(s Snapshot) float64 {
-		return float64(s.CurrentMemUsage)
+	minHeap := calculateMin(snapshots, func(s Snapshot) float64 {
+		return float64(s.GoHeapAlloc)
 	})
 
-	fmt.Printf("Memória Mínima    : %s\n", formatBytes(uint64(minMem)))
-	fmt.Printf("Memória Média     : %s\n", formatBytes(uint64(avgMem)))
-	fmt.Printf("Memória Máxima    : %s\n", formatBytes(uint64(maxMem)))
-	fmt.Printf("Memória Final     : %s\n", formatBytes(last.CurrentMemUsage))
+	avgSystemRAM := calculateAverage(snapshots, func(s Snapshot) float64 {
+		return s.SystemRAMPercent
+	})
+
+	fmt.Printf("Heap Mínimo            : %s\n", formatBytes(uint64(minHeap)))
+	fmt.Printf("Heap Médio             : %s\n", formatBytes(uint64(avgHeap)))
+	fmt.Printf("Heap Máximo            : %s\n", formatBytes(uint64(maxHeap)))
+	fmt.Printf("Heap Final             : %s\n", formatBytes(last.GoHeapAlloc))
+	fmt.Printf("Total Alocado (Go)     : %s\n", formatBytes(last.GoTotalAlloc))
+	fmt.Printf("Reservado do Sistema   : %s\n", formatBytes(last.GoSysReserved))
+	fmt.Printf("RAM do Sistema (Média) : %.2f%%\n", avgSystemRAM)
+	fmt.Printf("RAM do Sistema (Final) : %s (%.2f%%)\n\n", formatBytes(last.SystemRAMUsage), last.SystemRAMPercent)
+
+	// CPU do Sistema
+	avgSystemCPU := calculateAverage(snapshots, func(s Snapshot) float64 {
+		return s.SystemCPUPercent
+	})
+	maxSystemCPU := calculateMax(snapshots, func(s Snapshot) float64 {
+		return s.SystemCPUPercent
+	})
+	minSystemCPU := calculateMin(snapshots, func(s Snapshot) float64 {
+		return s.SystemCPUPercent
+	})
+
+	fmt.Printf("CPU Mínima             : %.2f%%\n", minSystemCPU)
+	fmt.Printf("CPU Média              : %.2f%%\n", avgSystemCPU)
+	fmt.Printf("CPU Máxima             : %.2f%%\n", maxSystemCPU)
+	fmt.Printf("CPU Final              : %.2f%%\n\n", last.SystemCPUPercent)
+
+	// Goroutines
+	avgGoroutines := calculateAverage(snapshots, func(s Snapshot) float64 {
+		return float64(s.NumGoroutines)
+	})
+	maxGoroutines := calculateMax(snapshots, func(s Snapshot) float64 {
+		return float64(s.NumGoroutines)
+	})
+
+	fmt.Printf("Goroutines Média       : %.0f\n", avgGoroutines)
+	fmt.Printf("Goroutines Máxima      : %.0f\n", maxGoroutines)
+	fmt.Printf("Goroutines Final       : %d\n\n", last.NumGoroutines)
+
+	// GC
+	totalGCRounds := last.GcRounds - first.GcRounds
+	totalGCTime := time.Duration(last.TotalGCTime - first.TotalGCTime)
+	fmt.Printf("Rodadas de GC          : %d\n", totalGCRounds)
+	fmt.Printf("Tempo Total de GC      : %v\n", totalGCTime)
+	if totalGCRounds > 0 {
+		avgGCTime := totalGCTime / time.Duration(totalGCRounds)
+		fmt.Printf("Tempo Médio por GC     : %v\n", avgGCTime)
+	}
+
 	fmt.Println(strings.Repeat("═", 80))
 }
 
@@ -194,6 +247,45 @@ func printMemoryChart(title string, data []Snapshot, getValue func(Snapshot) flo
 	for row := height - 1; row >= 0; row-- {
 		threshold := min + (max-min)*float64(row+1)/float64(height)
 		label := fmt.Sprintf("%6.0f │ ", threshold)
+		fmt.Print(label)
+
+		for col := 0; col < width; col++ {
+			idx := col * len(data) / width
+			if idx >= len(data) {
+				idx = len(data) - 1
+			}
+			val := getValue(data[idx])
+
+			if val >= threshold {
+				fmt.Print("█")
+			} else {
+				fmt.Print(" ")
+			}
+		}
+		fmt.Println()
+	}
+
+	// Eixo X
+	fmt.Print("       └" + strings.Repeat("─", width) + "\n")
+	fmt.Printf("        0%s%d snapshots%s100%%\n", strings.Repeat(" ", 20), len(data), strings.Repeat(" ", 20))
+}
+
+func printPercentChart(title string, data []Snapshot, getValue func(Snapshot) float64) {
+	if len(data) == 0 {
+		return
+	}
+
+	const width = 60
+	const height = 10
+
+	min := 0.0
+	max := 100.0
+
+	fmt.Printf("%s (%%)\n", title)
+
+	for row := height - 1; row >= 0; row-- {
+		threshold := min + (max-min)*float64(row+1)/float64(height)
+		label := fmt.Sprintf("%5.0f%% │ ", threshold)
 		fmt.Print(label)
 
 		for col := 0; col < width; col++ {
