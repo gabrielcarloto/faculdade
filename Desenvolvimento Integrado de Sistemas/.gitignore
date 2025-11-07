@@ -1,5 +1,4 @@
-models/
-signals/
-out/
+models
+out
 *.json
 client/
