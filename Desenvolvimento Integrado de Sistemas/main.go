@@ -10,9 +10,8 @@ import (
 )
 
 type ReconstructionRequest struct {
-	Dimensions string    `json:"dimensions"`
-	Algorithm  string    `json:"algorithm"`
-	Signal     []float64 `json:"signal"`
+	Algorithm string    `json:"algorithm"`
+	Signal    []float64 `json:"signal"`
 }
 
 type ReconstructionResponse struct {
@@ -29,9 +28,17 @@ func main() {
 	watchResources(150 * time.Millisecond)
 	setupSignalHandler()
 
-	modelByDimension := map[string]*mat.Dense{
-		"60x60": loadModel("H-1"),
-		"30x30": loadModel("H-2"),
+	modelH1 := loadModel("H-1")
+	modelH2 := loadModel("H-2")
+
+	modelsBySignalLen := map[int]*mat.Dense{
+		modelH1.RawMatrix().Rows: modelH1,
+		modelH2.RawMatrix().Rows: modelH2,
+	}
+
+	dimensionsBySignalLen := map[int]string{
+		modelH1.RawMatrix().Rows: "60x60",
+		modelH2.RawMatrix().Rows: "30x30",
 	}
 
 	algorithmMap := map[string]ReconstructionAlgo{
@@ -52,14 +59,29 @@ func main() {
 			return
 		}
 
-		model := modelByDimension[reconstructionRequest.Dimensions]
-		signal := mat.NewVecDense(len(reconstructionRequest.Signal), reconstructionRequest.Signal)
+		signalLen := len(reconstructionRequest.Signal)
 
-		image, iterations, start, end := algorithmMap[reconstructionRequest.Algorithm](model, signal)
+		model, ok := modelsBySignalLen[signalLen]
+
+		if !ok {
+			http.Error(res, "InvalidSignalSize", http.StatusBadRequest)
+			return
+		}
+
+		algorithm, ok := algorithmMap[reconstructionRequest.Algorithm]
+
+		if !ok {
+			http.Error(res, "InvalidAlgorithm", http.StatusBadRequest)
+			return
+		}
+
+		signal := mat.NewVecDense(signalLen, reconstructionRequest.Signal)
+
+		image, iterations, start, end := algorithm(model, signal)
 
 		response := ReconstructionResponse{
 			Image:      image.RawVector().Data,
-			Dimensions: reconstructionRequest.Dimensions,
+			Dimensions: dimensionsBySignalLen[signalLen],
 			Algorithm:  reconstructionRequest.Algorithm,
 			Iterations: iterations,
 			Start:      start,

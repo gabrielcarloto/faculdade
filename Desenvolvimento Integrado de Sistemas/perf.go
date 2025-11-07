@@ -11,11 +11,6 @@ import (
 	"time"
 )
 
-func timeTrack(start time.Time, name string) {
-	elapsed := time.Since(start)
-	fmt.Printf("⏱️  %s: %v\n", name, elapsed)
-}
-
 func printMemoryUsage() {
 	var stats runtime.MemStats
 	runtime.ReadMemStats(&stats)
@@ -54,14 +49,14 @@ func formatBytes(bytes uint64) string {
 	}
 }
 
-type Snapshot = struct {
-	time            int64
-	currentMemUsage uint64
-	totalAlloc      uint64
-	reserved        uint64
-	gcRounds        uint32
-	totalGCTime     uint64
-	currentRoutines int
+type Snapshot struct {
+	Time            int64  `json:"time"`
+	CurrentMemUsage uint64 `json:"currentMemUsage"`
+	TotalAlloc      uint64 `json:"totalAlloc"`
+	Reserved        uint64 `json:"reserved"`
+	GcRounds        uint32 `json:"gcRounds"`
+	TotalGCTime     uint64 `json:"totalGCTime"`
+	CurrentRoutines int    `json:"currentRoutines"`
 }
 
 func resourceSnapshot() Snapshot {
@@ -70,13 +65,13 @@ func resourceSnapshot() Snapshot {
 	numGoroutines := runtime.NumGoroutine()
 
 	return Snapshot{
-		time:            time.Now().Unix(),
-		currentMemUsage: stats.Alloc,
-		totalAlloc:      stats.TotalAlloc,
-		reserved:        stats.Sys,
-		gcRounds:        stats.NumGC,
-		totalGCTime:     stats.PauseTotalNs,
-		currentRoutines: numGoroutines,
+		Time:            time.Now().Unix(),
+		CurrentMemUsage: stats.Alloc,
+		TotalAlloc:      stats.TotalAlloc,
+		Reserved:        stats.Sys,
+		GcRounds:        stats.NumGC,
+		TotalGCTime:     stats.PauseTotalNs,
+		CurrentRoutines: numGoroutines,
 	}
 }
 
@@ -124,7 +119,7 @@ func printPerformanceReport() {
 
 	first := snapshots[0]
 	last := snapshots[len(snapshots)-1]
-	duration := time.Duration(last.time-first.time) * time.Second
+	duration := time.Duration(last.Time-first.Time) * time.Second
 
 	fmt.Printf("\n⏱️  Duração do monitoramento: %v\n", duration)
 	fmt.Printf("📸 Total de snapshots: %d\n", len(snapshots))
@@ -133,40 +128,40 @@ func printPerformanceReport() {
 	fmt.Println("💾 MEMÓRIA")
 	fmt.Println(strings.Repeat("─", 80))
 	printMemoryChart("Memória em Uso", snapshots, func(s Snapshot) float64 {
-		return float64(s.currentMemUsage) / (1024 * 1024)
+		return float64(s.CurrentMemUsage) / (1024 * 1024)
 	})
 
 	fmt.Println("\n🗑️  GARBAGE COLLECTOR")
 	fmt.Println(strings.Repeat("─", 80))
 	fmt.Printf("Total de rodadas de GC: %d → %d (Δ %d)\n",
-		first.gcRounds, last.gcRounds, last.gcRounds-first.gcRounds)
+		first.GcRounds, last.GcRounds, last.GcRounds-first.GcRounds)
 	fmt.Printf("Tempo total de GC: %v → %v (Δ %v)\n\n",
-		time.Duration(first.totalGCTime),
-		time.Duration(last.totalGCTime),
-		time.Duration(last.totalGCTime-first.totalGCTime))
+		time.Duration(first.TotalGCTime),
+		time.Duration(last.TotalGCTime),
+		time.Duration(last.TotalGCTime-first.TotalGCTime))
 
 	fmt.Println("🔀 GOROUTINES")
 	fmt.Println(strings.Repeat("─", 80))
 	printSimpleChart("Goroutines Ativas", snapshots, func(s Snapshot) float64 {
-		return float64(s.currentRoutines)
+		return float64(s.CurrentRoutines)
 	})
 
 	fmt.Println("\n📈 RESUMO")
 	fmt.Println(strings.Repeat("─", 80))
 	avgMem := calculateAverage(snapshots, func(s Snapshot) float64 {
-		return float64(s.currentMemUsage)
+		return float64(s.CurrentMemUsage)
 	})
 	maxMem := calculateMax(snapshots, func(s Snapshot) float64 {
-		return float64(s.currentMemUsage)
+		return float64(s.CurrentMemUsage)
 	})
 	minMem := calculateMin(snapshots, func(s Snapshot) float64 {
-		return float64(s.currentMemUsage)
+		return float64(s.CurrentMemUsage)
 	})
 
 	fmt.Printf("Memória Mínima    : %s\n", formatBytes(uint64(minMem)))
 	fmt.Printf("Memória Média     : %s\n", formatBytes(uint64(avgMem)))
 	fmt.Printf("Memória Máxima    : %s\n", formatBytes(uint64(maxMem)))
-	fmt.Printf("Memória Final     : %s\n", formatBytes(last.currentMemUsage))
+	fmt.Printf("Memória Final     : %s\n", formatBytes(last.CurrentMemUsage))
 	fmt.Println(strings.Repeat("═", 80))
 }
 

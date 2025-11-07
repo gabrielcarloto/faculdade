@@ -21,15 +21,6 @@ func readMatrixCSV(filename string) (*mat.Dense, error) {
 	return mat.NewDense(rows, cols, data), nil
 }
 
-func readVectorCSV(filename string) (*mat.VecDense, error) {
-	rows, cols, data, err := readCSV(filename)
-	if err != nil || cols == -1 {
-		return nil, err
-	}
-
-	return mat.NewVecDense(rows, data), nil
-}
-
 func readCSV(filename string) (int, int, []float64, error) {
 	file, err := os.Open(filename)
 	if err != nil {
@@ -100,12 +91,6 @@ func saveMatrixBinary(filename string, m *mat.Dense) error {
 	return saveBinary(filename, rows, cols, data)
 }
 
-func saveVectorBinary(filename string, v *mat.VecDense) error {
-	rows, cols := v.Dims()
-	data := v.RawVector().Data
-	return saveBinary(filename, rows, cols, data)
-}
-
 func readBinary(filename string) (int, int, []float64, error) {
 	file, err := os.Open(filename)
 	if err != nil {
@@ -145,39 +130,27 @@ func readMatrixBinary(filename string) (*mat.Dense, error) {
 	return mat.NewDense(int(rows), int(cols), data), nil
 }
 
-func readVectorBinary(filename string) (*mat.VecDense, error) {
-	rows, cols, data, err := readBinary(filename)
-	if err != nil || cols == -1 {
-		return nil, err
-	}
-
-	return mat.NewVecDense(int(rows), data), nil
-}
-
 func loadModel(nameWithoutExt string) *mat.Dense {
 	path := "./models/" + nameWithoutExt
 	binFileInfo, err := os.Stat(path)
 	isBinary := err == nil
 
 	if isBinary && binFileInfo.Size() > 0 {
-		log.Print("Lendo matriz binária...")
 		matrix, err := readMatrixBinary(path)
 
 		if err == nil {
-			log.Printf("Retornando matriz binária")
 			return matrix
 		}
 
-		log.Printf("Erro ao ler matriz binária: %s", err)
+		log.Printf("Erro ao ler %s binário: %s", nameWithoutExt, err)
 	}
 
-	log.Print("Lendo matriz CSV...")
 	matrix, err := readMatrixCSV(path + ".csv")
 	if err != nil {
 		log.Fatalf("Não foi possível ler o modelo %s: %s", nameWithoutExt, err)
 	}
 
-	log.Printf("Salvando matriz binária...")
+	log.Printf("Salvando %s como binário...", nameWithoutExt)
 	if err := saveMatrixBinary(path, matrix); err != nil {
 		log.Printf("Erro ao salvar binário: %s", err)
 	} else {
