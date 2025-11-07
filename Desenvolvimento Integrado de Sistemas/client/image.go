@@ -13,7 +13,6 @@ import (
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/basicfont"
 	"golang.org/x/image/math/fixed"
-	"gonum.org/v1/gonum/mat"
 )
 
 type ImageInfo struct {
@@ -22,10 +21,10 @@ type ImageInfo struct {
 	Duration   time.Duration
 }
 
-func saveImageWithInfo(f *mat.VecDense, filename string, info ImageInfo) {
-	n := f.Len()
+func saveImageWithInfo(f []float64, filename string, info ImageInfo) {
+	n := len(f)
 
-	var matrixWidth = 60
+	matrixWidth := int(math.Sqrt(float64(n)))
 
 	scale := 4
 	scaledWidth := matrixWidth * scale
@@ -39,9 +38,9 @@ func saveImageWithInfo(f *mat.VecDense, filename string, info ImageInfo) {
 	finalImg := image.NewRGBA(image.Rect(0, 0, finalWidth, finalHeight))
 	draw.Draw(finalImg, finalImg.Bounds(), &image.Uniform{color.White}, image.Point{}, draw.Src)
 
-	minVal, maxVal := f.AtVec(0), f.AtVec(0)
+	minVal, maxVal := f[0], f[0]
 	for i := range n {
-		val := f.AtVec(i)
+		val := f[i]
 		if val < minVal {
 			minVal = val
 		}
@@ -54,7 +53,7 @@ func saveImageWithInfo(f *mat.VecDense, filename string, info ImageInfo) {
 		x := i % matrixWidth
 		y := i / matrixWidth
 
-		val := f.AtVec(i)
+		val := f[i]
 		normalized := (val - minVal) / (maxVal - minVal)
 		if math.IsNaN(normalized) || math.IsInf(normalized, 0) {
 			normalized = 0
@@ -78,6 +77,9 @@ func saveImageWithInfo(f *mat.VecDense, filename string, info ImageInfo) {
 	addLabel(finalImg, point, fmt.Sprintf("Iteracoes: %d", info.Iterations), col)
 	point.Y += fixed.I(20)
 	addLabel(finalImg, point, fmt.Sprintf("Tempo: %v", info.Duration.Round(time.Millisecond)), col)
+
+	// Garante que o diretório existe
+	os.MkdirAll("./out", 0755)
 
 	file, err := os.Create(filename)
 	if err != nil {
