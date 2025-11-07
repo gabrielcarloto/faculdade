@@ -1,39 +1,78 @@
 package main
 
 import (
-	"log"
+	"encoding/json"
+	"fmt"
+	"net/http"
 	"time"
+
+	"gonum.org/v1/gonum/mat"
 )
 
+type ReconstructionRequest struct {
+	Dimensions string    `json:"dimensions"`
+	Algorithm  string    `json:"algorithm"`
+	Signal     []float64 `json:"signal"`
+}
+
+type ReconstructionResponse struct {
+	Image      []float64     `json:"image"`
+	Dimensions string        `json:"dimensions"`
+	Algorithm  string        `json:"algorithm"`
+	Iterations int           `json:"iterations"`
+	Start      time.Time     `json:"start"`
+	End        time.Time     `json:"end"`
+	Duration   time.Duration `json:"duration"`
+}
+
 func main() {
+	watchResources(150 * time.Millisecond)
 	setupSignalHandler()
 
-	watchResources(150 * time.Millisecond)
-
-	modelH1 := loadModel("H-1")
-
-	signal, err := readVectorCSV("./signals/G-2.csv")
-	if err != nil {
-		log.Fatalf("Não foi possível ler o signal: %s", err)
+	modelByDimension := map[string]*mat.Dense{
+		"60x60": loadModel("H-1"),
+		"30x30": loadModel("H-2"),
 	}
 
-	image, iterations, start, end := CGNR(modelH1, signal)
+	algorithmMap := map[string]ReconstructionAlgo{
+		"CGNE": CGNE,
+		"CGNR": CGNR,
+	}
 
-	saveImageWithInfo(image, "./out/teste_cgnr.png", ImageInfo{
-		Algorithm:  "CGNR",
-		Iterations: iterations,
-		Duration:   end.Sub(start),
+	http.HandleFunc("/reconstruct", func(res http.ResponseWriter, req *http.Request) {
+		if req.Method != http.MethodPost {
+			http.Error(res, "MethodNotAllowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var reconstructionRequest ReconstructionRequest
+
+		if err := json.NewDecoder(req.Body).Decode(&reconstructionRequest); err != nil {
+			http.Error(res, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		model := modelByDimension[reconstructionRequest.Dimensions]
+		signal := mat.NewVecDense(len(reconstructionRequest.Signal), reconstructionRequest.Signal)
+
+		image, iterations, start, end := algorithmMap[reconstructionRequest.Algorithm](model, signal)
+
+		response := ReconstructionResponse{
+			Image:      image.RawVector().Data,
+			Dimensions: reconstructionRequest.Dimensions,
+			Algorithm:  reconstructionRequest.Algorithm,
+			Iterations: iterations,
+			Start:      start,
+			End:        end,
+			Duration:   end.Sub(start),
+		}
+
+		res.Header().Set("Content-Type", "application/json")
+		res.WriteHeader(http.StatusOK)
+
+		json.NewEncoder(res).Encode(response)
 	})
 
-	stopMonitoring()
-	time.Sleep(100 * time.Millisecond)
-
-	printPerformanceReport()
-
-	log.Println("\nExportando relatórios de performance...")
-	if err := exportReportJSON("performance_report.json"); err != nil {
-		log.Printf("Erro ao exportar JSON: %v\n", err)
-	} else {
-		log.Println("Relatório JSON exportado: performance_report.json")
-	}
+	fmt.Println("Escutando na porta 3000")
+	http.ListenAndServe(":3000", nil)
 }

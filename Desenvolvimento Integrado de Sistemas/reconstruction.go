@@ -11,6 +11,8 @@ const (
 	MaxErr  = 1e-4
 )
 
+type ReconstructionAlgo func(model *mat.Dense, signal *mat.VecDense) (*mat.VecDense, int, time.Time, time.Time)
+
 func CGNE(model *mat.Dense, signal *mat.VecDense) (*mat.VecDense, int, time.Time, time.Time) {
 	startTime := time.Now()
 
