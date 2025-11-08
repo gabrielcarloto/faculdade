@@ -13,30 +13,6 @@ const (
 
 type ReconstructionAlgo func(model *mat.Dense, signal *mat.VecDense) (*mat.VecDense, int, time.Time, time.Time)
 
-type ReconstructionResult struct {
-	Image       *mat.VecDense
-	Iterations  int
-	StartTime   time.Time
-	EndTime     time.Time
-	MemBefore   MemSnapshot
-	MemAfter    MemSnapshot
-}
-
-func runWithMemTracking(algo ReconstructionAlgo, model *mat.Dense, signal *mat.VecDense) ReconstructionResult {
-	memBefore := takeMemSnapshot()
-	image, iterations, startTime, endTime := algo(model, signal)
-	memAfter := takeMemSnapshot()
-	
-	return ReconstructionResult{
-		Image:      image,
-		Iterations: iterations,
-		StartTime:  startTime,
-		EndTime:    endTime,
-		MemBefore:  memBefore,
-		MemAfter:   memAfter,
-	}
-}
-
 func CGNE(model *mat.Dense, signal *mat.VecDense) (*mat.VecDense, int, time.Time, time.Time) {
 	startTime := time.Now()
 

@@ -14,6 +14,25 @@ import (
 	"github.com/shirou/gopsutil/v4/mem"
 )
 
+func printMemoryUsage() {
+	var stats runtime.MemStats
+	runtime.ReadMemStats(&stats)
+
+	fmt.Printf("Memória em uso     : %s\n", formatBytes(stats.Alloc))
+	fmt.Printf("Total alocado      : %s\n", formatBytes(stats.TotalAlloc))
+	fmt.Printf("Reservado do sistema: %s\n", formatBytes(stats.Sys))
+	fmt.Printf("Rodadas de GC      : %d\n", stats.NumGC)
+	fmt.Printf("Tempo total de GC  : %v\n\n", time.Duration(stats.PauseTotalNs))
+}
+
+func printCPUUsage() {
+	numCPU := runtime.NumCPU()
+	numGoroutines := runtime.NumGoroutine()
+
+	fmt.Printf("CPUs disponíveis   : %d\n", numCPU)
+	fmt.Printf("Goroutines ativas  : %d\n", numGoroutines)
+}
+
 func formatBytes(bytes uint64) string {
 	const (
 		KB = 1024
@@ -34,17 +53,15 @@ func formatBytes(bytes uint64) string {
 }
 
 type Snapshot struct {
-	Time               int64   `json:"time"`
-	GoHeapAlloc        uint64  `json:"goHeapAlloc"`
-	GoTotalAlloc       uint64  `json:"goTotalAlloc"`
-	GoSysReserved      uint64  `json:"goSysReserved"`
-	GcRounds           uint32  `json:"gcRounds"`
-	TotalGCTime        uint64  `json:"totalGCTime"`
-	NumGoroutines      int     `json:"numGoroutines"`
-	SystemCPUPercent   float64 `json:"systemCPUPercent"`
-	SystemRAMPercent   float64 `json:"systemRAMPercent"`
-	SystemRAMUsage     uint64  `json:"systemRAMUsage"`
-	SystemRAMAvailable uint64  `json:"systemRAMAvailable"`
+	Time             int64   `json:"time"`
+	GoHeapAlloc      uint64  `json:"goHeapAlloc"`
+	GoTotalAlloc     uint64  `json:"goTotalAlloc"`
+	GoSysReserved    uint64  `json:"goSysReserved"`
+	GcRounds         uint32  `json:"gcRounds"`
+	TotalGCTime      uint64  `json:"totalGCTime"`
+	NumGoroutines    int     `json:"numGoroutines"`
+	SystemCPUPercent float64 `json:"systemCPUPercent"`
+	SystemRAMPercent float64 `json:"systemRAMPercent"`
 }
 
 func resourceSnapshot() Snapshot {
@@ -59,17 +76,15 @@ func resourceSnapshot() Snapshot {
 	cpuPercent, _ := cpu.Percent(0, false)
 
 	return Snapshot{
-		Time:               time.Now().Unix(),
-		GoHeapAlloc:        stats.Alloc,
-		GoTotalAlloc:       stats.TotalAlloc,
-		GoSysReserved:      stats.Sys,
-		GcRounds:           stats.NumGC,
-		TotalGCTime:        stats.PauseTotalNs,
-		NumGoroutines:      numGoroutines,
-		SystemRAMPercent:   ramPercent,
-		SystemCPUPercent:   cpuPercent[0],
-		SystemRAMUsage:     usedRAM,
-		SystemRAMAvailable: vmem.PhysAvail,
+		Time:             time.Now().Unix(),
+		GoHeapAlloc:      stats.Alloc,
+		GoTotalAlloc:     stats.TotalAlloc,
+		GoSysReserved:    stats.Sys,
+		GcRounds:         stats.NumGC,
+		TotalGCTime:      stats.PauseTotalNs,
+		NumGoroutines:    numGoroutines,
+		SystemRAMPercent: ramPercent,
+		SystemCPUPercent: cpuPercent[0],
 	}
 }
 
@@ -172,10 +187,7 @@ func printPerformanceReport() {
 	fmt.Printf("Heap Médio             : %s\n", formatBytes(uint64(avgHeap)))
 	fmt.Printf("Heap Máximo            : %s\n", formatBytes(uint64(maxHeap)))
 	fmt.Printf("Heap Final             : %s\n", formatBytes(last.GoHeapAlloc))
-	fmt.Printf("Total Alocado (Go)     : %s\n", formatBytes(last.GoTotalAlloc))
-	fmt.Printf("Reservado do Sistema   : %s\n", formatBytes(last.GoSysReserved))
-	fmt.Printf("RAM do Sistema (Média) : %.2f%%\n", avgSystemRAM)
-	fmt.Printf("RAM do Sistema (Final) : %s (%.2f%%)\n\n", formatBytes(last.SystemRAMUsage), last.SystemRAMPercent)
+	fmt.Printf("RAM do Sistema (Média) : %.2f%%\n\n", avgSystemRAM)
 
 	// CPU do Sistema
 	avgSystemCPU := calculateAverage(snapshots, func(s Snapshot) float64 {
@@ -203,17 +215,7 @@ func printPerformanceReport() {
 
 	fmt.Printf("Goroutines Média       : %.0f\n", avgGoroutines)
 	fmt.Printf("Goroutines Máxima      : %.0f\n", maxGoroutines)
-	fmt.Printf("Goroutines Final       : %d\n\n", last.NumGoroutines)
-
-	// GC
-	totalGCRounds := last.GcRounds - first.GcRounds
-	totalGCTime := time.Duration(last.TotalGCTime - first.TotalGCTime)
-	fmt.Printf("Rodadas de GC          : %d\n", totalGCRounds)
-	fmt.Printf("Tempo Total de GC      : %v\n", totalGCTime)
-	if totalGCRounds > 0 {
-		avgGCTime := totalGCTime / time.Duration(totalGCRounds)
-		fmt.Printf("Tempo Médio por GC     : %v\n", avgGCTime)
-	}
+	fmt.Printf("Goroutines Final       : %d\n", last.NumGoroutines)
 
 	fmt.Println(strings.Repeat("═", 80))
 }

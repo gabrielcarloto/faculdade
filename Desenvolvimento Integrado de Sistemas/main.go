@@ -28,19 +28,6 @@ func main() {
 	watchResources(150 * time.Millisecond)
 	setupSignalHandler()
 
-	modelH1 := loadModel("H-1")
-	modelH2 := loadModel("H-2")
-
-	modelsBySignalLen := map[int]*mat.Dense{
-		modelH1.RawMatrix().Rows: modelH1,
-		modelH2.RawMatrix().Rows: modelH2,
-	}
-
-	dimensionsBySignalLen := map[int]string{
-		modelH1.RawMatrix().Rows: "60x60",
-		modelH2.RawMatrix().Rows: "30x30",
-	}
-
 	algorithmMap := map[string]ReconstructionAlgo{
 		"CGNE": CGNE,
 		"CGNR": CGNR,
@@ -61,12 +48,13 @@ func main() {
 
 		signalLen := len(reconstructionRequest.Signal)
 
-		model, ok := modelsBySignalLen[signalLen]
+		model, dimensions, releaseModel := LoadModel(signalLen)
+		defer releaseModel()
 
-		if !ok {
-			http.Error(res, "InvalidSignalSize", http.StatusBadRequest)
-			return
-		}
+		// if !ok {
+		// 	http.Error(res, "InvalidSignalSize", http.StatusBadRequest)
+		// 	return
+		// }
 
 		algorithm, ok := algorithmMap[reconstructionRequest.Algorithm]
 
@@ -77,22 +65,11 @@ func main() {
 
 		signal := mat.NewVecDense(signalLen, reconstructionRequest.Signal)
 
-		memBefore := takeMemSnapshot()
 		image, iterations, start, end := algorithm(model, signal)
-		memAfter := takeMemSnapshot()
-
-		// Log do uso de memória se verbose mode estiver ativo (pode ser configurado)
-		delta := int64(memAfter.HeapAlloc) - int64(memBefore.HeapAlloc)
-		if delta > 1024*1024 { // Se alocou mais de 1MB, loga
-			fmt.Printf("🔍 %s: Δ Heap = %+s, Tempo = %v\n", 
-				reconstructionRequest.Algorithm, 
-				formatBytes(uint64(absInt64(delta))), 
-				end.Sub(start))
-		}
 
 		response := ReconstructionResponse{
 			Image:      image.RawVector().Data,
-			Dimensions: dimensionsBySignalLen[signalLen],
+			Dimensions: dimensions,
 			Algorithm:  reconstructionRequest.Algorithm,
 			Iterations: iterations,
 			Start:      start,
