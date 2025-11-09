@@ -48,13 +48,13 @@ func main() {
 
 		signalLen := len(reconstructionRequest.Signal)
 
-		model, dimensions, releaseModel := LoadModel(signalLen)
-		defer releaseModel()
+		model, err := tryLoadModel(signalLen)
+		defer model.release()
 
-		// if !ok {
-		// 	http.Error(res, "InvalidSignalSize", http.StatusBadRequest)
-		// 	return
-		// }
+		if err != nil {
+			http.Error(res, err.Error(), http.StatusBadRequest)
+			return
+		}
 
 		algorithm, ok := algorithmMap[reconstructionRequest.Algorithm]
 
@@ -65,11 +65,11 @@ func main() {
 
 		signal := mat.NewVecDense(signalLen, reconstructionRequest.Signal)
 
-		image, iterations, start, end := algorithm(model, signal)
+		image, iterations, start, end := algorithm(model.matrix, signal)
 
 		response := ReconstructionResponse{
 			Image:      image.RawVector().Data,
-			Dimensions: dimensions,
+			Dimensions: model.dimensions,
 			Algorithm:  reconstructionRequest.Algorithm,
 			Iterations: iterations,
 			Start:      start,
