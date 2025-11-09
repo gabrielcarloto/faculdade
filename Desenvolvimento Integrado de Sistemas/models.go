@@ -51,21 +51,19 @@ func (model *Model) release() {
 	}()
 }
 
-func tryLoadModel(rows int) (*Model, error) {
+func LoadModel(rows int) (*Model, error) {
 	model, ok := models[rows]
 
 	if !ok {
-		return nil, fmt.Errorf("Modelo não encontrado: %d", rows)
+		return nil, fmt.Errorf("modelo não encontrado: %d", rows)
+	}
+
+	if model.currentlyUsing == 0 {
+		return nil, fmt.Errorf("é necessário reservar o modelo antes de carregá-lo: %d", rows)
 	}
 
 	mutex.Lock()
 	defer mutex.Unlock()
-
-	if canLoad, err := canLoadModel(rows); !canLoad || err != nil {
-		return nil, fmt.Errorf("Modelo não pode ser carregado agora: %d", rows)
-	}
-
-	model.currentlyUsing++
 
 	if model.matrix == nil {
 		log.Printf("Carregando modelo %d\n", rows)
@@ -132,4 +130,17 @@ func canLoadModel(rows int) (bool, error) {
 	runtime.GC()
 
 	return true, nil
+}
+
+func tryReserveModel(rows int) bool {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	if canLoad, err := canLoadModel(rows); !canLoad || err != nil {
+		return false
+	}
+
+	models[rows].currentlyUsing++
+
+	return true
 }

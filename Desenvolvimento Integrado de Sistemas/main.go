@@ -48,7 +48,12 @@ func main() {
 
 		signalLen := len(reconstructionRequest.Signal)
 
-		model, err := tryLoadModel(signalLen)
+		if !tryReserveModel(signalLen) {
+			http.Error(res, "CantReserve", http.StatusInternalServerError)
+			return
+		}
+
+		model, err := LoadModel(signalLen)
 		defer model.release()
 
 		if err != nil {
