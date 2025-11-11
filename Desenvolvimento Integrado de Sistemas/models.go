@@ -144,8 +144,6 @@ func tryReserveModel(rows int) bool {
 }
 
 func isModelLoaded(rows int) bool {
-	modelCacheMutex.Lock()
-	defer modelCacheMutex.Unlock()
 	model, ok := models[rows]
 	return ok && model.matrix != nil
 }

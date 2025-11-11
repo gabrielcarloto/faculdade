@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"log"
+	"math"
 	"runtime"
 	"slices"
 	"sync"
@@ -43,13 +44,21 @@ type Task struct {
 	Signal      []float64
 	Priority    float32
 	ArrivalTime time.Time
+	Retries     uint32
 }
 
 func calcPriority(task *Task) float32 {
 	resourceFactor := modelLoadedPriority[isModelLoaded(len(task.Signal))]
-	starvationFactor := time.Since(task.ArrivalTime).Seconds() / 3
+	algoFactor := algorithmPriority[task.Algorithm]
 
-	return task.Priority * resourceFactor * float32(starvationFactor)
+	waitTime := time.Since(task.ArrivalTime).Seconds()
+	starvationBonus := float32(math.Log1p(waitTime)) * 2
+
+	retryPenalty := float32(math.Pow(0.9, float64(task.Retries)))
+
+	priority := (resourceFactor * algoFactor * retryPenalty) + starvationBonus
+
+	return min(priority, 10_000)
 }
 
 func EnqueueTask(request ReconstructionRequest) (*Task, error) {
@@ -103,18 +112,25 @@ func scheduler() {
 		sortQueue()
 		task := queue[0]
 		queue = queue[1:]
+		queueCond.L.Unlock()
+
 		reserved := tryReserveModel(len(task.Signal))
 
-		for !reserved {
-			task.Priority *= 0.8
-			queue = append(queue, task)
+		if !reserved {
+			task.Retries++
+			task.Priority *= 0.9
 
-			task = queue[0]
-			queue = queue[1:]
-			reserved = tryReserveModel(len(task.Signal))
+			go func() {
+				backoff := time.Duration(task.Retries) * 100 * time.Millisecond
+				time.Sleep(backoff)
+				queueCond.L.Lock()
+				queue = append(queue, task)
+				queueCond.Signal()
+				queueCond.L.Unlock()
+			}()
+
+			continue
 		}
-
-		queueCond.L.Unlock()
 
 		workerSemaphore <- struct{}{}
 
