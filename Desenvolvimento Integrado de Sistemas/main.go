@@ -24,9 +24,14 @@ type ReconstructionResponse struct {
 	Duration   time.Duration `json:"duration"`
 }
 
+type AsyncReconstructionResponse struct {
+	TaskID uint32 `json:"taskId"`
+}
+
 func main() {
 	watchResources(150 * time.Millisecond)
 	setupSignalHandler()
+	InitScheduler()
 
 	algorithmMap := map[string]ReconstructionAlgo{
 		"CGNE": CGNE,
@@ -84,6 +89,36 @@ func main() {
 
 		res.Header().Set("Content-Type", "application/json")
 		res.WriteHeader(http.StatusOK)
+
+		json.NewEncoder(res).Encode(response)
+	})
+
+	http.HandleFunc("/reconstruct/async", func(res http.ResponseWriter, req *http.Request) {
+		if req.Method != http.MethodPost {
+			http.Error(res, "MethodNotAllowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var reconstructionRequest ReconstructionRequest
+
+		if err := json.NewDecoder(req.Body).Decode(&reconstructionRequest); err != nil {
+			http.Error(res, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		createdTask, err := EnqueueTask(reconstructionRequest)
+
+		if err != nil {
+			http.Error(res, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		res.Header().Set("Content-Type", "application/json")
+		res.WriteHeader(http.StatusOK)
+
+		response := AsyncReconstructionResponse{
+			TaskID: createdTask.ID,
+		}
 
 		json.NewEncoder(res).Encode(response)
 	})

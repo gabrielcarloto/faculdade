@@ -32,6 +32,10 @@ type ClientResponse struct {
 	Duration   time.Duration `json:"duration"`
 }
 
+type AsyncResponse struct {
+	TaskID uint32 `json:"taskId"`
+}
+
 type SignalConfig struct {
 	Dimensions string
 	Filename   string
@@ -51,7 +55,7 @@ var (
 )
 
 func main() {
-	serverURL := "http://localhost:3000/reconstruct"
+	serverURL := "http://localhost:3000/reconstruct/async"
 
 	fmt.Printf("Configurações de sinais disponíveis:\n")
 	for _, config := range signalConfigs {
@@ -59,11 +63,10 @@ func main() {
 	}
 	fmt.Println()
 
-	// Configuração inicial: 1 requisição por segundo
 	requestsPerSecond := 10
 	duration := 10 * time.Second
 
-	fmt.Printf("Iniciando teste leve: %d requisição/segundo por %v\n", requestsPerSecond, duration)
+	fmt.Printf("Iniciando teste assíncrono: %d requisição/segundo por %v\n", requestsPerSecond, duration)
 	fmt.Println("Pressione Ctrl+C para parar")
 	fmt.Println()
 
@@ -122,7 +125,7 @@ func main() {
 					return
 				}
 
-				err = sendRequest(serverURL, cfg, signal, algo, reqNum)
+				err = sendAsyncRequest(serverURL, cfg, signal, algo, reqNum)
 				if err != nil {
 					fmt.Printf("❌ Req #%d falhou: %v\n", reqNum, err)
 					atomic.AddInt64(&failedRequests, 1)
@@ -134,7 +137,7 @@ func main() {
 	}
 }
 
-func sendRequest(serverURL string, config SignalConfig, signal []float64, algorithm string, reqNum int) error {
+func sendAsyncRequest(serverURL string, config SignalConfig, signal []float64, algorithm string, reqNum int) error {
 	request := ClientRequest{
 		Dimensions: config.Dimensions,
 		Algorithm:  algorithm,
@@ -158,28 +161,20 @@ func sendRequest(serverURL string, config SignalConfig, signal []float64, algori
 		return fmt.Errorf("status %d: %s", resp.StatusCode, string(body))
 	}
 
-	var response ClientResponse
-	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+	var asyncResponse AsyncResponse
+	if err := json.NewDecoder(resp.Body).Decode(&asyncResponse); err != nil {
 		return fmt.Errorf("erro ao decodificar resposta: %w", err)
 	}
 
 	duration := time.Since(startTime)
-	fmt.Printf("✓ Req #%d: %s (%s) com %s - %d iterações - %v\n",
+	fmt.Printf("✓ Req #%d: %s (%s) com %s - Task ID: %d - Enviada em %v\n",
 		reqNum,
 		config.Name,
 		config.Dimensions,
 		algorithm,
-		response.Iterations,
+		asyncResponse.TaskID,
 		duration,
 	)
-
-	filename := fmt.Sprintf("./out/%s-%s-%d-%d.png", config.Name, algorithm, reqNum, time.Now().UnixNano())
-
-	saveImageWithInfo(response.Image, filename, ImageInfo{
-		Algorithm:  response.Algorithm,
-		Iterations: response.Iterations,
-		Duration:   duration,
-	})
 
 	return nil
 }

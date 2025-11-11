@@ -371,7 +371,12 @@ func setupSignalHandler() {
 
 	go func() {
 		<-sigChan
+		fmt.Println("\nAguardando tarefas em andamento finalizarem...")
+
+		workersWaitGroup.Wait()
 		stopMonitoring()
+
+		fmt.Println("Todas as tarefas finalizadas.")
 		time.Sleep(100 * time.Millisecond)
 
 		printPerformanceReport()

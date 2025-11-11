@@ -14,17 +14,17 @@ import (
 type CachedModel struct {
 	name            string
 	matrix          *mat.Dense
-	currentlyUsing  int
+	reservations    int
 	estimatedMemory uint64
 	dimensions      string
 }
 
 var models = map[int]*CachedModel{
-	50816: {name: "H-1", matrix: nil, currentlyUsing: 0, estimatedMemory: 50816 * (60 * 60) * 8, dimensions: "60x60"},
-	27904: {name: "H-2", matrix: nil, currentlyUsing: 0, estimatedMemory: 27904 * (30 * 30) * 8, dimensions: "30x30"},
+	50816: {name: "H-1", matrix: nil, reservations: 0, estimatedMemory: 50816 * (60 * 60) * 8, dimensions: "60x60"},
+	27904: {name: "H-2", matrix: nil, reservations: 0, estimatedMemory: 27904 * (30 * 30) * 8, dimensions: "30x30"},
 }
 
-var mutex sync.Mutex
+var modelCacheMutex sync.Mutex
 
 type Model struct {
 	matrix     *mat.Dense
@@ -32,21 +32,19 @@ type Model struct {
 }
 
 func (model *Model) release() {
-	mutex.Lock()
-	defer mutex.Unlock()
+	modelCacheMutex.Lock()
+	defer modelCacheMutex.Unlock()
 
 	cachedModel := models[model.matrix.RawMatrix().Rows]
-	cachedModel.currentlyUsing--
-
-	currentlyUsing := cachedModel.currentlyUsing
+	cachedModel.reservations--
 
 	go func() {
 		time.Sleep(5 * time.Second)
-		mutex.Lock()
-		defer mutex.Unlock()
-		if cachedModel.currentlyUsing == 0 && currentlyUsing == 0 {
+		modelCacheMutex.Lock()
+		defer modelCacheMutex.Unlock()
+
+		if cachedModel.reservations == 0 {
 			cachedModel.matrix = nil
-			// TODO: como garantir que a memória foi liberada?
 		}
 	}()
 }
@@ -58,12 +56,12 @@ func LoadModel(rows int) (*Model, error) {
 		return nil, fmt.Errorf("modelo não encontrado: %d", rows)
 	}
 
-	if model.currentlyUsing == 0 {
+	if model.reservations == 0 {
 		return nil, fmt.Errorf("é necessário reservar o modelo antes de carregá-lo: %d", rows)
 	}
 
-	mutex.Lock()
-	defer mutex.Unlock()
+	modelCacheMutex.Lock()
+	defer modelCacheMutex.Unlock()
 
 	if model.matrix == nil {
 		log.Printf("Carregando modelo %d\n", rows)
@@ -110,7 +108,7 @@ func canLoadModel(rows int) (bool, error) {
 	var modelsToFree []int
 
 	for key, model := range models {
-		if model.matrix != nil && model.currentlyUsing == 0 {
+		if model.matrix != nil && model.reservations == 0 {
 			memoryThatCanBeFreed += model.estimatedMemory
 			modelsToFree = append(modelsToFree, key)
 		}
@@ -133,14 +131,21 @@ func canLoadModel(rows int) (bool, error) {
 }
 
 func tryReserveModel(rows int) bool {
-	mutex.Lock()
-	defer mutex.Unlock()
+	modelCacheMutex.Lock()
+	defer modelCacheMutex.Unlock()
 
 	if canLoad, err := canLoadModel(rows); !canLoad || err != nil {
 		return false
 	}
 
-	models[rows].currentlyUsing++
+	models[rows].reservations++
 
 	return true
+}
+
+func isModelLoaded(rows int) bool {
+	modelCacheMutex.Lock()
+	defer modelCacheMutex.Unlock()
+	model, ok := models[rows]
+	return ok && model.matrix != nil
 }
