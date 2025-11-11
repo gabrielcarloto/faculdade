@@ -151,6 +151,8 @@ func runTask(task *Task) {
 
 	reconstructImage := algorithmMap[task.Algorithm]
 	signal := mat.NewVecDense(signalLen, task.Signal)
+	task.Signal = nil
+
 	image, iterations, start, end := reconstructImage(model.matrix, signal)
 
 	SaveReconstructionResult(task.ID, task.Algorithm, model.dimensions, image, iterations, start, end, "./out")

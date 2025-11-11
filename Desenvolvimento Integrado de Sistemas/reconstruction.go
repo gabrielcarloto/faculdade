@@ -32,8 +32,10 @@ func CGNE(model *mat.Dense, signal *mat.VecDense) (*mat.VecDense, int, time.Time
 	previousResidualNorm := mat.Norm(residual, 2)
 	var i int
 
-	// NOTE: criar vetores alphaHp, alphaP e HTr antes do loop aparentemente não
-	// muda muito a performance. Na verdade, por algum motivo usa mais memória.
+	alphaP := mat.NewVecDense(cols, nil)
+	alphaHp := mat.NewVecDense(rows, nil)
+	HTr := mat.NewVecDense(cols, nil)
+
 	for i = 0; i < MaxIter; i++ {
 		// alpha_i = (r_i^T * r_i) / (p_i^T * p_i)
 		rTr := mat.Dot(residual, residual)
@@ -41,12 +43,10 @@ func CGNE(model *mat.Dense, signal *mat.VecDense) (*mat.VecDense, int, time.Time
 		alpha := rTr / pTp
 
 		// f_(i+1) = f_i + alpha_i * p_i
-		alphaP := mat.NewVecDense(cols, nil)
 		alphaP.ScaleVec(alpha, p)
 		image.AddVec(image, alphaP)
 
 		// r_(i+1) = r_i - alpha_i * H * p_i
-		alphaHp := mat.NewVecDense(rows, nil)
 		alphaHp.MulVec(model, p)
 		alphaHp.ScaleVec(alpha, alphaHp)
 		residual.SubVec(residual, alphaHp)
@@ -69,7 +69,6 @@ func CGNE(model *mat.Dense, signal *mat.VecDense) (*mat.VecDense, int, time.Time
 		beta := rTrNext / rTr
 
 		// p_(i+1) = H^T * r_(i+1) + Beta_i * p_i
-		HTr := mat.NewVecDense(cols, nil)
 		HTr.MulVec(model.T(), residual)
 		p.AddScaledVec(HTr, beta, p)
 	}
@@ -103,9 +102,11 @@ func CGNR(model *mat.Dense, signal *mat.VecDense) (*mat.VecDense, int, time.Time
 
 	var i int
 
+	w := mat.NewVecDense(rows, nil)
+	alphaP := mat.NewVecDense(cols, nil)
+
 	for i = 0; i < MaxIter; i++ {
 		// w_i = H * p_i
-		w := mat.NewVecDense(rows, nil)
 		w.MulVec(model, p)
 
 		// alpha_i = || z_i ||^2_2 / || w_i ||^2_2
@@ -115,7 +116,6 @@ func CGNR(model *mat.Dense, signal *mat.VecDense) (*mat.VecDense, int, time.Time
 		alpha := zNormSquared / (wNorm * wNorm)
 
 		// f_(i+1) = f_i + alpha_i * p_i
-		alphaP := mat.NewVecDense(cols, nil)
 		alphaP.ScaleVec(alpha, p)
 		image.AddVec(image, alphaP)
 
@@ -132,7 +132,6 @@ func CGNR(model *mat.Dense, signal *mat.VecDense) (*mat.VecDense, int, time.Time
 		}
 
 		// z_(i+1) = H^T * r_(i+1)
-		z = mat.NewVecDense(cols, nil)
 		z.MulVec(model.T(), residual)
 
 		// Beta_i = || z_(i+1) ||^2_2 / || z_i ||^2_2
