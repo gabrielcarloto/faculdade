@@ -45,6 +45,7 @@ func (model *Model) release() {
 
 		if cachedModel.reservations == 0 {
 			cachedModel.matrix = nil
+			go UpdatePriorities()
 		}
 	}()
 }
@@ -66,6 +67,7 @@ func LoadModel(rows int) (*Model, error) {
 	if model.matrix == nil {
 		log.Printf("Carregando modelo %d\n", rows)
 		model.matrix = loadModel(model.name)
+		go UpdatePriorities()
 	}
 
 	publicModel := new(Model)

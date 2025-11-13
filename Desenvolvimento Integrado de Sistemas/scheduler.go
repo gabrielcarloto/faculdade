@@ -1,16 +1,61 @@
 package main
 
 import (
+	"container/heap"
 	"errors"
 	"log"
 	"math"
 	"runtime"
-	"slices"
 	"sync"
 	"time"
 
 	"gonum.org/v1/gonum/mat"
 )
+
+type Task struct {
+	ID          uint32
+	Algorithm   string
+	Signal      []float64
+	Priority    float32
+	ArrivalTime time.Time
+	Retries     uint32
+	index       int
+}
+
+type PriorityQueue []*Task
+
+func (q PriorityQueue) Len() int { return len(q) }
+
+func (q PriorityQueue) Less(i, j int) bool {
+	if q[i].Priority == q[j].Priority {
+		return q[i].ArrivalTime.Before(q[j].ArrivalTime)
+	}
+
+	return q[i].Priority > q[j].Priority
+}
+
+func (q PriorityQueue) Swap(i, j int) {
+	q[i], q[j] = q[j], q[i]
+	q[i].index = j
+	q[j].index = i
+}
+
+func (q *PriorityQueue) Push(x any) {
+	task := x.(*Task)
+	task.index = len(*q)
+	*q = append(*q, task)
+}
+
+func (q *PriorityQueue) Pop() any {
+	item := (*q)[len(*q)-1]
+	*q = (*q)[0 : len(*q)-1]
+	return item
+}
+
+func (q *PriorityQueue) Update(task *Task, priority float32) {
+	task.Priority = priority
+	heap.Fix(q, task.index)
+}
 
 var (
 	algorithmMap = map[string]ReconstructionAlgo{
@@ -29,7 +74,7 @@ var (
 		false: 1.0,
 	}
 
-	queue      []*Task
+	queue      PriorityQueue
 	queueCond  = sync.NewCond(&sync.Mutex{})
 	nextTaskID = uint32(0)
 
@@ -39,27 +84,35 @@ var (
 	retryTimeoutWaitGroup sync.WaitGroup
 )
 
-type Task struct {
-	ID          uint32
-	Algorithm   string
-	Signal      []float64
-	Priority    float32
-	ArrivalTime time.Time
-	Retries     uint32
+func calcBasePriority(task *Task) float32 {
+	resourceFactor := modelLoadedPriority[isModelLoaded(len(task.Signal))]
+	algoFactor := algorithmPriority[task.Algorithm]
+
+	return resourceFactor * algoFactor
 }
 
 func calcPriority(task *Task) float32 {
-	resourceFactor := modelLoadedPriority[isModelLoaded(len(task.Signal))]
-	algoFactor := algorithmPriority[task.Algorithm]
+	base := calcBasePriority(task)
 
 	waitTime := time.Since(task.ArrivalTime).Seconds()
 	starvationBonus := float32(math.Log1p(waitTime)) * 2
 
 	retryPenalty := float32(math.Pow(0.9, float64(task.Retries)))
 
-	priority := (resourceFactor * algoFactor * retryPenalty) + starvationBonus
+	priority := (base * retryPenalty) + starvationBonus
 
 	return min(priority, 10_000)
+}
+
+func UpdatePriorities() {
+	queueCond.L.Lock()
+	defer queueCond.L.Unlock()
+
+	for _, task := range queue {
+		task.Priority = calcPriority(task)
+	}
+
+	heap.Init(&queue)
 }
 
 func EnqueueTask(request ReconstructionRequest) (*Task, error) {
@@ -85,22 +138,16 @@ func EnqueueTask(request ReconstructionRequest) (*Task, error) {
 		ID:          nextTaskID,
 		Algorithm:   request.Algorithm,
 		Signal:      request.Signal,
-		Priority:    algorithmPriority[request.Algorithm],
 		ArrivalTime: time.Now(),
 	}
 
+	task.Priority = calcBasePriority(task)
+
 	nextTaskID++
 
-	queue = append(queue, task)
+	heap.Push(&queue, task)
 
 	return task, nil
-}
-
-func sortQueue() {
-	slices.SortStableFunc(queue, func(a, b *Task) int {
-		a.Priority, b.Priority = calcPriority(a), calcPriority(b)
-		return int(b.Priority - a.Priority)
-	})
 }
 
 func scheduler() {
@@ -110,9 +157,7 @@ func scheduler() {
 			queueCond.Wait()
 		}
 
-		sortQueue()
-		task := queue[0]
-		queue = queue[1:]
+		task := heap.Pop(&queue).(*Task)
 		queueCond.L.Unlock()
 
 		reserved := tryReserveModel(len(task.Signal))
@@ -124,8 +169,9 @@ func scheduler() {
 			retryTimeoutWaitGroup.Go(func() {
 				backoff := time.Duration(task.Retries) * 100 * time.Millisecond
 				time.Sleep(backoff)
+				task.Priority = calcPriority(task)
 				queueCond.L.Lock()
-				queue = append(queue, task)
+				heap.Push(&queue, task)
 				queueCond.Signal()
 				queueCond.L.Unlock()
 			})
@@ -161,4 +207,11 @@ func runTask(task *Task) {
 
 func InitScheduler() {
 	go scheduler()
+	go func() {
+		ticker := time.Tick(1 * time.Second)
+
+		for range ticker {
+			UpdatePriorities()
+		}
+	}()
 }
