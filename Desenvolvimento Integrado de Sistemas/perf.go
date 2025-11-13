@@ -373,6 +373,7 @@ func setupSignalHandler() {
 		<-sigChan
 		fmt.Println("\nAguardando tarefas em andamento finalizarem...")
 
+		retryTimeoutWaitGroup.Wait()
 		workersWaitGroup.Wait()
 		stopMonitoring()
 

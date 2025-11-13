@@ -33,9 +33,10 @@ var (
 	queueCond  = sync.NewCond(&sync.Mutex{})
 	nextTaskID = uint32(0)
 
-	maxWorkers       = runtime.NumCPU()
-	workerSemaphore  = make(chan struct{}, maxWorkers)
-	workersWaitGroup sync.WaitGroup
+	maxWorkers            = runtime.NumCPU()
+	workerSemaphore       = make(chan struct{}, maxWorkers)
+	workersWaitGroup      sync.WaitGroup
+	retryTimeoutWaitGroup sync.WaitGroup
 )
 
 type Task struct {
@@ -120,14 +121,14 @@ func scheduler() {
 			task.Retries++
 			task.Priority *= 0.9
 
-			go func() {
+			retryTimeoutWaitGroup.Go(func() {
 				backoff := time.Duration(task.Retries) * 100 * time.Millisecond
 				time.Sleep(backoff)
 				queueCond.L.Lock()
 				queue = append(queue, task)
 				queueCond.Signal()
 				queueCond.L.Unlock()
-			}()
+			})
 
 			continue
 		}
