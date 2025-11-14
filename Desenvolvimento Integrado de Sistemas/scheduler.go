@@ -85,7 +85,7 @@ var (
 )
 
 func calcBasePriority(task *Task) float32 {
-	resourceFactor := modelLoadedPriority[isModelLoaded(len(task.Signal))]
+	resourceFactor := modelLoadedPriority[cache.IsModelReserved(len(task.Signal))]
 	algoFactor := algorithmPriority[task.Algorithm]
 
 	return resourceFactor * algoFactor
@@ -161,7 +161,7 @@ func scheduler() {
 		task := heap.Pop(&queue).(*Task)
 		queueCond.L.Unlock()
 
-		reserved := tryReserveModel(len(task.Signal))
+		reserved, _ := cache.TryReserve(len(task.Signal))
 
 		if !reserved {
 			task.Retries++
@@ -194,16 +194,16 @@ func scheduler() {
 func runTask(task *Task) {
 	signalLen := len(task.Signal)
 
-	model, _ := LoadModel(signalLen)
-	defer model.release()
+	model, _ := cache.Load(signalLen)
 
 	reconstructImage := algorithmMap[task.Algorithm]
 	signal := mat.NewVecDense(signalLen, task.Signal)
 	task.Signal = nil
 
-	image, iterations, start, end := reconstructImage(model.matrix, signal)
+	image, iterations, start, end := reconstructImage(model.Matrix, signal)
+	cache.Release(signalLen)
 
-	SaveReconstructionResult(task.ID, task.Algorithm, model.dimensions, image, iterations, start, end, "./out")
+	SaveReconstructionResult(task.ID, task.Algorithm, model.Dimensions, image, iterations, start, end, "./out")
 }
 
 func InitScheduler() {

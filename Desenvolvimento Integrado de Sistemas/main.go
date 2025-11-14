@@ -29,9 +29,13 @@ type AsyncReconstructionResponse struct {
 	TaskID uint32 `json:"taskId"`
 }
 
+var cache ModelCache
+
 func main() {
 	watchResources(150 * time.Millisecond)
 	setupSignalHandler()
+
+	cache.Init()
 	InitScheduler()
 
 	algorithmMap := map[string]ReconstructionAlgo{
@@ -54,13 +58,13 @@ func main() {
 
 		signalLen := len(reconstructionRequest.Signal)
 
-		if !tryReserveModel(signalLen) {
+		if reserved, err := cache.TryReserve(signalLen); !reserved || err != nil {
 			http.Error(res, "CantReserve", http.StatusInternalServerError)
 			return
 		}
 
-		model, err := LoadModel(signalLen)
-		defer model.release()
+		model, err := cache.Load(signalLen)
+		defer cache.Release(signalLen)
 
 		if err != nil {
 			http.Error(res, err.Error(), http.StatusBadRequest)
@@ -76,11 +80,11 @@ func main() {
 
 		signal := mat.NewVecDense(signalLen, reconstructionRequest.Signal)
 
-		image, iterations, start, end := algorithm(model.matrix, signal)
+		image, iterations, start, end := algorithm(model.Matrix, signal)
 
 		response := ReconstructionResponse{
 			Image:      image.RawVector().Data,
-			Dimensions: model.dimensions,
+			Dimensions: model.Dimensions,
 			Algorithm:  reconstructionRequest.Algorithm,
 			Iterations: iterations,
 			Start:      start,
