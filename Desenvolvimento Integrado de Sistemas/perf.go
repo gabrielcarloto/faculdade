@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/shirou/gopsutil/v4/cpu"
-	"github.com/shirou/gopsutil/v4/mem"
 )
 
 func printMemoryUsage() {
@@ -69,10 +68,9 @@ func resourceSnapshot() Snapshot {
 	runtime.ReadMemStats(&stats)
 	numGoroutines := runtime.NumGoroutine()
 
-	mem := mem.NewExWindows()
-	vmem, _ := mem.VirtualMemory()
-	usedRAM := vmem.PhysTotal - vmem.PhysAvail
-	ramPercent := 100 * float64(usedRAM) / float64(vmem.PhysTotal)
+	vmem, _ := GetMemoryUsage()
+	usedRAM := vmem.Used
+	ramPercent := 100 * float64(usedRAM) / float64(vmem.Total)
 	cpuPercent, _ := cpu.Percent(0, false)
 
 	return Snapshot{

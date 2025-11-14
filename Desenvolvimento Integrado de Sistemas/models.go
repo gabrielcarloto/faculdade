@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/shirou/gopsutil/v4/mem"
 	"gonum.org/v1/gonum/mat"
 )
 
@@ -20,9 +19,11 @@ type CachedModel struct {
 }
 
 var models = map[int]*CachedModel{
-	50816: {name: "H-1", matrix: nil, reservations: 0, estimatedMemory: 50816 * (60 * 60) * 8, dimensions: "60x60"},
-	27904: {name: "H-2", matrix: nil, reservations: 0, estimatedMemory: 27904 * (30 * 30) * 8, dimensions: "30x30"},
+	50816: {name: "H-1", matrix: nil, reservations: 0, estimatedMemory: 50816 * (60 * 60) * 8 * 1.01, dimensions: "60x60"},
+	27904: {name: "H-2", matrix: nil, reservations: 0, estimatedMemory: 27904 * (30 * 30) * 8 * 1.01, dimensions: "30x30"},
 }
+
+var estimatedLoadingMemory = uint64(0)
 
 var modelCacheMutex sync.Mutex
 
@@ -38,16 +39,22 @@ func (model *Model) release() {
 	cachedModel := models[model.matrix.RawMatrix().Rows]
 	cachedModel.reservations--
 
-	go func() {
-		time.Sleep(5 * time.Second)
-		modelCacheMutex.Lock()
-		defer modelCacheMutex.Unlock()
+	isCandidate := cachedModel.reservations == 0 && cachedModel.matrix != nil
 
-		if cachedModel.reservations == 0 {
-			cachedModel.matrix = nil
-			go UpdatePriorities()
-		}
-	}()
+	if isCandidate {
+		go func() {
+			time.Sleep(5 * time.Second)
+			modelCacheMutex.Lock()
+			defer modelCacheMutex.Unlock()
+
+			shouldFree := cachedModel.reservations == 0 && cachedModel.matrix != nil
+
+			if shouldFree {
+				cachedModel.matrix = nil
+				go UpdatePriorities()
+			}
+		}()
+	}
 }
 
 func LoadModel(rows int) (*Model, error) {
@@ -67,6 +74,7 @@ func LoadModel(rows int) (*Model, error) {
 	if model.matrix == nil {
 		log.Printf("Carregando modelo %d\n", rows)
 		model.matrix = loadModel(model.name)
+		estimatedLoadingMemory -= model.estimatedMemory
 		go UpdatePriorities()
 	}
 
@@ -85,12 +93,11 @@ func canLoadModel(rows int) (bool, error) {
 		return false, fmt.Errorf("modelo não encontrado: %d", rows)
 	}
 
-	if model.matrix != nil {
+	if model.reservations > 0 || model.matrix != nil {
 		return true, nil
 	}
 
-	mem := mem.NewExWindows()
-	vmem, err := mem.VirtualMemory()
+	vmem, err := GetMemoryUsage()
 	if err != nil {
 		return false, err
 	}
@@ -99,8 +106,11 @@ func canLoadModel(rows int) (bool, error) {
 	runtime.ReadMemStats(&memStats)
 
 	heapAvailable := memStats.HeapIdle - memStats.HeapReleased
+	totalAvailable := vmem.Available + heapAvailable
+	selfAvailableLimit := totalAvailable * 80 / 100
+	requiredMemory := model.estimatedMemory + estimatedLoadingMemory
 
-	canLoad := model.estimatedMemory < (vmem.PhysAvail*85/100 + heapAvailable)
+	canLoad := requiredMemory < selfAvailableLimit
 
 	if canLoad {
 		return true, nil
@@ -120,7 +130,7 @@ func canLoadModel(rows int) (bool, error) {
 		return false, nil
 	}
 
-	for key := range modelsToFree {
+	for _, key := range modelsToFree {
 		models[key].matrix = nil
 	}
 
@@ -140,12 +150,18 @@ func tryReserveModel(rows int) bool {
 		return false
 	}
 
-	models[rows].reservations++
+	model := models[rows]
+
+	if model.reservations == 0 || model.matrix == nil {
+		estimatedLoadingMemory += model.estimatedMemory
+	}
+
+	model.reservations++
 
 	return true
 }
 
 func isModelLoaded(rows int) bool {
 	model, ok := models[rows]
-	return ok && model.matrix != nil
+	return ok && model.reservations > 0
 }

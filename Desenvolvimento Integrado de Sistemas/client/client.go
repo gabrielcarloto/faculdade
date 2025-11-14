@@ -64,7 +64,7 @@ func main() {
 	fmt.Println()
 
 	requestsPerSecond := 10
-	duration := 10 * time.Second
+	duration := 60 * time.Second
 
 	fmt.Printf("Iniciando teste assíncrono: %d requisição/segundo por %v\n", requestsPerSecond, duration)
 	fmt.Println("Pressione Ctrl+C para parar")

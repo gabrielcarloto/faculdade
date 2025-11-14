@@ -13,6 +13,8 @@ const (
 
 type ReconstructionAlgo func(model *mat.Dense, signal *mat.VecDense) (*mat.VecDense, int, time.Time, time.Time)
 
+// NOTE: daria pra usar um pool de vetores aqui?
+
 func CGNE(model *mat.Dense, signal *mat.VecDense) (*mat.VecDense, int, time.Time, time.Time) {
 	startTime := time.Now()
 

@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -99,6 +100,22 @@ func main() {
 			return
 		}
 
+		vmem, err := GetMemoryUsage()
+
+		var availableRatio float64
+		if vmem.Available > estimatedLoadingMemory {
+			availableRatio = float64(vmem.Available-estimatedLoadingMemory) / float64(vmem.Total)
+		} else {
+			availableRatio = 0.0
+		}
+
+		log.Printf("AvailableRatio: %.2f", availableRatio)
+
+		if err != nil || availableRatio <= 0.15 {
+			http.Error(res, "Service unavailable", http.StatusServiceUnavailable)
+			return
+		}
+
 		var reconstructionRequest ReconstructionRequest
 
 		if err := json.NewDecoder(req.Body).Decode(&reconstructionRequest); err != nil {
@@ -107,7 +124,6 @@ func main() {
 		}
 
 		createdTask, err := EnqueueTask(reconstructionRequest)
-
 		if err != nil {
 			http.Error(res, err.Error(), http.StatusBadRequest)
 			return

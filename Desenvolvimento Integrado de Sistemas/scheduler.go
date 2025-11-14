@@ -112,6 +112,7 @@ func UpdatePriorities() {
 		task.Priority = calcPriority(task)
 	}
 
+	// TODO: não sei se preciso rodar heapify tantas vezes...
 	heap.Init(&queue)
 }
 
