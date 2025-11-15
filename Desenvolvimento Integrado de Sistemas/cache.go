@@ -37,9 +37,19 @@ func (cache *ModelCache) Init() {
 		27904: {Name: "H-2", Matrix: nil, reservations: 0, estimatedMemory: 27904 * (30 * 30) * 8 * 1.01, Dimensions: "30x30", isLoading: false, loadCond: sync.NewCond(&cache.mutex)},
 	}
 
+	minMemoryRequirements := uint64(0)
+
+	for _, model := range cache.models {
+		minMemoryRequirements += model.estimatedMemory
+	}
+
 	mem, _ := GetMemoryUsage()
 	cache.memoryLimit = mem.Available * 70 / 100
 	cache.currentMemoryUsage = 0
+
+	if cache.memoryLimit < minMemoryRequirements {
+		log.Fatalf("memória insuficiente")
+	}
 }
 
 func (cache *ModelCache) TryReserve(rows Rows) (bool, error) {
@@ -137,6 +147,11 @@ func (cache *ModelCache) Release(rows Rows) {
 func (cache *ModelCache) IsModelReserved(rows Rows) bool {
 	model, ok := cache.models[rows]
 	return ok && model.reservations > 0
+}
+
+func (cache *ModelCache) ModelExists(rows Rows) bool {
+	_, ok := cache.models[rows]
+	return ok
 }
 
 func (cache *ModelCache) evictMemory(target uint64) bool {

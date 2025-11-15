@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
@@ -101,22 +100,6 @@ func main() {
 	http.HandleFunc("/reconstruct/async", func(res http.ResponseWriter, req *http.Request) {
 		if req.Method != http.MethodPost {
 			http.Error(res, "MethodNotAllowed", http.StatusMethodNotAllowed)
-			return
-		}
-
-		vmem, err := GetMemoryUsage()
-
-		var availableRatio float64
-		if vmem.Available > estimatedLoadingMemory {
-			availableRatio = float64(vmem.Available-estimatedLoadingMemory) / float64(vmem.Total)
-		} else {
-			availableRatio = 0.0
-		}
-
-		log.Printf("AvailableRatio: %.2f", availableRatio)
-
-		if err != nil || availableRatio <= 0.15 {
-			http.Error(res, "Service unavailable", http.StatusServiceUnavailable)
 			return
 		}
 

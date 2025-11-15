@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"sync"
 	"time"
+	"unsafe"
 
 	"gonum.org/v1/gonum/mat"
 )
@@ -58,6 +59,8 @@ func (q *PriorityQueue) Update(task *Task, priority float32) {
 }
 
 var (
+	maxTasks uint
+
 	algorithmMap = map[string]ReconstructionAlgo{
 		"CGNE": CGNE,
 		"CGNR": CGNR,
@@ -117,7 +120,11 @@ func UpdatePriorities() {
 }
 
 func EnqueueTask(request ReconstructionRequest) (*Task, error) {
-	_, modelExists := models[len(request.Signal)]
+	if uint(len(queue)) >= maxTasks {
+		return nil, errors.New("máximo de tasks atingido")
+	}
+
+	modelExists := cache.ModelExists(len(request.Signal))
 
 	if !modelExists {
 		return nil, errors.New("não existe modelo correspondente para a requisição")
@@ -207,6 +214,11 @@ func runTask(task *Task) {
 }
 
 func InitScheduler() {
+	mem, _ := GetMemoryUsage()
+	taskSize := uint(unsafe.Sizeof(Task{}))
+	maxMemory := mem.Available * 15 / 100
+	maxTasks = uint(maxMemory) / taskSize
+
 	go scheduler()
 	go func() {
 		ticker := time.Tick(1 * time.Second)
