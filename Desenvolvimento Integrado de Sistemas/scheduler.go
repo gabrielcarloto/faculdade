@@ -213,10 +213,9 @@ func runTask(task *Task) {
 	SaveReconstructionResult(task.ID, task.Algorithm, model.Dimensions, image, iterations, start, end, "./out")
 }
 
-func InitScheduler() {
-	mem, _ := GetMemoryUsage()
+func InitScheduler(maxMem uint64) {
 	taskSize := uint(unsafe.Sizeof(Task{}))
-	maxMemory := mem.Available * 15 / 100
+	maxMemory := maxMem * 1 / 50000
 	maxTasks = uint(maxMemory) / taskSize
 
 	go scheduler()

@@ -11,13 +11,15 @@ import (
 )
 
 type Model struct {
-	Name            string
-	Matrix          *mat.Dense
-	Dimensions      string
-	reservations    int
-	estimatedMemory uint64
-	isLoading       bool
-	loadCond        *sync.Cond
+	Name                    string
+	Matrix                  *mat.Dense
+	Dimensions              string
+	reservations            int
+	reservartionAttempts    int
+	firstReservationAttempt *time.Time
+	estimatedMemory         uint64
+	isLoading               bool
+	loadCond                *sync.Cond
 }
 
 type Rows = int
@@ -29,22 +31,42 @@ type ModelCache struct {
 	memoryLimit        uint64
 	models             CachedModels
 	mutex              sync.Mutex
+	starvingModel      *Model
 }
 
-func (cache *ModelCache) Init() {
+func (cache *ModelCache) Init(maxMem uint64) {
 	cache.models = CachedModels{
-		50816: {Name: "H-1", Matrix: nil, reservations: 0, estimatedMemory: 50816 * (60 * 60) * 8 * 1.01, Dimensions: "60x60", isLoading: false, loadCond: sync.NewCond(&cache.mutex)},
-		27904: {Name: "H-2", Matrix: nil, reservations: 0, estimatedMemory: 27904 * (30 * 30) * 8 * 1.01, Dimensions: "30x30", isLoading: false, loadCond: sync.NewCond(&cache.mutex)},
+		50816: {
+			Name:            "H-1",
+			Matrix:          nil,
+			reservations:    0,
+			estimatedMemory: 50816 * (60 * 60) * 8 * 1.01,
+			Dimensions:      "60x60",
+			isLoading:       false,
+			loadCond:        sync.NewCond(&cache.mutex),
+		},
+		27904: {
+			Name:            "H-2",
+			Matrix:          nil,
+			reservations:    0,
+			estimatedMemory: 27904 * (30 * 30) * 8 * 1.01,
+			Dimensions:      "30x30",
+			isLoading:       false,
+			loadCond:        sync.NewCond(&cache.mutex),
+		},
 	}
+
+	cache.starvingModel = nil
 
 	minMemoryRequirements := uint64(0)
 
 	for _, model := range cache.models {
-		minMemoryRequirements += model.estimatedMemory
+		if model.estimatedMemory > minMemoryRequirements {
+			minMemoryRequirements = model.estimatedMemory
+		}
 	}
 
-	mem, _ := GetMemoryUsage()
-	cache.memoryLimit = mem.Available * 70 / 100
+	cache.memoryLimit = maxMem * 75 / 100
 	cache.currentMemoryUsage = 0
 
 	if cache.memoryLimit < minMemoryRequirements {
@@ -52,14 +74,19 @@ func (cache *ModelCache) Init() {
 	}
 }
 
-func (cache *ModelCache) TryReserve(rows Rows) (bool, error) {
-	cache.mutex.Lock()
-	defer cache.mutex.Unlock()
-
+func (cache *ModelCache) reserve(rows Rows) (bool, error) {
 	model, ok := cache.models[rows]
 
 	if !ok {
 		return false, fmt.Errorf("can't load an unregistered model")
+	}
+
+	isStarving := cache.starvingModel != nil &&
+		time.Since(*cache.starvingModel.firstReservationAttempt) > 10*time.Second
+
+	if isStarving && model != cache.starvingModel {
+		// log.Printf("Negando reserva do modelo %s por inanição do %s", model.Name, cache.starvingModel.Name)
+		return false, nil
 	}
 
 	if model.Matrix != nil || model.reservations > 0 {
@@ -70,7 +97,6 @@ func (cache *ModelCache) TryReserve(rows Rows) (bool, error) {
 
 	if newUsage <= cache.memoryLimit {
 		cache.currentMemoryUsage = newUsage
-		model.reservations++
 		return true, nil
 	}
 
@@ -78,9 +104,41 @@ func (cache *ModelCache) TryReserve(rows Rows) (bool, error) {
 		return false, nil
 	}
 
-	cache.currentMemoryUsage = newUsage
-	model.reservations++
+	cache.currentMemoryUsage += model.estimatedMemory
 	return true, nil
+}
+
+func (cache *ModelCache) TryReserve(rows Rows) (bool, error) {
+	cache.mutex.Lock()
+	defer cache.mutex.Unlock()
+
+	reserved, err := cache.reserve(rows)
+	if err != nil {
+		return false, err
+	}
+
+	model := cache.models[rows]
+
+	if reserved {
+		model.reservations++
+		model.firstReservationAttempt = nil
+
+		if cache.starvingModel == model {
+			cache.starvingModel = nil
+		}
+	} else if model.firstReservationAttempt == nil && model.Matrix == nil {
+		now := time.Now()
+		model.firstReservationAttempt = &now
+
+		isMostStarved := cache.starvingModel == nil ||
+			model.firstReservationAttempt.Before(*cache.starvingModel.firstReservationAttempt)
+
+		if isMostStarved {
+			cache.starvingModel = model
+		}
+	}
+
+	return reserved, err
 }
 
 func (cache *ModelCache) Load(rows Rows) (*Model, error) {
@@ -138,6 +196,8 @@ func (cache *ModelCache) Release(rows Rows) {
 
 			if shouldFree {
 				model.Matrix = nil
+				cache.currentMemoryUsage -= model.estimatedMemory
+				log.Printf("Modelo liberado: %d", rows)
 				go UpdatePriorities()
 			}
 		}()
@@ -177,6 +237,7 @@ func (cache *ModelCache) evictMemory(target uint64) bool {
 	// o que ficasse no cache fosse um slice fora do heap do Go,
 	// mas como meu pc aguenta os dois modelos, por enquanto vou manter assim
 	runtime.GC()
+	cache.currentMemoryUsage -= memoryThatCanBeFreed
 
 	return true
 }

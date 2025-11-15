@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"runtime/debug"
 	"time"
 
 	"gonum.org/v1/gonum/mat"
@@ -34,8 +35,13 @@ func main() {
 	watchResources(150 * time.Millisecond)
 	setupSignalHandler()
 
-	cache.Init()
-	InitScheduler()
+	mem, _ := GetMemoryUsage()
+
+	debug.SetMemoryLimit(int64(mem.Available * 90 / 100))
+	maxMem := mem.Available * 75 / 100
+
+	cache.Init(maxMem)
+	InitScheduler(maxMem)
 
 	algorithmMap := map[string]ReconstructionAlgo{
 		"CGNE": CGNE,
