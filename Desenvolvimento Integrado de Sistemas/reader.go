@@ -1,7 +1,6 @@
 package main
 
 import (
-	"compress/gzip"
 	"encoding/binary"
 	"encoding/csv"
 	"io"
@@ -9,6 +8,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/klauspost/compress/zstd"
 	"gonum.org/v1/gonum/mat"
 )
 
@@ -72,17 +72,20 @@ func saveBinary(filename string, rows int, cols int, data []float64) error {
 	}
 	defer file.Close()
 
-	gzipWriter := gzip.NewWriter(file)
-	defer gzipWriter.Close()
-
-	if err := binary.Write(gzipWriter, binary.LittleEndian, int64(rows)); err != nil {
+	zstdWriter, err := zstd.NewWriter(file)
+	if err != nil {
 		return err
 	}
-	if err := binary.Write(gzipWriter, binary.LittleEndian, int64(cols)); err != nil {
+	defer zstdWriter.Close()
+
+	if err := binary.Write(zstdWriter, binary.LittleEndian, int64(rows)); err != nil {
+		return err
+	}
+	if err := binary.Write(zstdWriter, binary.LittleEndian, int64(cols)); err != nil {
 		return err
 	}
 
-	return binary.Write(gzipWriter, binary.LittleEndian, data)
+	return binary.Write(zstdWriter, binary.LittleEndian, data)
 }
 
 func saveMatrixBinary(filename string, m *mat.Dense) error {
@@ -98,23 +101,22 @@ func readBinary(filename string) (int, int, []float64, error) {
 	}
 	defer file.Close()
 
-	// Adiciona descompressão gzip
-	gzipReader, err := gzip.NewReader(file)
+	zstdReader, err := zstd.NewReader(file)
 	if err != nil {
 		return -1, -1, nil, err
 	}
-	defer gzipReader.Close()
+	defer zstdReader.Close()
 
 	var rows, cols int64
-	if err := binary.Read(gzipReader, binary.LittleEndian, &rows); err != nil {
+	if err := binary.Read(zstdReader, binary.LittleEndian, &rows); err != nil {
 		return -1, -1, nil, err
 	}
-	if err := binary.Read(gzipReader, binary.LittleEndian, &cols); err != nil {
+	if err := binary.Read(zstdReader, binary.LittleEndian, &cols); err != nil {
 		return -1, -1, nil, err
 	}
 
 	data := make([]float64, rows*cols)
-	if err := binary.Read(gzipReader, binary.LittleEndian, data); err != nil {
+	if err := binary.Read(zstdReader, binary.LittleEndian, data); err != nil {
 		return -1, -1, nil, err
 	}
 
@@ -132,11 +134,13 @@ func readMatrixBinary(filename string) (*mat.Dense, error) {
 
 func loadModel(nameWithoutExt string) *mat.Dense {
 	path := "./models/" + nameWithoutExt
-	binFileInfo, err := os.Stat(path)
+	binaryPath := path + ".mat"
+
+	binFileInfo, err := os.Stat(binaryPath)
 	isBinary := err == nil
 
 	if isBinary && binFileInfo.Size() > 0 {
-		matrix, err := readMatrixBinary(path)
+		matrix, err := readMatrixBinary(binaryPath)
 
 		if err == nil {
 			return matrix
@@ -151,7 +155,7 @@ func loadModel(nameWithoutExt string) *mat.Dense {
 	}
 
 	log.Printf("Salvando %s como binário...", nameWithoutExt)
-	if err := saveMatrixBinary(path, matrix); err != nil {
+	if err := saveMatrixBinary(binaryPath, matrix); err != nil {
 		log.Printf("Erro ao salvar binário: %s", err)
 	} else {
 		log.Printf("Matriz salva")
