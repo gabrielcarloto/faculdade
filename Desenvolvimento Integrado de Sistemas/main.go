@@ -15,6 +15,11 @@ type ReconstructionRequest struct {
 	Signal    []float64 `json:"signal"`
 }
 
+type PyClientRequest struct {
+	Algorithm string    `json:"algoritmo"`
+	Signal    []float64 `json:"g"`
+}
+
 type ReconstructionResponse struct {
 	Image      []float64     `json:"image"`
 	Dimensions string        `json:"dimensions"`
@@ -123,7 +128,7 @@ func main() {
 		}
 
 		res.Header().Set("Content-Type", "application/json")
-		res.WriteHeader(http.StatusOK)
+		res.WriteHeader(http.StatusAccepted)
 
 		response := AsyncReconstructionResponse{
 			TaskID: createdTask.ID,
@@ -132,6 +137,35 @@ func main() {
 		json.NewEncoder(res).Encode(response)
 	})
 
-	fmt.Println("Escutando na porta 3000")
-	http.ListenAndServe(":3000", nil)
+	http.HandleFunc("/reconstruir/", func(res http.ResponseWriter, req *http.Request) {
+		if req.Method != http.MethodPost {
+			http.Error(res, "MethodNotAllowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var reconstructionRequest PyClientRequest
+
+		if err := json.NewDecoder(req.Body).Decode(&reconstructionRequest); err != nil {
+			http.Error(res, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		createdTask, err := EnqueueTask(ReconstructionRequest(reconstructionRequest))
+		if err != nil {
+			http.Error(res, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		res.Header().Set("Content-Type", "application/json")
+		res.WriteHeader(http.StatusAccepted)
+
+		response := AsyncReconstructionResponse{
+			TaskID: createdTask.ID,
+		}
+
+		json.NewEncoder(res).Encode(response)
+	})
+
+	fmt.Println("Escutando na porta 8000")
+	http.ListenAndServe(":8000", nil)
 }

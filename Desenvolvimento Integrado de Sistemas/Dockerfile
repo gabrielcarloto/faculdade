@@ -15,6 +15,6 @@ WORKDIR /app
 COPY --from=builder /app/server .
 COPY ./models ./models
 
-EXPOSE 3000
+EXPOSE 8000
 
 ENTRYPOINT ["/app/server"]
