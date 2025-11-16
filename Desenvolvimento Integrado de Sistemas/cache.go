@@ -20,6 +20,7 @@ type Model struct {
 	estimatedMemory         uint64
 	isLoading               bool
 	loadCond                *sync.Cond
+	evictionTimer           *time.Timer
 }
 
 type Rows = int
@@ -44,6 +45,7 @@ func (cache *ModelCache) Init(maxMem uint64) {
 			Dimensions:      "60x60",
 			isLoading:       false,
 			loadCond:        sync.NewCond(&cache.mutex),
+			evictionTimer:   nil,
 		},
 		27904: {
 			Name:            "H-2",
@@ -53,6 +55,7 @@ func (cache *ModelCache) Init(maxMem uint64) {
 			Dimensions:      "30x30",
 			isLoading:       false,
 			loadCond:        sync.NewCond(&cache.mutex),
+			evictionTimer:   nil,
 		},
 	}
 
@@ -123,6 +126,11 @@ func (cache *ModelCache) TryReserve(rows Rows) (bool, error) {
 		model.reservations++
 		model.firstReservationAttempt = nil
 
+		if model.evictionTimer != nil {
+			model.evictionTimer.Stop()
+			model.evictionTimer = nil
+		}
+
 		if cache.starvingModel == model {
 			cache.starvingModel = nil
 		}
@@ -184,23 +192,22 @@ func (cache *ModelCache) Release(rows Rows) {
 	model := cache.models[rows]
 	model.reservations--
 
-	isCandidate := model.reservations == 0 && model.Matrix != nil
+	isEvictionCandidate := model.reservations == 0 && model.Matrix != nil
 
-	if isCandidate {
-		go func() {
-			time.Sleep(5 * time.Second)
+	if isEvictionCandidate {
+		model.evictionTimer = time.AfterFunc(30*time.Second, func() {
 			cache.mutex.Lock()
 			defer cache.mutex.Unlock()
 
-			shouldFree := model.reservations == 0 && model.Matrix != nil
+			shouldEvict := model.reservations == 0 && model.Matrix != nil
 
-			if shouldFree {
+			if shouldEvict {
 				model.Matrix = nil
 				cache.currentMemoryUsage -= model.estimatedMemory
-				log.Printf("Modelo liberado: %d", rows)
+				log.Printf("Modelo liberado por inatividade: %d", rows)
 				go UpdatePriorities()
 			}
-		}()
+		})
 	}
 }
 
