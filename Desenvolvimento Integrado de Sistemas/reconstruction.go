@@ -34,7 +34,6 @@ func CGNE(model *mat.Dense, signal *mat.VecDense) (*mat.VecDense, int, time.Time
 	previousResidualNorm := mat.Norm(residual, 2)
 	var i int
 
-	alphaP := mat.NewVecDense(cols, nil)
 	alphaHp := mat.NewVecDense(rows, nil)
 	HTr := mat.NewVecDense(cols, nil)
 
@@ -45,8 +44,7 @@ func CGNE(model *mat.Dense, signal *mat.VecDense) (*mat.VecDense, int, time.Time
 		alpha := rTr / pTp
 
 		// f_(i+1) = f_i + alpha_i * p_i
-		alphaP.ScaleVec(alpha, p)
-		image.AddVec(image, alphaP)
+		image.AddScaledVec(image, alpha, p)
 
 		// r_(i+1) = r_i - alpha_i * H * p_i
 		alphaHp.MulVec(model, p)
@@ -105,7 +103,6 @@ func CGNR(model *mat.Dense, signal *mat.VecDense) (*mat.VecDense, int, time.Time
 	var i int
 
 	w := mat.NewVecDense(rows, nil)
-	alphaP := mat.NewVecDense(cols, nil)
 
 	for i = 0; i < MaxIter; i++ {
 		// w_i = H * p_i
@@ -118,8 +115,7 @@ func CGNR(model *mat.Dense, signal *mat.VecDense) (*mat.VecDense, int, time.Time
 		alpha := zNormSquared / (wNorm * wNorm)
 
 		// f_(i+1) = f_i + alpha_i * p_i
-		alphaP.ScaleVec(alpha, p)
-		image.AddVec(image, alphaP)
+		image.AddScaledVec(image, alpha, p)
 
 		// r_(i+1) = r_i - alpha_i * w_i
 		// alphaW := mat.NewVecDense(rows, nil)
