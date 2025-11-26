@@ -46,6 +46,12 @@ func main() {
 	implStruct := blas64.Implementation()
 	fmt.Printf("Implementação BLAS utilizada: %T\n", implStruct)
 
+	if DEBUG {
+		fmt.Println("Build atual: DEBUG")
+	} else {
+		fmt.Println("Build atual: PROD")
+	}
+
 	mem, _ := GetMemoryUsage()
 
 	debug.SetMemoryLimit(int64(mem.Available * 90 / 100))

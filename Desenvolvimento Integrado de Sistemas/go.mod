@@ -7,6 +7,7 @@ require gonum.org/v1/gonum v0.16.0
 require (
 	github.com/klauspost/compress v1.18.1
 	github.com/shirou/gopsutil/v4 v4.25.10
+	gonum.org/v1/netlib v0.0.0-20230729102104-8b8060e7531f
 )
 
 require (

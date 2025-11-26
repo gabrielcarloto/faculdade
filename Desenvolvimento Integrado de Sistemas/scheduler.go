@@ -140,7 +140,9 @@ func EnqueueTask(request ReconstructionRequest) (*Task, error) {
 	defer queueCond.L.Unlock()
 	defer queueCond.Signal()
 
-	log.Printf("Adicionando task na fila: %d", nextTaskID)
+	if DEBUG {
+		log.Printf("Adicionando task na fila: %d", nextTaskID)
+	}
 
 	task := &Task{
 		ID:          nextTaskID,
@@ -193,9 +195,13 @@ func scheduler() {
 		workerSemaphore <- struct{}{}
 
 		workersWaitGroup.Go(func() {
-			log.Printf("Iniciando tarefa: %d, prio: %.2f", task.ID, task.Priority)
+			if DEBUG {
+				log.Printf("Iniciando tarefa: %d, prio: %.2f", task.ID, task.Priority)
+			}
 			runTask(task)
-			log.Printf("Tarefa %d encerrou", task.ID)
+			if DEBUG {
+				log.Printf("Tarefa %d encerrou", task.ID)
+			}
 			<-workerSemaphore
 		})
 	}
