@@ -7,6 +7,7 @@ import (
 	"runtime/debug"
 	"time"
 
+	"gonum.org/v1/gonum/blas/blas64"
 	"gonum.org/v1/gonum/mat"
 )
 
@@ -39,6 +40,11 @@ var cache ModelCache
 func main() {
 	watchResources(150 * time.Millisecond)
 	setupSignalHandler()
+
+	// blas64.Use(netlib.Implementation{})
+
+	implStruct := blas64.Implementation()
+	fmt.Printf("Implementação BLAS utilizada: %T\n", implStruct)
 
 	mem, _ := GetMemoryUsage()
 

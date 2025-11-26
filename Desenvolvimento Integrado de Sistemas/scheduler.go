@@ -174,6 +174,9 @@ func scheduler() {
 			task.Retries++
 			task.Priority *= 0.9
 
+			// TODO: talvez isso possa ser substituído separando as tasks que não conseguiram
+			// reservar o modelo em outra fila, então o cache avisa quando o modelo for reservado por alguma outra.
+			// Assim, a task não precisaria esperar o timeout, que pode se tornar grande
 			retryTimeoutWaitGroup.Go(func() {
 				backoff := time.Duration(task.Retries) * 100 * time.Millisecond
 				time.Sleep(backoff)

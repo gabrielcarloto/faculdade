@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"unsafe"
 
 	"github.com/klauspost/compress/zstd"
 	"gonum.org/v1/gonum/mat"
@@ -115,12 +116,22 @@ func readBinary(filename string) (int, int, []float64, error) {
 		return -1, -1, nil, err
 	}
 
-	data := make([]float64, rows*cols)
-	if err := binary.Read(zstdReader, binary.LittleEndian, data); err != nil {
+	totalFloats := rows * cols
+	totalBytes := totalFloats * 8
+
+	bytes := make([]byte, totalBytes)
+
+	// NOTE: leitura completa como bytes é mais rápida do que deixar o Go
+	// converter para floats
+	if _, err := io.ReadFull(zstdReader, bytes); err != nil {
 		return -1, -1, nil, err
 	}
 
-	return int(rows), int(cols), data, nil
+	ptr := unsafe.Pointer(&bytes[0])
+	// Cast de bytes para floats 🤯🤯
+	floats := unsafe.Slice((*float64)(ptr), totalFloats)
+
+	return int(rows), int(cols), floats, nil
 }
 
 func readMatrixBinary(filename string) (*mat.Dense, error) {
