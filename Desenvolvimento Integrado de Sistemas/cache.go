@@ -6,16 +6,13 @@ import (
 	"runtime"
 	"sync"
 	"time"
-
-	"gonum.org/v1/gonum/mat"
 )
 
 type Model struct {
 	Name                    string
-	Matrix                  *mat.Dense
+	Matrix                  *Matrix
 	Dimensions              string
 	reservations            int
-	reservartionAttempts    int
 	firstReservationAttempt *time.Time
 	estimatedMemory         uint64
 	isLoading               bool
@@ -38,10 +35,14 @@ type ModelCache struct {
 func (cache *ModelCache) Init(maxMem uint64) {
 	cache.models = CachedModels{
 		50816: {
-			Name:            "H-1",
-			Matrix:          nil,
-			reservations:    0,
-			estimatedMemory: 50816 * (60 * 60) * 8 * 1.01,
+			Name:         "H-1",
+			Matrix:       nil,
+			reservations: 0,
+			// rowPtr: (rows + 1) * 8 bytes  (ponteiros de início/fim de cada linha)
+			// colIdx: nnz * 8 bytes (índice da coluna de cada elemento não-zero)
+			// values: nnz * 8 bytes (valor de cada elemento não-zero)
+			// Total: (rows + 1) * 8 + nnz * 16
+			estimatedMemory: ((50816+1)*8 + 24879302*16), // ~400mb (vs 1.46gb densa)
 			Dimensions:      "60x60",
 			isLoading:       false,
 			loadCond:        sync.NewCond(&cache.mutex),
@@ -51,7 +52,7 @@ func (cache *ModelCache) Init(maxMem uint64) {
 			Name:            "H-2",
 			Matrix:          nil,
 			reservations:    0,
-			estimatedMemory: 27904 * (30 * 30) * 8 * 1.01,
+			estimatedMemory: 27904 * (30 * 30) * 8 * 1.01, // TODO: usar esparsa?
 			Dimensions:      "30x30",
 			isLoading:       false,
 			loadCond:        sync.NewCond(&cache.mutex),
@@ -73,7 +74,7 @@ func (cache *ModelCache) Init(maxMem uint64) {
 	cache.currentMemoryUsage = 0
 
 	if cache.memoryLimit < minMemoryRequirements {
-		log.Fatalf("memória insuficiente")
+		log.Println("(possivel) memória insuficiente")
 	}
 }
 

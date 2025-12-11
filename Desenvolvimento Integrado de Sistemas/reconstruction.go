@@ -6,19 +6,34 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
+type MulVecToer interface {
+	MulVecTo(dst []float64, trans bool, x []float64)
+}
+
+func sparseMulVec(dst *mat.VecDense, m mat.Matrix, x *mat.VecDense) {
+	if sp, ok := m.(MulVecToer); ok {
+		dstData := dst.RawVector().Data
+		xData := x.RawVector().Data
+		for i := range dstData {
+			dstData[i] = 0
+		}
+		sp.MulVecTo(dstData, false, xData)
+	} else {
+		dst.MulVec(m, x)
+	}
+}
+
 const (
 	MaxIter = 10
 	MaxErr  = 1e-4
 )
 
-type ReconstructionAlgo func(model *mat.Dense, signal *mat.VecDense) (*mat.VecDense, int, time.Time, time.Time)
+type ReconstructionAlgo func(model *Matrix, signal *mat.VecDense) (*mat.VecDense, int, time.Time, time.Time)
 
-// NOTE: daria pra usar um pool de vetores aqui?
-
-func CGNE(model *mat.Dense, signal *mat.VecDense) (*mat.VecDense, int, time.Time, time.Time) {
+func CGNE(model *Matrix, signal *mat.VecDense) (*mat.VecDense, int, time.Time, time.Time) {
 	startTime := time.Now()
 
-	rows, cols := model.Dims()
+	rows, cols := model.H.Dims()
 
 	// f_0 = 0
 	image := mat.NewVecDense(cols, nil)
@@ -29,7 +44,7 @@ func CGNE(model *mat.Dense, signal *mat.VecDense) (*mat.VecDense, int, time.Time
 
 	// p_0 = H^T * r_0
 	p := mat.NewVecDense(cols, nil)
-	p.MulVec(model.T(), residual)
+	sparseMulVec(p, model.HT, residual)
 
 	previousResidualNorm := mat.Norm(residual, 2)
 	var i int
@@ -47,7 +62,7 @@ func CGNE(model *mat.Dense, signal *mat.VecDense) (*mat.VecDense, int, time.Time
 		image.AddScaledVec(image, alpha, p)
 
 		// r_(i+1) = r_i - alpha_i * H * p_i
-		alphaHp.MulVec(model, p)
+		sparseMulVec(alphaHp, model.H, p)
 		alphaHp.ScaleVec(alpha, alphaHp)
 		residual.SubVec(residual, alphaHp)
 
@@ -69,7 +84,7 @@ func CGNE(model *mat.Dense, signal *mat.VecDense) (*mat.VecDense, int, time.Time
 		beta := rTrNext / rTr
 
 		// p_(i+1) = H^T * r_(i+1) + Beta_i * p_i
-		HTr.MulVec(model.T(), residual)
+		sparseMulVec(HTr, model.HT, residual)
 		p.AddScaledVec(HTr, beta, p)
 	}
 
@@ -79,10 +94,10 @@ func CGNE(model *mat.Dense, signal *mat.VecDense) (*mat.VecDense, int, time.Time
 	return image, iterations, startTime, endTime
 }
 
-func CGNR(model *mat.Dense, signal *mat.VecDense) (*mat.VecDense, int, time.Time, time.Time) {
+func CGNR(model *Matrix, signal *mat.VecDense) (*mat.VecDense, int, time.Time, time.Time) {
 	startTime := time.Now()
 
-	rows, cols := model.Dims()
+	rows, cols := model.H.Dims()
 
 	// f_0 = 0
 	image := mat.NewVecDense(cols, nil)
@@ -93,7 +108,7 @@ func CGNR(model *mat.Dense, signal *mat.VecDense) (*mat.VecDense, int, time.Time
 
 	// z_0 = H^T * r_0
 	z := mat.NewVecDense(cols, nil)
-	z.MulVec(model.T(), residual)
+	sparseMulVec(z, model.HT, residual)
 
 	// p_0 = z_0
 	p := mat.VecDenseCopyOf(z)
@@ -106,7 +121,7 @@ func CGNR(model *mat.Dense, signal *mat.VecDense) (*mat.VecDense, int, time.Time
 
 	for i = 0; i < MaxIter; i++ {
 		// w_i = H * p_i
-		w.MulVec(model, p)
+		sparseMulVec(w, model.H, p)
 
 		// alpha_i = || z_i ||^2_2 / || w_i ||^2_2
 		zNorm := mat.Norm(z, 2)
@@ -130,7 +145,7 @@ func CGNR(model *mat.Dense, signal *mat.VecDense) (*mat.VecDense, int, time.Time
 		}
 
 		// z_(i+1) = H^T * r_(i+1)
-		z.MulVec(model.T(), residual)
+		sparseMulVec(z, model.HT, residual)
 
 		// Beta_i = || z_(i+1) ||^2_2 / || z_i ||^2_2
 		nextZNorm := mat.Norm(z, 2)

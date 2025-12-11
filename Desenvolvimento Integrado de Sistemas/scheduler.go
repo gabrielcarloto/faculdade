@@ -8,7 +8,6 @@ import (
 	"runtime"
 	"sync"
 	"time"
-	"unsafe"
 
 	"gonum.org/v1/gonum/mat"
 )
@@ -59,7 +58,10 @@ func (q *PriorityQueue) Update(task *Task, priority float32) {
 }
 
 var (
-	maxTasks uint
+	// NOTE: tasks em si são leves na memória, mas podem aumentar o custo de processamento - provavelmente
+	// por conta das várias operações heap utilizadas, especialmente o heapify. Como calcular um valor bom aqui?
+	// Antes, tentei fazer uma porcentagem da memória, mas isso se provou ineficaz.
+	maxTasks int = 1000
 
 	algorithmMap = map[string]ReconstructionAlgo{
 		"CGNE": CGNE,
@@ -71,6 +73,8 @@ var (
 		"CGNE": 1.0,
 		"CGNR": 1.2,
 	}
+
+	// TODO: prioridade por modelo
 
 	modelLoadedPriority = map[bool]float32{
 		true:  1.5,
@@ -120,7 +124,7 @@ func UpdatePriorities() {
 }
 
 func EnqueueTask(request ReconstructionRequest) (*Task, error) {
-	if uint(len(queue)) >= maxTasks {
+	if len(queue) >= maxTasks {
 		return nil, errors.New("máximo de tasks atingido")
 	}
 
@@ -223,10 +227,6 @@ func runTask(task *Task) {
 }
 
 func InitScheduler(maxMem uint64) {
-	taskSize := uint(unsafe.Sizeof(Task{}))
-	maxMemory := maxMem * 1 / 50000
-	maxTasks = uint(maxMemory) / taskSize
-
 	go scheduler()
 	go func() {
 		ticker := time.Tick(1 * time.Second)

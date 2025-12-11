@@ -5,21 +5,29 @@ import (
 	"encoding/csv"
 	"io"
 	"log"
+	"math"
 	"os"
 	"strconv"
 	"unsafe"
 
+	"github.com/james-bowman/sparse"
 	"github.com/klauspost/compress/zstd"
 	"gonum.org/v1/gonum/mat"
 )
 
-func readMatrixCSV(filename string) (*mat.Dense, error) {
+type Matrix struct {
+	H  mat.Matrix
+	HT mat.Matrix
+}
+
+func readMatrixCSV(filename string) (*Matrix, error) {
 	rows, cols, data, err := readCSV(filename)
 	if err != nil {
 		return nil, err
 	}
 
-	return mat.NewDense(rows, cols, data), nil
+	dense := mat.NewDense(rows, cols, data)
+	return &Matrix{H: dense, HT: dense.T()}, nil
 }
 
 func readCSV(filename string) (int, int, []float64, error) {
@@ -134,18 +142,161 @@ func readBinary(filename string) (int, int, []float64, error) {
 	return int(rows), int(cols), floats, nil
 }
 
-func readMatrixBinary(filename string) (*mat.Dense, error) {
+func readSparseBinary(filename string) (*Matrix, error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	decoder, err := zstd.NewReader(file)
+	if err != nil {
+		return nil, err
+	}
+	defer decoder.Close()
+
+	header := make([]int64, 3)
+	if err := binary.Read(decoder, binary.LittleEndian, header); err != nil {
+		return nil, err
+	}
+	rows, cols, nnz := int(header[0]), int(header[1]), int(header[2])
+
+	sizeOfInt := int(unsafe.Sizeof(int(0)))
+
+	rowPtrBytes := make([]byte, (rows+1)*sizeOfInt)
+	if _, err := io.ReadFull(decoder, rowPtrBytes); err != nil {
+		return nil, err
+	}
+	rowPtr := unsafe.Slice((*int)(unsafe.Pointer(&rowPtrBytes[0])), rows+1)
+
+	colIdxBytes := make([]byte, nnz*sizeOfInt)
+	if _, err := io.ReadFull(decoder, colIdxBytes); err != nil {
+		return nil, err
+	}
+	colIdx := unsafe.Slice((*int)(unsafe.Pointer(&colIdxBytes[0])), nnz)
+
+	valuesBytes := make([]byte, nnz*8)
+	if _, err := io.ReadFull(decoder, valuesBytes); err != nil {
+		return nil, err
+	}
+	values := unsafe.Slice((*float64)(unsafe.Pointer(&valuesBytes[0])), nnz)
+
+	csr := sparse.NewCSR(rows, cols, rowPtr, colIdx, values)
+	csc := sparse.NewCSC(cols, rows, rowPtr, colIdx, values)
+
+	return &Matrix{H: csr, HT: csc}, nil
+}
+
+func saveSparseBinary(filename string, matrix *sparse.CSR) error {
+	f, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	enc, _ := zstd.NewWriter(f)
+	defer enc.Close()
+	writer := enc
+
+	rows, cols := matrix.Dims()
+	nnz := matrix.NNZ()
+
+	header := []int64{int64(rows), int64(cols), int64(nnz)}
+	if err := binary.Write(writer, binary.LittleEndian, header); err != nil {
+		return err
+	}
+
+	raw := matrix.RawMatrix()
+
+	indptr64 := unsafe.Slice((*int64)(unsafe.Pointer(&raw.Indptr[0])), len(raw.Indptr))
+	if err := binary.Write(writer, binary.LittleEndian, indptr64); err != nil {
+		return err
+	}
+
+	indices64 := unsafe.Slice((*int64)(unsafe.Pointer(&raw.Ind[0])), len(raw.Ind))
+	if err := binary.Write(writer, binary.LittleEndian, indices64); err != nil {
+		return err
+	}
+
+	if err := binary.Write(writer, binary.LittleEndian, raw.Data); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func convertToSparse(model string) {
+	matrix, err := readMatrixBinary("./models/" + model + ".mat")
+	if err != nil {
+		log.Fatalf("Não foi possível converter o modelo %s: %s", model, err)
+	}
+
+	dense := matrix.H.(*mat.Dense)
+
+	rows, cols := dense.Dims()
+
+	raw := dense.RawMatrix()
+	data := raw.Data
+	stride := raw.Stride
+
+	values := make([]float64, 0)
+	colIdx := make([]int, 0)
+	rowPtr := make([]int, rows+1)
+
+	const epsilon = 1e-12
+
+	currentNNZ := 0
+	rowPtr[0] = 0
+
+	for r := range rows {
+		// Onde começa a linha 'r' no slice bruto
+		offset := r * stride
+
+		for c := range cols {
+			val := data[offset+c]
+
+			if math.Abs(val) > epsilon {
+				values = append(values, val)
+				colIdx = append(colIdx, c)
+				currentNNZ++
+			}
+		}
+		rowPtr[r+1] = currentNNZ
+	}
+
+	csr := sparse.NewCSR(rows, cols, rowPtr, colIdx, values)
+
+	saveSparseBinary("./models/"+model+".csr", csr)
+}
+
+func readMatrixBinary(filename string) (*Matrix, error) {
 	rows, cols, data, err := readBinary(filename)
 	if err != nil {
 		return nil, err
 	}
 
-	return mat.NewDense(int(rows), int(cols), data), nil
+	dense := mat.NewDense(int(rows), int(cols), data)
+
+	return &Matrix{H: dense, HT: dense.T()}, nil
 }
 
-func loadModel(nameWithoutExt string) *mat.Dense {
+func loadModel(nameWithoutExt string) *Matrix {
 	path := "./models/" + nameWithoutExt
 	binaryPath := path + ".mat"
+	sparsePath := path + ".csr"
+
+	sparseFileInfo, err := os.Stat(sparsePath)
+	isSparse := err == nil
+
+	if isSparse && sparseFileInfo.Size() > 0 {
+		matrix, err := readSparseBinary(sparsePath)
+
+		if err == nil {
+			return matrix
+		}
+
+		log.Printf("Erro ao ler %s sparse: %s", nameWithoutExt, err)
+	}
 
 	binFileInfo, err := os.Stat(binaryPath)
 	isBinary := err == nil
@@ -166,7 +317,7 @@ func loadModel(nameWithoutExt string) *mat.Dense {
 	}
 
 	log.Printf("Salvando %s como binário...", nameWithoutExt)
-	if err := saveMatrixBinary(binaryPath, matrix); err != nil {
+	if err := saveMatrixBinary(binaryPath, matrix.H.(*mat.Dense)); err != nil {
 		log.Printf("Erro ao salvar binário: %s", err)
 	} else {
 		log.Printf("Matriz salva")
