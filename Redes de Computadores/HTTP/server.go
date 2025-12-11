@@ -81,22 +81,19 @@ func (s *Server) connectionHandler(conn net.Conn) {
 
 		acc = append(acc, buffer[:bytesRead]...)
 
-		for {
-			request, complete := http.ReadRequest(acc)
+		request, complete := http.ReadRequest(acc)
 
-			if !complete {
-				break
-			}
+		if !complete {
+			continue
+		}
 
-			acc = acc[request.Size:]
+		acc = acc[request.Size:]
 
-			res, shouldClose := s.handleRequest(request)
-			conn.Write(http.SerializeResponse(res))
+		res, shouldClose := s.handleRequest(request)
+		conn.Write(http.SerializeResponse(res))
 
-			if shouldClose {
-				s.handleEndConnection(conn)
-				return
-			}
+		if shouldClose {
+			break
 		}
 	}
 
