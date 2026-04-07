@@ -61,11 +61,12 @@ def compareImages(img, cvResult, windowX, windowY):
     imgWithoutBorders = img[radiusY : rows - radiusY, radiusX : cols - radiusX]
     cvWithoutBorders = cvResult[radiusY : rows - radiusY, radiusX : cols - radiusX]
 
-    imgWithoutBorders = img[radiusY : rows - radiusY, radiusX : cols - radiusX]
-    cvWithoutBorders = cvResult[radiusY : rows - radiusY, radiusX : cols - radiusX]
-
-    diff = np.abs(imgWithoutBorders - cvWithoutBorders)
-    return np.all(diff < (1 / 255))
+    # tentei fazer comparação convertendo para int, mas não dava certo
+    # talvez a conversão arredondava os valores de maneira inconsistente
+    # ou talvez eu implementei tudo errado :(
+    # mas aparentemente comparar os valores como floats e ter como limite
+    # 1 nível de cor resolve isso
+    return np.allclose(imgWithoutBorders, cvWithoutBorders, atol=1 / 255, rtol=0)
 
 
 def integralBlur(img, windowX, windowY):
