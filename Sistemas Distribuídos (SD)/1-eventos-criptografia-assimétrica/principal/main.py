@@ -1,30 +1,15 @@
 import random
 import sys
-
 import pika
 import json
 import threading
-
-# TODO:
-# - [/] Interface
-#   - [x] Visualizar produtos
-#   - [x] Realizar pedidos
-#   - [x] Consultar pedidos e status
-#   - [?] Excluir pedidos
-# - [x] Publicação
-#   - [x] `pedido.criado` com ID do pedido, produtos, quantidades e demais infos
-#   - [x] `pedido.excluido` com ID
-# - [x] Consumo
-#   - [x] `pagamento.aprovado`
-#   - [x] `pagamento.recusado`
-#   - [x] `pedido.enviado`
-#   - [x] `pedido.estoque_ok`
-#   - [x] `estoque.indisponivel`
-# - [ ] Assinaturas
-# - [x] Catálogo (products.json)
+import crypto
 
 orders_lock = threading.Lock()
 orders_statuses = {}
+
+crypto.generate_keys("principal")
+keyring = crypto.get_keyring("principal")
 
 with open("catalogo.json", "r", encoding="utf-8") as f:
     products_list = json.load(f)
@@ -44,6 +29,15 @@ def consumer_worker():
     channel.queue_bind("fila.principal", "eCommerce", "estoque.indisponivel")
 
     def callback(ch, method, properties, body):
+        headers = getattr(properties, "headers", {}) or {}
+        sender = headers.get("X-Sender")
+
+        # sender é opcional enquanto outros MS não são implementados
+        if sender and not crypto.verify_message(
+            keyring["public"][sender], properties, body
+        ):
+            return
+
         data = json.loads(body)
         order_id = data["id"]
 
@@ -62,10 +56,10 @@ def consumer_worker():
                     "id": order_id,
                 }
 
+                body = json.dumps(order).encode("utf-8")
+                props = crypto.get_signed_props("principal", keyring["private"], body)
                 channel.basic_publish(
-                    "eCommerce",
-                    "pedido.excluido",
-                    json.dumps(order).encode("utf-8"),
+                    "eCommerce", "pedido.excluido", body, properties=props
                 )
 
                 with orders_lock:
@@ -116,11 +110,9 @@ def place_order(channel):
     order_id = random.randint(1000, 9999)
     order = {"id": order_id, "products": orders}
 
-    channel.basic_publish(
-        "eCommerce",
-        "pedido.criado",
-        json.dumps(order).encode("utf-8"),
-    )
+    body = json.dumps(order).encode("utf-8")
+    props = crypto.get_signed_props("principal", keyring["private"], body)
+    channel.basic_publish("eCommerce", "pedido.criado", body, properties=props)
 
     with orders_lock:
         orders_statuses[order_id] = {"status": "Pedido criado"}
