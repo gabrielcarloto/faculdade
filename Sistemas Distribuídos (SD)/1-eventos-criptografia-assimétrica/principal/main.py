@@ -6,22 +6,22 @@ import json
 import threading
 
 # TODO:
-# - [ ] Interface
-#   - [ ] Visualizar produtos
-#   - [ ] Realizar pedidos
-#   - [ ] Consultar pedidos e status
-#   - [ ] Excluir pedidos
-# - [ ] Publicação
-#   - [ ] `pedido.criado` com ID do pedido, produtos, quantidades e demais infos
-#   - [ ] `pedido.excluido` com ID
-# - [ ] Consumo
-#   - [ ] `pagamento.aprovado`
-#   - [ ] `pagamento.recusado`
-#   - [ ] `pedido.enviado`
-#   - [ ] `pedido.estoque_ok`
-#   - [ ] `estoque.indisponivel`
+# - [/] Interface
+#   - [x] Visualizar produtos
+#   - [x] Realizar pedidos
+#   - [x] Consultar pedidos e status
+#   - [?] Excluir pedidos
+# - [x] Publicação
+#   - [x] `pedido.criado` com ID do pedido, produtos, quantidades e demais infos
+#   - [x] `pedido.excluido` com ID
+# - [x] Consumo
+#   - [x] `pagamento.aprovado`
+#   - [x] `pagamento.recusado`
+#   - [x] `pedido.enviado`
+#   - [x] `pedido.estoque_ok`
+#   - [x] `estoque.indisponivel`
 # - [ ] Assinaturas
-# - [ ] Catálogo (products.json)
+# - [x] Catálogo (products.json)
 
 orders_lock = threading.Lock()
 orders_statuses = {}
@@ -44,27 +44,52 @@ def consumer_worker():
     channel.queue_bind("fila.principal", "eCommerce", "estoque.indisponivel")
 
     def callback(ch, method, properties, body):
+        data = json.loads(body)
+        order_id = data["id"]
+
         match method.routing_key:
             case "pedido.estoque_ok":
-                ...
-            case "estoque.indisponivel":
-                ...
+                with orders_lock:
+                    orders_statuses[order_id] = {"status": "Estoque disponível"}
             case "pagamento.aprovado":
-                ...
-            case "pagamento.recusado":
-                ...
+                with orders_lock:
+                    orders_statuses[order_id] = {"status": "Pagamento aprovado"}
             case "pedido.enviado":
-                ...
+                with orders_lock:
+                    orders_statuses[order_id] = {"status": "Enviado"}
+            case "estoque.indisponivel" | "pagamento.recusado":
+                order = {
+                    "id": order_id,
+                }
+
+                channel.basic_publish(
+                    "eCommerce",
+                    "pedido.excluido",
+                    json.dumps(order).encode("utf-8"),
+                )
+
+                with orders_lock:
+                    orders_statuses[order_id] = {
+                        "status": f"Excluido ({method.routing_key})"
+                    }
+
+    channel.basic_consume(
+        queue="fila.principal",
+        on_message_callback=callback,
+        auto_ack=True,
+    )
+
+    channel.start_consuming()
 
 
 def print_products_list():
-    print("=========================")
+    print("=" * 40)
     for product in products_list:
         print("ID: ", product["id"])
         print("Nome: ", product["nome"])
         print("Categoria: ", product["categoria"])
         print("Preco: ", product["preco"])
-        print("=========================")
+        print("=" * 40)
 
 
 def place_order(channel):
@@ -98,10 +123,14 @@ def place_order(channel):
     )
 
     with orders_lock:
-        orders_statuses[order_id] = {"status": "created"}
+        orders_statuses[order_id] = {"status": "Pedido criado"}
 
 
-def print_statuses(): ...
+def print_statuses():
+    print("=" * 40)
+    for order, data in orders_statuses.items():
+        print(order, " | ", data["status"])
+    print("=" * 40)
 
 
 def main():
