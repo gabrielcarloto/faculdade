@@ -12,11 +12,14 @@ class Keyring(TypedDict):
 
 
 def generate_keys(ms_name: str):
-    Path("keys").mkdir(parents=True, exist_ok=True)
-    Path(ms_name).mkdir(parents=True, exist_ok=True)
-
     private_path = ms_name + "/private_key.pem"
     public_path = "./keys/" + ms_name + "_public.pem"
+
+    if Path(private_path).exists() and Path(public_path).exists():
+        return
+
+    Path("keys").mkdir(parents=True, exist_ok=True)
+    Path(ms_name).mkdir(parents=True, exist_ok=True)
 
     private_key = rsa.generate_private_key(
         public_exponent=65537,
