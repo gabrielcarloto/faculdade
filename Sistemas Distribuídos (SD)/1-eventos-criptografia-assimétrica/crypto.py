@@ -1,13 +1,22 @@
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives import hashes, serialization
 from pathlib import Path
+from typing import TypedDict, cast
 import base64
 import pika
 
 
-def generate_keys(ms_name):
+class Keyring(TypedDict):
+    public: dict[str, rsa.RSAPublicKey]
+    private: rsa.RSAPrivateKey
+
+
+def generate_keys(ms_name: str):
     Path("keys").mkdir(parents=True, exist_ok=True)
     Path(ms_name).mkdir(parents=True, exist_ok=True)
+
+    private_path = ms_name + "/private_key.pem"
+    public_path = "./keys/" + ms_name + "_public.pem"
 
     private_key = rsa.generate_private_key(
         public_exponent=65537,
@@ -25,34 +34,40 @@ def generate_keys(ms_name):
         format=serialization.PublicFormat.SubjectPublicKeyInfo,
     )
 
-    with open(ms_name + "/private_key.pem", "wb") as f:
-        f.write(private_pem)
+    with open(private_path, "wb") as f:
+        _ = f.write(private_pem)
 
-    with open("./keys/" + ms_name + "_public.pem", "wb") as f:
-        f.write(public_pem)
+    with open(public_path, "wb") as f:
+        _ = f.write(public_pem)
 
 
-def get_keyring(ms_name):
+def get_keyring(ms_name: str) -> Keyring:
     Path("keys").mkdir(parents=True, exist_ok=True)
     Path(ms_name).mkdir(parents=True, exist_ok=True)
     keys_dir = Path("keys")
 
-    public = {}
+    public: dict[str, rsa.RSAPublicKey] = {}
 
     for key_path in keys_dir.glob("*_public.pem"):
         sender_id = key_path.stem.replace("_public", "")
-        public[sender_id] = serialization.load_pem_public_key(key_path.read_bytes())
+        public[sender_id] = cast(
+            rsa.RSAPublicKey,
+            serialization.load_pem_public_key(key_path.read_bytes()),
+        )
 
     private_path = Path(f"{ms_name}/private_key.pem")
-    private = serialization.load_pem_private_key(
-        private_path.read_bytes(),
-        password=None,
+    private = cast(
+        rsa.RSAPrivateKey,
+        serialization.load_pem_private_key(
+            private_path.read_bytes(),
+            password=None,
+        ),
     )
 
     return {"public": public, "private": private}
 
 
-def get_signed_props(sender, private_key, body):
+def get_signed_props(sender: str, private_key: rsa.RSAPrivateKey, body: bytes):
     signature = private_key.sign(
         body,
         padding.PSS(
@@ -68,7 +83,9 @@ def get_signed_props(sender, private_key, body):
     )
 
 
-def verify_message(public_key, properties, body):
+def verify_message(
+    public_key: rsa.RSAPublicKey, properties: pika.BasicProperties, body: bytes
+):
     signature_b64 = (
         properties.headers.get("X-Signature") if properties.headers else None
     )

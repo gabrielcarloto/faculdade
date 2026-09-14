@@ -5,11 +5,16 @@ import json
 import threading
 import crypto
 
+
+MS_NAME = "principal"
+EXCHANGE = "eCommerce"
+QUEUE = "fila.principal"
+
 orders_lock = threading.Lock()
 orders_statuses = {}
 
-crypto.generate_keys("principal")
-keyring = crypto.get_keyring("principal")
+crypto.generate_keys(MS_NAME)
+keyring = crypto.get_keyring(MS_NAME)
 
 with open("catalogo.json", "r", encoding="utf-8") as f:
     products_list = json.load(f)
@@ -19,14 +24,17 @@ def consumer_worker():
     consumer_conn = pika.BlockingConnection(pika.ConnectionParameters("localhost"))
     channel = consumer_conn.channel()
 
-    channel.exchange_declare("eCommerce", "direct")
-    channel.queue_declare("fila.principal")
+    channel.exchange_declare(EXCHANGE, "direct")
+    _ = channel.queue_declare(QUEUE)
 
-    channel.queue_bind("fila.principal", "eCommerce", "pagamento.aprovado")
-    channel.queue_bind("fila.principal", "eCommerce", "pagamento.recusado")
-    channel.queue_bind("fila.principal", "eCommerce", "pedido.enviado")
-    channel.queue_bind("fila.principal", "eCommerce", "pedido.estoque_ok")
-    channel.queue_bind("fila.principal", "eCommerce", "estoque.indisponivel")
+    for routing_key in [
+        "pagamento.aprovado",
+        "pagamento.recusado",
+        "pedido.enviado",
+        "pedido.estoque_ok",
+        "estoque.indisponivel",
+    ]:
+        _ = channel.queue_bind(QUEUE, EXCHANGE, routing_key)
 
     def callback(ch, method, properties, body):
         headers = getattr(properties, "headers", {}) or {}
@@ -57,9 +65,9 @@ def consumer_worker():
                 }
 
                 body = json.dumps(order).encode("utf-8")
-                props = crypto.get_signed_props("principal", keyring["private"], body)
+                props = crypto.get_signed_props(MS_NAME, keyring["private"], body)
                 channel.basic_publish(
-                    "eCommerce", "pedido.excluido", body, properties=props
+                    EXCHANGE, "pedido.excluido", body, properties=props
                 )
 
                 with orders_lock:
@@ -68,7 +76,7 @@ def consumer_worker():
                     }
 
     channel.basic_consume(
-        queue="fila.principal",
+        queue=QUEUE,
         on_message_callback=callback,
         auto_ack=True,
     )
@@ -111,8 +119,8 @@ def place_order(channel):
     order = {"id": order_id, "products": orders}
 
     body = json.dumps(order).encode("utf-8")
-    props = crypto.get_signed_props("principal", keyring["private"], body)
-    channel.basic_publish("eCommerce", "pedido.criado", body, properties=props)
+    props = crypto.get_signed_props(MS_NAME, keyring["private"], body)
+    channel.basic_publish(EXCHANGE, "pedido.criado", body, properties=props)
 
     with orders_lock:
         orders_statuses[order_id] = {"status": "Pedido criado"}
@@ -131,7 +139,7 @@ def main():
 
     pub_conn = pika.BlockingConnection(pika.ConnectionParameters("localhost"))
     pub_channel = pub_conn.channel()
-    pub_channel.exchange_declare(exchange="eCommerce", exchange_type="direct")
+    pub_channel.exchange_declare(exchange=EXCHANGE, exchange_type="direct")
 
     print_products_list()
     while True:
