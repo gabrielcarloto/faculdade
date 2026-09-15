@@ -4,16 +4,23 @@ import pika
 import json
 import threading
 import crypto
+import messages
 
 
 MS_NAME = "principal"
 EXCHANGE = "eCommerce"
 QUEUE = "fila.principal"
+BINDINGS = [
+    "pagamento.aprovado",
+    "pagamento.recusado",
+    "pedido.enviado",
+    "pedido.estoque_ok",
+    "estoque.indisponivel",
+]
 
 orders_lock = threading.Lock()
 orders_statuses = {}
 
-crypto.generate_keys(MS_NAME)
 keyring = crypto.get_keyring(MS_NAME)
 
 with open("catalogo.json", "r", encoding="utf-8") as f:
@@ -27,23 +34,11 @@ def consumer_worker():
     channel.exchange_declare(EXCHANGE, "direct")
     _ = channel.queue_declare(QUEUE)
 
-    for routing_key in [
-        "pagamento.aprovado",
-        "pagamento.recusado",
-        "pedido.enviado",
-        "pedido.estoque_ok",
-        "estoque.indisponivel",
-    ]:
+    for routing_key in BINDINGS:
         _ = channel.queue_bind(QUEUE, EXCHANGE, routing_key)
 
     def callback(ch, method, properties, body):
-        headers = getattr(properties, "headers", {}) or {}
-        sender = headers.get("X-Sender")
-
-        # sender é opcional enquanto outros MS não são implementados
-        if sender and not crypto.verify_message(
-            keyring["public"][sender], properties, body
-        ):
+        if not crypto.verify_message(keyring, properties, body):
             return
 
         data = json.loads(body)
@@ -64,11 +59,7 @@ def consumer_worker():
                     "id": order_id,
                 }
 
-                body = json.dumps(order).encode("utf-8")
-                props = crypto.get_signed_props(MS_NAME, keyring["private"], body)
-                channel.basic_publish(
-                    EXCHANGE, "pedido.excluido", body, properties=props
-                )
+                messages.publish(order, channel, MS_NAME, keyring, EXCHANGE, "pedido.excluido")
 
                 with orders_lock:
                     orders_statuses[order_id] = {
@@ -118,12 +109,47 @@ def place_order(channel):
     order_id = random.randint(1000, 9999)
     order = {"id": order_id, "products": orders}
 
-    body = json.dumps(order).encode("utf-8")
-    props = crypto.get_signed_props(MS_NAME, keyring["private"], body)
-    channel.basic_publish(EXCHANGE, "pedido.criado", body, properties=props)
+    messages.publish(order, channel, MS_NAME, keyring, EXCHANGE, "pedido.criado")
 
     with orders_lock:
         orders_statuses[order_id] = {"status": "Pedido criado"}
+
+def delete_order(channel):
+    with orders_lock:
+        orders = dict(orders_statuses)
+
+    if not orders:
+        print("Nenhum pedido para excluir.")
+        return
+
+    print_statuses()
+
+    try:
+        order_id = int(input("Insira o ID do pedido a excluir: "))
+    except ValueError:
+        print("ID inválido :(")
+        return
+
+    current = orders.get(order_id)
+
+    if current is None:
+        print("Pedido inexistente :(")
+        return
+
+    status = current["status"]
+
+    if status == "Enviado" or status.startswith("Excluido"):
+        print(f"Pedido {order_id} ({status}) não pode ser excluído.")
+        return
+
+    order = {"id": order_id}
+
+    messages.publish(order, channel, MS_NAME, keyring, EXCHANGE, "pedido.excluido")
+
+    with orders_lock:
+        orders_statuses[order_id] = {"status": "Excluido (usuario)"}
+
+    print(f"Pedido {order_id} excluído.")
 
 
 def print_statuses():
@@ -137,7 +163,7 @@ def main():
     consumer_thread = threading.Thread(target=consumer_worker, daemon=True)
     consumer_thread.start()
 
-    pub_conn = pika.BlockingConnection(pika.ConnectionParameters("localhost"))
+    pub_conn = pika.BlockingConnection(pika.ConnectionParameters("localhost", heartbeat=600))
     pub_channel = pub_conn.channel()
     pub_channel.exchange_declare(exchange=EXCHANGE, exchange_type="direct")
 
@@ -145,7 +171,9 @@ def main():
     while True:
         print("\n(1) Criar pedido")
         print("(2) Acompanhar pedidos")
-        print("(3) Sair")
+        print("(3) Excluir pedido")
+        print("(4) Visualizar produtos")
+        print("(5) Sair")
         opt = input("\nDigite sua opção: ")
 
         if opt == "1":
@@ -153,8 +181,11 @@ def main():
         if opt == "2":
             print_statuses()
         if opt == "3":
+            delete_order(pub_channel)
+        if opt == "3":
+            print_products_list()
+        if opt == "3":
             sys.exit(0)
-
 
 if __name__ == "__main__":
     main()

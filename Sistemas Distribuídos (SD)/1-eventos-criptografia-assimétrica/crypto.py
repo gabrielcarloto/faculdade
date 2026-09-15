@@ -86,9 +86,18 @@ def get_signed_props(sender: str, private_key: rsa.RSAPrivateKey, body: bytes):
     )
 
 
-def verify_message(
-    public_key: rsa.RSAPublicKey, properties: pika.BasicProperties, body: bytes
-):
+def verify_message(keyring: Keyring, properties: pika.BasicProperties, body: bytes):
+    headers = getattr(properties, "headers", None) or {}
+    sender = headers.get("X-Sender")
+
+    if not sender:
+        return False
+
+    public_key = keyring["public"][sender]
+
+    if public_key is None:
+        return False
+
     signature_b64 = (
         properties.headers.get("X-Signature") if properties.headers else None
     )
