@@ -1,10 +1,14 @@
 import json
 import random
 import pika
+import messages
+import crypto
 
 MS_NAME = "promocoes"
 EXCHANGE = "Promocoes"
 INTERVALO = 5
+
+keyring = crypto.get_keyring(MS_NAME)
 
 with open("catalogo.json", "r", encoding="utf-8") as f:
     produtos = json.load(f)
@@ -36,7 +40,7 @@ def main():
             promocao = gerar_promocao()
             routing_key = f"promocao.categoria.{promocao['categoria']}"
 
-            channel.basic_publish(EXCHANGE, routing_key, json.dumps(promocao))
+            messages.publish(promocao, channel, MS_NAME, keyring, EXCHANGE, routing_key)
 
             print(
                 f"[promocoes] {routing_key} | {promocao['produto']} "

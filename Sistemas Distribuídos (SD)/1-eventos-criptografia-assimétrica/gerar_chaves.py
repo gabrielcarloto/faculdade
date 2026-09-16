@@ -1,11 +1,6 @@
 import crypto
 
-services = [
-    "principal",
-    "estoque",
-    "pagamento",
-    "entrega",
-]
+services = ["principal", "estoque", "pagamento", "entrega", "promocoes"]
 
 
 def main():
