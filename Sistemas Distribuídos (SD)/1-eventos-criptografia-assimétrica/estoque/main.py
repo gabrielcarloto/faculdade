@@ -119,7 +119,6 @@ def main():
     imprimir_estoque()
 
     try:
-        print("[estoque] iniciando...")
         channel.start_consuming()
     except KeyboardInterrupt:
         channel.stop_consuming()

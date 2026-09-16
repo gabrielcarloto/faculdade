@@ -29,6 +29,7 @@ def main():
     channel.basic_consume(QUEUE, callback, auto_ack=True)
 
     try:
+        print("[C2] iniciando...")
         channel.start_consuming()
     except KeyboardInterrupt:
         channel.stop_consuming()

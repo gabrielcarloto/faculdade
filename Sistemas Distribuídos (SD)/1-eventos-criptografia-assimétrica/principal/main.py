@@ -44,27 +44,31 @@ def consumer_worker():
         data = json.loads(body)
         order_id = data["id"]
 
-        match method.routing_key:
-            case "pedido.estoque_ok":
-                with orders_lock:
+        with orders_lock:
+            existing_order = orders_statuses.get(order_id)
+            if (
+                existing_order is not None
+                and "excluido" in existing_order["status"].lower()
+            ):
+                return
+
+            match method.routing_key:
+                case "pedido.estoque_ok":
                     orders_statuses[order_id] = {"status": "Estoque disponível"}
-            case "pagamento.aprovado":
-                with orders_lock:
+                case "pagamento.aprovado":
                     orders_statuses[order_id] = {"status": "Pagamento aprovado"}
-            case "pedido.enviado":
-                with orders_lock:
+                case "pedido.enviado":
                     orders_statuses[order_id] = {"status": "Enviado"}
-            case "estoque.indisponivel" | "pagamento.recusado":
-                order = {
-                    "id": order_id,
-                }
-
-                messages.publish(order, channel, MS_NAME, keyring, EXCHANGE, "pedido.excluido")
-
-                with orders_lock:
+                case "estoque.indisponivel" | "pagamento.recusado":
                     orders_statuses[order_id] = {
                         "status": f"Excluido ({method.routing_key})"
                     }
+
+        if method.routing_key in ("estoque.indisponivel", "pagamento.recusado"):
+            order = {"id": order_id}
+            messages.publish(
+                order, channel, MS_NAME, keyring, EXCHANGE, "pedido.excluido"
+            )
 
     channel.basic_consume(
         queue=QUEUE,
@@ -113,6 +117,7 @@ def place_order(channel):
 
     with orders_lock:
         orders_statuses[order_id] = {"status": "Pedido criado"}
+
 
 def delete_order(channel):
     with orders_lock:
@@ -163,7 +168,9 @@ def main():
     consumer_thread = threading.Thread(target=consumer_worker, daemon=True)
     consumer_thread.start()
 
-    pub_conn = pika.BlockingConnection(pika.ConnectionParameters("localhost", heartbeat=600))
+    pub_conn = pika.BlockingConnection(
+        pika.ConnectionParameters("localhost", heartbeat=600)
+    )
     pub_channel = pub_conn.channel()
     pub_channel.exchange_declare(exchange=EXCHANGE, exchange_type="direct")
 
@@ -186,6 +193,7 @@ def main():
             print_products_list()
         if opt == "3":
             sys.exit(0)
+
 
 if __name__ == "__main__":
     main()
