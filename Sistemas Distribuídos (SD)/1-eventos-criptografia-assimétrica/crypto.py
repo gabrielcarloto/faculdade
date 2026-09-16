@@ -82,7 +82,7 @@ def get_signed_props(sender: str, private_key: rsa.RSAPrivateKey, body: bytes):
     signature_b64 = base64.b64encode(signature).decode("utf-8")
 
     return pika.BasicProperties(
-        headers={"X-Signature": signature_b64, "X-Sender": sender}, delivery_mode=2
+        headers={"X-Signature": signature_b64, "X-Sender": sender},
     )
 
 
