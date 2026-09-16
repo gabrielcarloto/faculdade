@@ -82,13 +82,13 @@ def get_signed_props(sender: str, private_key: rsa.RSAPrivateKey, body: bytes):
     signature_b64 = base64.b64encode(signature).decode("utf-8")
 
     return pika.BasicProperties(
-        headers={"X-Signature": signature_b64, "X-Sender": sender},
+        headers={"Signature": signature_b64, "Sender": sender},
     )
 
 
 def verify_message(keyring: Keyring, properties: pika.BasicProperties, body: bytes):
     headers = getattr(properties, "headers", None) or {}
-    sender = headers.get("X-Sender")
+    sender = headers.get("Sender")
 
     if not sender:
         return False
@@ -98,9 +98,7 @@ def verify_message(keyring: Keyring, properties: pika.BasicProperties, body: byt
     if public_key is None:
         return False
 
-    signature_b64 = (
-        properties.headers.get("X-Signature") if properties.headers else None
-    )
+    signature_b64 = properties.headers.get("Signature") if properties.headers else None
 
     if not signature_b64:
         return False

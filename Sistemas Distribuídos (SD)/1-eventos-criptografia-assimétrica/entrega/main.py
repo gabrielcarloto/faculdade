@@ -1,5 +1,4 @@
 import json
-import random
 import time
 
 import pika
@@ -17,6 +16,7 @@ keyring = crypto.get_keyring(MS_NAME)
 def tratar_pagamento_aprovado(channel, pedido):
     pedido_id = pedido["id"]
 
+    print(f"[entrega] pedido {pedido_id}: PROCESSANDO")
     time.sleep(1)
 
     messages.publish(
