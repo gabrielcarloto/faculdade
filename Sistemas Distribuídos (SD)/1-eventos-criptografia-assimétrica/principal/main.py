@@ -189,9 +189,9 @@ def main():
             print_statuses()
         if opt == "3":
             delete_order(pub_channel)
-        if opt == "3":
+        if opt == "4":
             print_products_list()
-        if opt == "3":
+        if opt == "5":
             sys.exit(0)
 
 
