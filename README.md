@@ -1,9 +1,10 @@
 # Faculdade
 
-Trabalhos e exercícios do curso de Sistemas de Informação (BSI), organizados por disciplina. O repo reúne C, C++, Go, Python, TypeScript, NASM e HTML/CSS.
+Trabalhos do curso de Sistemas de Informação (BSI), organizados por disciplina. O repo reúne C, C++, Go, Python, TypeScript, NASM e HTML/CSS.
 
 ## Disciplinas
 
+- [Sistemas Distribuídos](./Sistemas Distribuídos (SD)/) - Python: microsserviços e API REST.
 - [Desenvolvimento Integrado de Sistemas](./Desenvolvimento%20Integrado%20de%20Sistemas/) — Go: solver de reconstrução de imagem (gradiente conjugado) com cache e agendador
 - [Estruturas de Dados](./Estruturas%20de%20Dados/) — C++: TADs genéricos de lista (List, SortedList, Vector) com menu e profiler
 - [Estruturas de Dados 2](./Estruturas%20de%20Dados%202/) — C/C++: árvores (AVL, binárias, tries), heaps, hash tables e grafos
