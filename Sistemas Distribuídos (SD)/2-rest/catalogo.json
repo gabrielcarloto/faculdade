@@ -1,0 +1,37 @@
+[
+  {
+    "id": 1,
+    "nome": "Notebook",
+    "categoria": "A",
+    "preco": 3500.0,
+    "estoque": 5
+  },
+  {
+    "id": 2,
+    "nome": "Mouse sem fio",
+    "categoria": "A",
+    "preco": 80.0,
+    "estoque": 15
+  },
+  {
+    "id": 3,
+    "nome": "Livro de Sistemas Distribuídos",
+    "categoria": "B",
+    "preco": 120.0,
+    "estoque": 10
+  },
+  {
+    "id": 4,
+    "nome": "Caderno Universitário",
+    "categoria": "B",
+    "preco": 25.0,
+    "estoque": 30
+  },
+  {
+    "id": 5,
+    "nome": "Cafeteira Express",
+    "categoria": "C",
+    "preco": 250.0,
+    "estoque": 1
+  }
+]
