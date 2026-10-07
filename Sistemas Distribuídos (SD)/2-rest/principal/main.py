@@ -83,37 +83,7 @@ def consumer_worker():
     channel.start_consuming()
 
 
-def print_products_list():
-    print("=" * 40)
-    for product in products_list:
-        print("ID: ", product["id"])
-        print("Nome: ", product["nome"])
-        print("Categoria: ", product["categoria"])
-        print("Preco: ", product["preco"])
-        print("=" * 40)
-
-
-def place_order(channel):
-    orders = []
-
-    while True:
-        print("\n(1) Adicionar produto")
-        print("(2) Finalizar pedido")
-        opt = input("\nDigite sua opção: ")
-
-        if opt == "1":
-            prod_id = int(input("Insira o ID do produto: "))
-            exists = any(p["id"] == prod_id for p in products_list)
-
-            if not exists:
-                print("Produto inexistente :(")
-                continue
-
-            quantity = int(input("Quantidade: "))
-            orders.append({"id": prod_id, "quantity": quantity})
-        if opt == "2":
-            break
-
+def place_order(channel, orders):
     order_id = random.randint(1000, 9999)
     order = {"id": order_id, "products": orders}
 
@@ -122,33 +92,24 @@ def place_order(channel):
     with orders_lock:
         orders_statuses[order_id] = {"status": "Pedido criado"}
 
+    return ...
 
-def delete_order(channel):
+
+def delete_order(channel, order_id):
     with orders_lock:
         orders = dict(orders_statuses)
 
     if not orders:
-        print("Nenhum pedido para excluir.")
-        return
-
-    print_statuses()
-
-    try:
-        order_id = int(input("Insira o ID do pedido a excluir: "))
-    except ValueError:
-        print("ID inválido :(")
         return
 
     current = orders.get(order_id)
 
     if current is None:
-        print("Pedido inexistente :(")
         return
 
     status = current["status"]
 
     if status == "Enviado" or status.startswith("Excluido"):
-        print(f"Pedido {order_id} ({status}) não pode ser excluído.")
         return
 
     order = {"id": order_id}
@@ -158,34 +119,69 @@ def delete_order(channel):
     with orders_lock:
         orders_statuses[order_id] = {"status": "Excluido (usuario)"}
 
-    print(f"Pedido {order_id} excluído.")
-
-
-def print_statuses():
-    print("=" * 40)
-    for order, data in orders_statuses.items():
-        print(order, " | ", data["status"])
-    print("=" * 40)
+    return ...
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    pub_conn = pika.BlockingConnection(
+        pika.ConnectionParameters("localhost", heartbeat=600)
+    )
+
+    pub_channel = pub_conn.channel()
+    pub_channel.exchange_declare(exchange=EXCHANGE, exchange_type="direct")
+
+    app.state.rabbit_channel = pub_channel
+
     thread = threading.Thread(target=consumer_worker, daemon=True)
     thread.start()
+
     yield
+
+    pub_channel.close()
+    pub_conn.close()
 
 
 app = FastAPI(lifespan=lifespan)
 
 
-@app.get("/")
-def read_root():
-    return {"Hello": "World"}
+@app.get("/produtos")
+def get_products():
+    # TODO: requisição via API do estoque
+    return ...
 
 
 @app.get("/pedidos")
 def get_orders():
     return orders_statuses
+
+
+@app.post("/pedidos")
+def create_order(req):
+    # TODO: pegar dados do body
+    res = place_order(req.app.state.rabbit_channel, orders)
+    return res
+
+
+@app.delete("/pedidos")
+def delete_order(req):
+    # TODO: pegar dados do body
+    res = delete_order(req.app.state.rabbit_channel, order_id)
+    return res
+
+
+@app.post("/promo")
+def subscribePromotions(req):
+    # TODO: pegar dados do body
+    res = ...
+    return res
+
+
+@app.delete("/promo")
+def unsubscribePromotions(req):
+    # TODO: pegar dados do body
+    res = ...
+    return res
 
 
 if __name__ == "__main__":
