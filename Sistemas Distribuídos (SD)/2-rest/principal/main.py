@@ -1,7 +1,7 @@
 import random
 import uvicorn
-import sys
 import pika
+import httpx
 import json
 import threading
 import crypto
@@ -25,9 +25,6 @@ orders_lock = threading.Lock()
 orders_statuses = {}
 
 keyring = crypto.get_keyring(MS_NAME)
-
-with open("catalogo.json", "r", encoding="utf-8") as f:
-    products_list = json.load(f)
 
 
 def consumer_worker():
@@ -146,9 +143,13 @@ app = FastAPI(lifespan=lifespan)
 
 
 @app.get("/produtos")
-def get_products():
-    # TODO: requisição via API do estoque
-    return ...
+async def get_products():
+    async with httpx.AsyncClient(timeout=5.0) as client:
+        response = await client.get(
+            "http://localhost:8001/produtos",
+        )
+        response.raise_for_status()
+        return response.json()
 
 
 @app.get("/pedidos")

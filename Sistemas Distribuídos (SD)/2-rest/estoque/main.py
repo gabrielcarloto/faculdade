@@ -1,6 +1,9 @@
 import json
-
+import uvicorn
 import pika
+import threading
+from fastapi import FastAPI
+from contextlib import asynccontextmanager
 
 import crypto
 import messages
@@ -93,7 +96,7 @@ def tratar_pedido_excluido(pedido):
     imprimir_estoque()
 
 
-def main():
+def consumer_worker():
     conn = pika.BlockingConnection(pika.ConnectionParameters("localhost"))
     channel = conn.channel()
 
@@ -118,12 +121,29 @@ def main():
 
     imprimir_estoque()
 
-    try:
-        channel.start_consuming()
-    except KeyboardInterrupt:
-        channel.stop_consuming()
-        conn.close()
+    channel.start_consuming()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    thread = threading.Thread(target=consumer_worker, daemon=True)
+    thread.start()
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
+
+
+@app.get("/produtos")
+def get_products():
+    produtos = [
+        p | {"estoque": disponivel[pid]}
+        for pid, p in catalogo.items()
+        if pid in disponivel
+    ]
+
+    return produtos
 
 
 if __name__ == "__main__":
-    main()
+    uvicorn.run("estoque.main:app", port=8001, reload=True)
