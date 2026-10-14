@@ -4,6 +4,7 @@ import pika
 import httpx
 import json
 import threading
+import constants
 import crypto
 import messages
 from fastapi import FastAPI, Request, Response, Depends
@@ -15,6 +16,7 @@ MS_NAME = "principal"
 EXCHANGE = "eCommerce"
 QUEUE = "fila.principal"
 BINDINGS = [
+    "pagamento.pendente",
     "pagamento.aprovado",
     "pagamento.recusado",
     "pedido.enviado",
@@ -39,9 +41,8 @@ def consumer_worker():
         _ = channel.queue_bind(QUEUE, EXCHANGE, routing_key)
 
     def callback(ch, method, properties, body):
-        # NOTE: remover comentário depois :)
-        # if not crypto.verify_message(keyring, properties, body):
-        #     return
+        if not crypto.verify_message(keyring, properties, body):
+            return
 
         data = json.loads(body)
         order_id = data["id"]
@@ -57,6 +58,12 @@ def consumer_worker():
             match method.routing_key:
                 case "pedido.estoque_ok":
                     orders_statuses[order_id] = {"status": "Estoque disponível"}
+                case "pagamento.pendente":
+                    print("link de pagamento: ", data["link"])
+                    orders_statuses[order_id] = {
+                        "status": "Pagamento pendente",
+                        "payment_link": data["link"],
+                    }
                 case "pagamento.aprovado":
                     orders_statuses[order_id] = {"status": "Pagamento aprovado"}
                 case "pedido.enviado":
@@ -168,7 +175,7 @@ def get_channel(request: Request) -> pika.adapters.BlockingConnection:
 async def get_products():
     async with httpx.AsyncClient(timeout=5.0) as client:
         response = await client.get(
-            "http://localhost:8001/produtos",
+            f"http://localhost:{constants.PORTS['estoque']}/produtos",
         )
 
         response.raise_for_status()
@@ -221,4 +228,4 @@ def subscribePromotions(
 
 
 if __name__ == "__main__":
-    uvicorn.run("principal.main:app", port=8000, reload=True)
+    uvicorn.run("principal.main:app", port=constants.PORTS["principal"], reload=True)

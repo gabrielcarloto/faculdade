@@ -5,6 +5,7 @@ import threading
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 
+import constants
 import crypto
 import messages
 
@@ -146,4 +147,4 @@ def get_products():
 
 
 if __name__ == "__main__":
-    uvicorn.run("estoque.main:app", port=8001, reload=True)
+    uvicorn.run("estoque.main:app", port=constants.PORTS["estoque"], reload=True)
