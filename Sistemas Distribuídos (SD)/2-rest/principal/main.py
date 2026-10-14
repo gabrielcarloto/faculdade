@@ -155,6 +155,11 @@ class Order(BaseModel):
     id: int
 
 
+class PromotionSubscription(BaseModel):
+    email: str
+    categories: list[str]
+
+
 def get_channel(request: Request) -> pika.adapters.BlockingConnection:
     return request.app.state.rabbit_channel
 
@@ -192,17 +197,27 @@ def delete_order(order: Order, res: Response, channel=Depends(get_channel)):
 
 
 @app.post("/promo")
-def subscribePromotions(req):
-    # TODO: pegar dados do body
-    res = ...
-    return res
+def subscribePromotions(
+    promo: PromotionSubscription, res: Response, channel=Depends(get_channel)
+):
+    messages.publish(
+        promo.model_dump(),
+        channel,
+        MS_NAME,
+        keyring,
+        "Promocoes",
+        "interesse.promocao",
+    )
+
+    res.status_code = 201
+    return
 
 
-@app.delete("/promo")
-def unsubscribePromotions(req):
-    # TODO: pegar dados do body
-    res = ...
-    return res
+# @app.delete("/promo")
+# def unsubscribePromotions(req):
+#     # TODO: pegar dados do body e implementar ms promo
+#     res = ...
+#     return res
 
 
 if __name__ == "__main__":

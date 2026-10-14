@@ -13,3 +13,10 @@ order_id: jsonpath "$.id"
 # Remover pedido
 DELETE http://localhost:8000/pedidos
 { "id": {{order_id}} }
+
+# Inscrever em promo
+POST http://localhost:8000/promo
+{ "email": "dummy@mail.com", "categories": ["A"] }
+
+POST http://localhost:8000/promo
+{ "email": "fulano@detal.com", "categories": ["B", "C"] }

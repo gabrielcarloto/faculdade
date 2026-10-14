@@ -1,17 +1,63 @@
 import json
 import random
+import sys
+import threading
+import time
 import pika
-import messages
 import crypto
 
 MS_NAME = "promocoes"
 EXCHANGE = "Promocoes"
-INTERVALO = 5
+QUEUE = "fila.promocoes"
+BINDINGS = ["interesse.promocao"]
+
+INTERVALO = 10
 
 keyring = crypto.get_keyring(MS_NAME)
 
 with open("catalogo.json", "r", encoding="utf-8") as f:
     produtos = json.load(f)
+
+
+# categoria -> emails[]
+subscribers = {
+    "A": set(),
+    "B": set(),
+    "C": set(),
+}
+
+subscribers_lock = threading.Lock()
+
+
+def consumer_worker():
+    consumer_conn = pika.BlockingConnection(pika.ConnectionParameters("localhost"))
+    channel = consumer_conn.channel()
+
+    channel.exchange_declare(EXCHANGE, "direct")
+    _ = channel.queue_declare(QUEUE)
+
+    for routing_key in BINDINGS:
+        _ = channel.queue_bind(QUEUE, EXCHANGE, routing_key)
+
+    def callback(_ch, _method, properties, body):
+        if not crypto.verify_message(keyring, properties, body):
+            return
+
+        # esperado: { email: str, categories: str[] }
+        data = json.loads(body)
+
+        with subscribers_lock:
+            for category in data["categories"]:
+                if category in subscribers:
+                    subscribers[category].add(data["email"])
+
+    channel.basic_consume(
+        queue=QUEUE,
+        on_message_callback=callback,
+        auto_ack=True,
+    )
+
+    channel.start_consuming()
 
 
 def gerar_promocao():
@@ -29,27 +75,30 @@ def gerar_promocao():
     }
 
 
-def main():
-    conn = pika.BlockingConnection(pika.ConnectionParameters("localhost"))
-    channel = conn.channel()
+# TODO: enviar emails via Resend
+def enviar_emails(promo, subscribers):
+    print(
+        "Enviando emails da categoria " + promo["categoria"] + " para subs: ",
+        subscribers,
+    )
 
-    channel.exchange_declare(EXCHANGE, "topic")
+
+def main():
+    thread = threading.Thread(target=consumer_worker, daemon=True)
+    thread.start()
 
     try:
         while True:
             promocao = gerar_promocao()
-            routing_key = f"promocao.categoria.{promocao['categoria']}"
 
-            messages.publish(promocao, channel, MS_NAME, keyring, EXCHANGE, routing_key)
+            with subscribers_lock:
+                subscribers_snapshot = list(subscribers[promocao["categoria"]])
 
-            print(
-                f"[promocoes] {routing_key} | {promocao['produto']} "
-                f"-{promocao['desconto']}% -> R$ {promocao['preco_promocional']:.2f}"
-            )
+            enviar_emails(promocao, subscribers_snapshot)
 
-            conn.sleep(INTERVALO)
+            time.sleep(INTERVALO)
     except KeyboardInterrupt:
-        conn.close()
+        sys.exit()
 
 
 if __name__ == "__main__":
