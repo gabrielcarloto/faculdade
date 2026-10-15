@@ -1,17 +1,17 @@
 import json
-import uvicorn
-import pika
 import threading
+import traceback
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 
 import constants
 import crypto
+import infra
 import messages
 
 MS_NAME = "estoque"
-EXCHANGE = "eCommerce"
-QUEUE = "fila.estoque"
+EXCHANGE = constants.EXCHANGE_ECOMMERCE
+QUEUE = constants.queue_for(MS_NAME)
 
 keyring = crypto.get_keyring(MS_NAME)
 
@@ -98,25 +98,24 @@ def tratar_pedido_excluido(pedido):
 
 
 def consumer_worker():
-    conn = pika.BlockingConnection(pika.ConnectionParameters("localhost"))
-    channel = conn.channel()
-
-    channel.exchange_declare(EXCHANGE, "direct")
-    _ = channel.queue_declare(QUEUE)
-
-    for routing_key in ["pedido.criado", "pedido.excluido"]:
-        _ = channel.queue_bind(QUEUE, EXCHANGE, routing_key)
+    channel = infra.connect_consumer(
+        EXCHANGE, QUEUE, ["pedido.criado", "pedido.excluido"]
+    )
 
     def callback(ch, method, properties, body):
         if not crypto.verify_message(keyring, properties, body):
             return
 
-        pedido = json.loads(body)
+        try:
+            pedido = json.loads(body)
 
-        if method.routing_key == "pedido.criado":
-            tratar_pedido_criado(ch, pedido)
-        else:
-            tratar_pedido_excluido(pedido)
+            if method.routing_key == "pedido.criado":
+                tratar_pedido_criado(ch, pedido)
+            else:
+                tratar_pedido_excluido(pedido)
+        except Exception:
+            print(f"[estoque] erro ao processar {method.routing_key}")
+            traceback.print_exc()
 
     channel.basic_consume(QUEUE, callback, auto_ack=True)
 
@@ -147,4 +146,4 @@ def get_products():
 
 
 if __name__ == "__main__":
-    uvicorn.run("estoque.main:app", port=constants.PORTS["estoque"], reload=True)
+    infra.run("estoque.main:app", MS_NAME)

@@ -1,14 +1,15 @@
 import json
 import time
+import traceback
 
-import pika
-
+import constants
 import crypto
+import infra
 import messages
 
 MS_NAME = "entrega"
-EXCHANGE = "eCommerce"
-QUEUE = "fila.entrega"
+EXCHANGE = constants.EXCHANGE_ECOMMERCE
+QUEUE = constants.queue_for(MS_NAME)
 
 keyring = crypto.get_keyring(MS_NAME)
 
@@ -32,18 +33,18 @@ def tratar_pagamento_aprovado(channel, pedido):
 
 
 def main():
-    conn = pika.BlockingConnection(pika.ConnectionParameters("localhost"))
-    channel = conn.channel()
-
-    channel.exchange_declare(EXCHANGE, "direct")
-    _ = channel.queue_declare(QUEUE)
-    _ = channel.queue_bind(QUEUE, EXCHANGE, "pagamento.aprovado")
+    channel = infra.connect_consumer(EXCHANGE, QUEUE, ["pagamento.aprovado"])
+    conn = channel.connection  # mantida para o close() no KeyboardInterrupt
 
     def callback(ch, method, properties, body):
         if not crypto.verify_message(keyring, properties, body):
             return
 
-        tratar_pagamento_aprovado(ch, json.loads(body))
+        try:
+            tratar_pagamento_aprovado(ch, json.loads(body))
+        except Exception:
+            print(f"[entrega] erro ao processar {method.routing_key}")
+            traceback.print_exc()
 
     channel.basic_consume(QUEUE, callback, auto_ack=True)
 

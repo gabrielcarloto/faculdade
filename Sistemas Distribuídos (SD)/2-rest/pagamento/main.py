@@ -1,25 +1,22 @@
 import json
-import random
 import threading
-import time
-from typing import Literal
+import traceback
 
 from fastapi import FastAPI, Request, Response, Depends
 from contextlib import asynccontextmanager
 import httpx
 import pika
+import pika.adapters.blocking_connection
 from pydantic import BaseModel
-import uvicorn
 
 import constants
 import crypto
+import infra
 import messages
 
 MS_NAME = "pagamento"
-EXCHANGE = "eCommerce"
-QUEUE = "fila.pagamento"
-
-TAXA_APROVACAO = 0.7
+EXCHANGE = constants.EXCHANGE_ECOMMERCE
+QUEUE = constants.queue_for(MS_NAME)
 
 keyring = crypto.get_keyring(MS_NAME)
 
@@ -28,43 +25,42 @@ pending_lock = threading.Lock()
 
 
 def consumer_worker():
-    conn = pika.BlockingConnection(pika.ConnectionParameters("localhost"))
-    channel = conn.channel()
+    channel = infra.connect_consumer(EXCHANGE, QUEUE, ["pedido.estoque_ok"])
 
-    channel.exchange_declare(EXCHANGE, "direct")
-    _ = channel.queue_declare(QUEUE)
-    _ = channel.queue_bind(QUEUE, EXCHANGE, "pedido.estoque_ok")
-
-    def callback(ch, _method, properties, body):
+    def callback(ch, method, properties, body):
         if not crypto.verify_message(keyring, properties, body):
             return
 
-        data = json.loads(body)
-        order_id = data["id"]
+        try:
+            data = json.loads(body)
+            order_id = data["id"]
 
-        with pending_lock:
-            pending.add(order_id)
+            with pending_lock:
+                pending.add(order_id)
 
-        res = httpx.post(
-            f"http://localhost:{constants.PORTS['mock_pagamento']}/generate_payment_link",
-            json={
-                "order_id": order_id,
-                "callback": f"http://localhost:{constants.PORTS['pagamento']}/pagamento/{order_id}",
-            },
-            timeout=5.0,
-        )
+            res = httpx.post(
+                f"{constants.base_url_for('mock_pagamento')}/generate_payment_link",
+                json={
+                    "order_id": order_id,
+                    "callback": f"{constants.base_url_for('pagamento')}/pagamento/{order_id}",
+                },
+                timeout=5.0,
+            )
 
-        data = res.json()
-        link = data["link"]
+            data = res.json()
+            link = data["link"]
 
-        messages.publish(
-            {"id": order_id, "link": link},
-            channel,
-            MS_NAME,
-            keyring,
-            EXCHANGE,
-            "pagamento.pendente",
-        )
+            messages.publish(
+                {"id": order_id, "link": link},
+                channel,
+                MS_NAME,
+                keyring,
+                EXCHANGE,
+                "pagamento.pendente",
+            )
+        except Exception:
+            print(f"[pagamento] erro ao processar {method.routing_key}")
+            traceback.print_exc()
 
     channel.basic_consume(QUEUE, callback, auto_ack=True)
     channel.start_consuming()
@@ -73,7 +69,7 @@ def consumer_worker():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     pub_conn = pika.BlockingConnection(
-        pika.ConnectionParameters("localhost", heartbeat=600)
+        pika.ConnectionParameters(constants.RABBIT_HOST, heartbeat=600)
     )
 
     pub_channel = pub_conn.channel()
@@ -90,7 +86,7 @@ async def lifespan(app: FastAPI):
     pub_conn.close()
 
 
-def get_channel(request: Request) -> pika.adapters.BlockingConnection:
+def get_channel(request: Request) -> pika.adapters.blocking_connection.BlockingChannel:
     return request.app.state.rabbit_channel
 
 
@@ -120,4 +116,4 @@ def update_payment(
 
 
 if __name__ == "__main__":
-    uvicorn.run("pagamento.main:app", port=constants.PORTS["pagamento"], reload=True)
+    infra.run("pagamento.main:app", MS_NAME)

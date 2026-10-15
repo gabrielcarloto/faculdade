@@ -1,108 +1,39 @@
 import random
-import uvicorn
 import pika
+import pika.adapters.blocking_connection
 import httpx
-import json
 import threading
 import constants
-import crypto
+import infra
 import messages
+from principal import rabbit, state
 from fastapi import FastAPI, Request, Response, Depends
 from contextlib import asynccontextmanager
 from pydantic import BaseModel
-
-
-MS_NAME = "principal"
-EXCHANGE = "eCommerce"
-QUEUE = "fila.principal"
-BINDINGS = [
-    "pagamento.pendente",
-    "pagamento.aprovado",
-    "pagamento.recusado",
-    "pedido.enviado",
-    "pedido.estoque_ok",
-    "estoque.indisponivel",
-]
-
-orders_lock = threading.Lock()
-orders_statuses = {}
-
-keyring = crypto.get_keyring(MS_NAME)
-
-
-def consumer_worker():
-    consumer_conn = pika.BlockingConnection(pika.ConnectionParameters("localhost"))
-    channel = consumer_conn.channel()
-
-    channel.exchange_declare(EXCHANGE, "direct")
-    _ = channel.queue_declare(QUEUE)
-
-    for routing_key in BINDINGS:
-        _ = channel.queue_bind(QUEUE, EXCHANGE, routing_key)
-
-    def callback(ch, method, properties, body):
-        if not crypto.verify_message(keyring, properties, body):
-            return
-
-        data = json.loads(body)
-        order_id = data["id"]
-
-        with orders_lock:
-            existing_order = orders_statuses.get(order_id)
-            if (
-                existing_order is not None
-                and "excluido" in existing_order["status"].lower()
-            ):
-                return
-
-            match method.routing_key:
-                case "pedido.estoque_ok":
-                    orders_statuses[order_id] = {"status": "Estoque disponível"}
-                case "pagamento.pendente":
-                    print("link de pagamento: ", data["link"])
-                    orders_statuses[order_id] = {
-                        "status": "Pagamento pendente",
-                        "payment_link": data["link"],
-                    }
-                case "pagamento.aprovado":
-                    orders_statuses[order_id] = {"status": "Pagamento aprovado"}
-                case "pedido.enviado":
-                    orders_statuses[order_id] = {"status": "Enviado"}
-                case "estoque.indisponivel" | "pagamento.recusado":
-                    orders_statuses[order_id] = {
-                        "status": f"Excluido ({method.routing_key})"
-                    }
-
-        if method.routing_key in ("estoque.indisponivel", "pagamento.recusado"):
-            order = {"id": order_id}
-            messages.publish(
-                order, channel, MS_NAME, keyring, EXCHANGE, "pedido.excluido"
-            )
-
-    channel.basic_consume(
-        queue=QUEUE,
-        on_message_callback=callback,
-        auto_ack=True,
-    )
-
-    channel.start_consuming()
 
 
 def place_order(orders, channel):
     order_id = random.randint(1000, 9999)
     order = {"id": order_id, "products": orders}
 
-    messages.publish(order, channel, MS_NAME, keyring, EXCHANGE, "pedido.criado")
+    messages.publish(
+        order,
+        channel,
+        rabbit.MS_NAME,
+        rabbit.keyring,
+        rabbit.EXCHANGE,
+        "pedido.criado",
+    )
 
-    with orders_lock:
-        orders_statuses[order_id] = {"status": "Pedido criado"}
+    with state.orders_lock:
+        state.orders_statuses[order_id] = {"status": "Pedido criado"}
 
     return order
 
 
 def remove_order(order_id, channel):
-    with orders_lock:
-        orders = dict(orders_statuses)
+    with state.orders_lock:
+        orders = dict(state.orders_statuses)
 
     if not orders:
         return 404
@@ -122,10 +53,17 @@ def remove_order(order_id, channel):
 
     order = {"id": order_id}
 
-    messages.publish(order, channel, MS_NAME, keyring, EXCHANGE, "pedido.excluido")
+    messages.publish(
+        order,
+        channel,
+        rabbit.MS_NAME,
+        rabbit.keyring,
+        rabbit.EXCHANGE,
+        "pedido.excluido",
+    )
 
-    with orders_lock:
-        orders_statuses[order_id] = {"status": "Excluido (usuario)"}
+    with state.orders_lock:
+        state.orders_statuses[order_id] = {"status": "Excluido (usuario)"}
 
     return 204
 
@@ -133,15 +71,15 @@ def remove_order(order_id, channel):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     pub_conn = pika.BlockingConnection(
-        pika.ConnectionParameters("localhost", heartbeat=600)
+        pika.ConnectionParameters(constants.RABBIT_HOST, heartbeat=600)
     )
 
     pub_channel = pub_conn.channel()
-    pub_channel.exchange_declare(exchange=EXCHANGE, exchange_type="direct")
+    pub_channel.exchange_declare(exchange=rabbit.EXCHANGE, exchange_type="direct")
 
     app.state.rabbit_channel = pub_channel
 
-    thread = threading.Thread(target=consumer_worker, daemon=True)
+    thread = threading.Thread(target=rabbit.consumer_worker, daemon=True)
     thread.start()
 
     yield
@@ -163,26 +101,25 @@ class PromotionSubscription(BaseModel):
     categories: list[str]
 
 
-def get_channel(request: Request) -> pika.adapters.BlockingConnection:
+def get_channel(request: Request) -> pika.adapters.blocking_connection.BlockingChannel:
     return request.app.state.rabbit_channel
 
 
 @app.get("/produtos")
-async def get_products():
-    async with httpx.AsyncClient(timeout=5.0) as client:
-        response = await client.get(
-            f"http://localhost:{constants.PORTS['estoque']}/produtos",
-        )
+def get_products():
+    response = httpx.get(
+        f"{constants.base_url_for('estoque')}/produtos",
+    )
 
-        response.raise_for_status()
+    response.raise_for_status()
 
-        return response.json()
+    return response.json()
 
 
 @app.get("/pedidos")
 def get_orders():
     # TODO: notificações SSE
-    return orders_statuses
+    return state.orders_statuses
 
 
 @app.post("/pedidos", status_code=201)
@@ -206,9 +143,9 @@ def subscribePromotions(
     messages.publish(
         promo.model_dump(),
         channel,
-        MS_NAME,
-        keyring,
-        EXCHANGE,
+        rabbit.MS_NAME,
+        rabbit.keyring,
+        rabbit.EXCHANGE,
         "interesse.promocao",
     )
 
@@ -224,4 +161,4 @@ def subscribePromotions(
 
 
 if __name__ == "__main__":
-    uvicorn.run("principal.main:app", port=constants.PORTS["principal"], reload=True)
+    infra.run("principal.main:app", rabbit.MS_NAME)

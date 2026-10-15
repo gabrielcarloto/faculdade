@@ -3,12 +3,15 @@ import random
 import sys
 import threading
 import time
-import pika
+import traceback
+
+import constants
 import crypto
+import infra
 
 MS_NAME = "promocoes"
-EXCHANGE = "eCommerce"
-QUEUE = "fila.promocoes"
+EXCHANGE = constants.EXCHANGE_ECOMMERCE
+QUEUE = constants.queue_for(MS_NAME)
 BINDINGS = ["interesse.promocao"]
 
 INTERVALO = 10
@@ -30,26 +33,23 @@ subscribers_lock = threading.Lock()
 
 
 def consumer_worker():
-    consumer_conn = pika.BlockingConnection(pika.ConnectionParameters("localhost"))
-    channel = consumer_conn.channel()
+    channel = infra.connect_consumer(EXCHANGE, QUEUE, BINDINGS)
 
-    channel.exchange_declare(EXCHANGE, "direct")
-    _ = channel.queue_declare(QUEUE)
-
-    for routing_key in BINDINGS:
-        _ = channel.queue_bind(QUEUE, EXCHANGE, routing_key)
-
-    def callback(_ch, _method, properties, body):
+    def callback(_ch, method, properties, body):
         if not crypto.verify_message(keyring, properties, body):
             return
 
-        # esperado: { email: str, categories: str[] }
-        data = json.loads(body)
+        try:
+            # esperado: { email: str, categories: str[] }
+            data = json.loads(body)
 
-        with subscribers_lock:
-            for category in data["categories"]:
-                if category in subscribers:
-                    subscribers[category].add(data["email"])
+            with subscribers_lock:
+                for category in data["categories"]:
+                    if category in subscribers:
+                        subscribers[category].add(data["email"])
+        except Exception:
+            print(f"[promocoes] erro ao processar {method.routing_key}")
+            traceback.print_exc()
 
     channel.basic_consume(
         queue=QUEUE,

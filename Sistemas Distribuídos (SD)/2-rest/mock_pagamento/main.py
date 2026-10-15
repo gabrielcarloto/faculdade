@@ -1,10 +1,11 @@
 from fastapi.responses import HTMLResponse
 import httpx
-import uvicorn
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, Request, Response
 from pydantic import BaseModel
+from urllib.parse import parse_qs
 
 import constants
+import infra
 
 payments = {}
 
@@ -30,7 +31,7 @@ def generate_payment_link(payload: GeneratePaymentPayload, res: Response):
     payments[payload.order_id]["callback"] = payload.callback
 
     return {
-        "link": f"http://localhost:{constants.PORTS['mock_pagamento']}/pay/{payload.order_id}"
+        "link": f"{constants.base_url_for('mock_pagamento')}/pay/{payload.order_id}"
     }
 
 
@@ -54,7 +55,10 @@ def payment_page(order_id: int):
 
 
 @app.post("/pay/{order_id}/processar", response_class=HTMLResponse)
-def process_payment(order_id: int, status: str = "APROVADO"):
+async def process_payment(order_id: int, request: Request):
+    form = parse_qs((await request.body()).decode())
+    status = form.get("status", ["APROVADO"])[0]
+    status = "APROVADO" if status == "APROVADO" else "RECUSADO"
     callback_url = payments[order_id]["callback"]
     payments[order_id]["status"] = status
 
@@ -79,6 +83,4 @@ def process_payment(order_id: int, status: str = "APROVADO"):
 
 
 if __name__ == "__main__":
-    uvicorn.run(
-        "mock_pagamento.main:app", port=constants.PORTS["mock_pagamento"], reload=True
-    )
+    infra.run("mock_pagamento.main:app", "mock_pagamento")
