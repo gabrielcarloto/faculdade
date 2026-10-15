@@ -7,7 +7,7 @@ import pika
 import crypto
 
 MS_NAME = "promocoes"
-EXCHANGE = "Promocoes"
+EXCHANGE = "eCommerce"
 QUEUE = "fila.promocoes"
 BINDINGS = ["interesse.promocao"]
 

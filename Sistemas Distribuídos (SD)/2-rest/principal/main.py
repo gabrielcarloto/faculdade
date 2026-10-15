@@ -158,10 +158,6 @@ class ProductOrder(BaseModel):
     quantity: int
 
 
-class Order(BaseModel):
-    id: int
-
-
 class PromotionSubscription(BaseModel):
     email: str
     categories: list[str]
@@ -196,9 +192,9 @@ def create_order(order_list: list[ProductOrder], channel=Depends(get_channel)):
     return created_order
 
 
-@app.delete("/pedidos")
-def delete_order(order: Order, res: Response, channel=Depends(get_channel)):
-    status = remove_order(order.id, channel)
+@app.delete("/pedidos/{id}")
+def delete_order(id: int, res: Response, channel=Depends(get_channel)):
+    status = remove_order(id, channel)
     res.status_code = status
     return
 
@@ -212,7 +208,7 @@ def subscribePromotions(
         channel,
         MS_NAME,
         keyring,
-        "Promocoes",
+        EXCHANGE,
         "interesse.promocao",
     )
 

@@ -113,7 +113,7 @@ def update_payment(
         pending.remove(id)
 
     routing_key = (
-        "pagamento.aprovado" if payload.status == "APROVADO" else "pagamento.reprovado"
+        "pagamento.aprovado" if payload.status == "APROVADO" else "pagamento.recusado"
     )
 
     messages.publish({"id": id}, channel, MS_NAME, keyring, EXCHANGE, routing_key)

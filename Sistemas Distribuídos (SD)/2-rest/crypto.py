@@ -93,7 +93,7 @@ def verify_message(keyring: Keyring, properties: pika.BasicProperties, body: byt
     if not sender:
         return False
 
-    public_key = keyring["public"][sender]
+    public_key = keyring["public"].get(sender)
 
     if public_key is None:
         return False
