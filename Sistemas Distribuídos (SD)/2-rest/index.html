@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Commerce Distribuído</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 30px;
+            background: #eef2f5;
+            color: #333;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        h2 {
+            margin-top: 0;
+            color: #34495e;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        td, th {
+            padding: 12px;
+            border: 1px solid #e2e8f0;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f8fafc;
+            color: #475569;
+        }
+
+        .btn {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 6px;
+            background: #3b82f6;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background: #2563eb;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .form-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        input, select {
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            flex: 1;
+            min-width: 150px;
+        }
+
+        #notificacoes {
+            height: 250px;
+            overflow-y: auto;
+            background: #1e293b;
+            color: #38bdf8;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+        }
+
+        .msg {
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .connected {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        .disconnected {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🛒 Loja Distribuída (E-Commerce)</h1>
+
+    <!-- Card 1: Catálogo de Produtos -->
+    <div class="card">
+        <h2>Catálogo de Produtos</h2>
+        <button class="btn" onclick="carregarProdutos()">🔄 Atualizar Produtos</button>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Produto</th>
+                    <th>Preço</th>
+                </tr>
+            </thead>
+            <tbody id="produtos">
+                <tr><td colspan="3" style="text-align: center; color: #94a3b8;">Clique em "Atualizar Produtos" para carregar.</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Card 2: Novo Pedido -->
+    <div class="card">
+        <h2>Fazer Novo Pedido</h2>
+        <div class="form-group">
+            <input id="produtoId" type="number" placeholder="ID do Produto">
+            <input id="quantidade" type="number" value="1" min="1" placeholder="Quantidade">
+            <button class="btn" onclick="criarPedido()">🛍️ Criar Pedido</button>
+        </div>
+    </div>
+
+    <!-- Card 3: Inscrição / Cancelamento de Promoções -->
+    <div class="card">
+        <h2>Gerenciador de Promoções</h2>
+        <div class="form-group">
+            <input id="promoEmail" placeholder="Seu E-mail">
+            <select id="categoria">
+                <option value="A">Categoria A</option>
+                <option value="B">Categoria B</option>
+                <option value="C">Categoria C</option>
+            </select>
+            <button class="btn" onclick="registrarInteresse()">📧 Registrar Interesse</button>
+            <button class="btn btn-danger" onclick="cancelarInteresse()">❌ Cancelar Inscrição</button>
+        </div>
+    </div>
+
+    <!-- Card 4: Acompanhamento de Pedidos via SSE -->
+    <div class="card">
+        <h2>Acompanhamento em Tempo Real (SSE) <span id="statusSSE" class="status-badge disconnected">Desconectado</span></h2>
+        <p style="font-size: 14px; color: #64748b;">A conexão abre sozinha ao carregar a página; cada mudança de status dos pedidos aparece aqui.</p>
+        
+        <div class="form-group" style="margin-bottom: 15px;">
+            <button class="btn" onclick="conectarSSE()">🔌 Conectar SSE</button>
+        </div>
+
+        <div id="notificacoes"></div>
+    </div>
+</div>
+
+<script>
+const API = "http://localhost:8000";
+let eventSource = null;
+
+// 1. Carregar Catálogo de Produtos (REST GET)
+async function carregarProdutos() {
+    try {
+        const response = await fetch(`${API}/produtos`);
+        const produtos = await response.json();
+
+        const tbody = document.getElementById("produtos");
+        tbody.innerHTML = "";
+
+        if (Array.isArray(produtos) && produtos.length > 0) {
+            produtos.forEach(produto => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${produto.id ?? '-'}</strong></td>
+                        <td>${produto.nome ?? produto.name ?? 'Sem nome'}</td>
+                        <td>R$ ${Number(produto.preco ?? produto.price ?? 0).toFixed(2)}</td>
+                    </tr>
+                `;
+            });
+        } else {
+            tbody.innerHTML = `<tr><td colspan="3" style="text-align: center;">Nenhum produto disponível.</td></tr>`;
+        }
+    } catch (err) {
+        console.error("Erro ao carregar produtos:", err);
+        alert("Erro ao conectar com o serviço de produtos.");
+    }
+}
+
+// 2. Criar Pedido (REST POST)
+async function criarPedido() {
+    const produtoId = Number(document.getElementById("produtoId").value);
+    const quantidade = Number(document.getElementById("quantidade").value);
+
+    if (!produtoId || !quantidade) {
+        alert("Preencha o ID do Produto e a Quantidade.");
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API}/pedidos`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify([
+                { id: produtoId, quantity: quantidade }
+            ])
+        });
+
+        // Se deu certo, a confirmação chega pelo SSE (evento pedido.criado)
+        if (!response.ok) {
+            const erro = await response.json();
+            alert("Erro ao criar pedido: " + JSON.stringify(erro.detail || erro));
+        }
+    } catch (err) {
+        alert("Erro de conexão ao criar pedido.");
+    }
+}
+
+// 3. Inscrição em Promoções (REST POST)
+async function registrarInteresse() {
+    const email = document.getElementById("promoEmail").value;
+    const categoria = document.getElementById("categoria").value;
+
+    if (!email) {
+        alert("Digite um e-mail válido.");
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API}/promo`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                email: email,
+                categories: [categoria]
+            })
+        });
+
+        if (response.ok) {
+            alert("Interesse registrado com sucesso!");
+        } else {
+            alert("Erro ao registrar interesse.");
+        }
+    } catch (err) {
+        alert("Erro de conexão ao registrar promoção.");
+    }
+}
+
+// 4. Cancelar Inscrição em Promoções (REST DELETE)
+async function cancelarInteresse() {
+    const email = document.getElementById("promoEmail").value;
+    const categoria = document.getElementById("categoria").value;
+
+    if (!email) {
+        alert("Digite o e-mail que deseja cancelar.");
+        return;
+    }
+
+    try {
+        // cancela só a categoria selecionada (sem ?categories= cancelaria todas)
+        const url = `${API}/promo/${encodeURIComponent(email)}?categories=${encodeURIComponent(categoria)}`;
+        const response = await fetch(url, { method: "DELETE" });
+
+        if (response.ok) {
+            alert(`Inscrição na categoria ${categoria} cancelada com sucesso!`);
+        } else {
+            alert("Erro ao cancelar inscrição.");
+        }
+    } catch (err) {
+        alert("Erro de conexão ao cancelar promoção.");
+    }
+}
+// Função auxiliar para registrar mensagens no painel estilo terminal
+function adicionarMensagem(mensagem) {
+    const caixa = document.getElementById("notificacoes");
+    const div = document.createElement("div");
+    div.className = "msg";
+    div.textContent = `[${new Date().toLocaleTimeString()}] ${mensagem}`;
+    caixa.appendChild(div);
+    caixa.scrollTop = caixa.scrollHeight;
+}
+
+// Mensagem com link clicável no painel (usada para o link de pagamento)
+function adicionarLink(texto, url) {
+    const caixa = document.getElementById("notificacoes");
+    const div = document.createElement("div");
+    div.className = "msg";
+    const a = document.createElement("a");
+    a.href = url;
+    a.target = "_blank";
+    a.textContent = texto;
+    a.style.color = "#facc15";
+    div.append(`[${new Date().toLocaleTimeString()}] 👉 `, a);
+    caixa.appendChild(div);
+    caixa.scrollTop = caixa.scrollHeight;
+}
+
+// Dados JSON de um evento SSE, ex.: {"id": 1234, "link": "http://..."}
+function lerDados(event) {
+    try {
+        return JSON.parse(event.data);
+    } catch (e) {
+        return {};
+    }
+}
+
+// 5. Conexão SSE e Gerenciamento de Notificações em Tempo Real
+function conectarSSE() {
+    const statusBadge = document.getElementById("statusSSE");
+
+    if (eventSource) {
+        eventSource.close();
+    }
+
+    eventSource = new EventSource(`${API}/notificacoes`);
+
+    eventSource.onopen = () => {
+        statusBadge.textContent = "Conectado";
+        statusBadge.className = "status-badge connected";
+        adicionarMensagem("⚡ Conectado ao canal SSE");
+    };
+
+    // Mensagem Genérica
+    eventSource.onmessage = (event) => {
+        adicionarMensagem(`📩 Notificação: ${event.data}`);
+    };
+
+    // Eventos específicos do fluxo de pedidos (o nome do evento é a routing key)
+    eventSource.addEventListener("pedido.criado", (event) => {
+        const dados = lerDados(event);
+        const itens = (dados.products || []).map((p) => `${p.quantity}x produto #${p.id}`).join(", ");
+        adicionarMensagem(`🚀 Pedido #${dados.id} criado (${itens}). Aguardando confirmação do estoque...`);
+    });
+
+    eventSource.addEventListener("pedido.estoque_ok", (event) => {
+        adicionarMensagem(`✅ Pedido #${lerDados(event).id}: Estoque Confirmado! Reservado com sucesso.`);
+    });
+
+    eventSource.addEventListener("estoque.indisponivel", (event) => {
+        const dados = lerDados(event);
+        const itens = (dados.produtos_indisponiveis || []).join(", ");
+        adicionarMensagem(`❌ Pedido #${dados.id}: Estoque Indisponível${itens ? ` (${itens})` : ""}! Pedido cancelado.`);
+    });
+
+    // Evento de Pagamento Pendente -> ABRE O MOCK EM NOVA ABA
+    eventSource.addEventListener("pagamento.pendente", (event) => {
+        const dados = lerDados(event);
+        const link = dados.link || "";
+
+        adicionarMensagem(`💳 Pedido #${dados.id}: Pagamento Pendente! Abrindo checkout externo...`);
+
+        if (link.startsWith("http")) {
+            window.open(link, "_blank"); // Abre o Mock de Pagamento em nova aba
+            // se o navegador bloquear a nova aba, dá para abrir pelo link no painel
+            adicionarLink(`Abrir pagamento do pedido #${dados.id}`, link);
+        }
+    });
+
+    eventSource.addEventListener("pagamento.aprovado", (event) => {
+        adicionarMensagem(`💰 Pedido #${lerDados(event).id}: Pagamento Aprovado! Processando envio...`);
+    });
+
+    eventSource.addEventListener("pagamento.recusado", (event) => {
+        adicionarMensagem(`🔴 Pedido #${lerDados(event).id}: Pagamento Recusado! Pedido cancelado.`);
+    });
+
+    eventSource.addEventListener("pagamento.reprovado", () => {
+        adicionarMensagem("🔴 Pagamento Reprovado!");
+    });
+
+    eventSource.addEventListener("pedido.enviado", (event) => {
+        adicionarMensagem(`🚚 Pedido #${lerDados(event).id}: Pedido Enviado! Nota fiscal emitida e produto despachado.`);
+    });
+
+    eventSource.onerror = () => {
+        statusBadge.textContent = "Erro/Desconectado";
+        statusBadge.className = "status-badge disconnected";
+        adicionarMensagem("⚠️ Conexão SSE encerrada ou com erro. Tentando reconectar...");
+    };
+}
+
+// Ao abrir a página: carrega o catálogo e já conecta o SSE
+window.onload = () => {
+    carregarProdutos();
+    conectarSSE();
+};
+</script>
+</body>
+</html>

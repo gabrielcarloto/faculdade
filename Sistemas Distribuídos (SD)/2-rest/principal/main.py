@@ -3,18 +3,23 @@ import pika
 import pika.adapters.blocking_connection
 import httpx
 import threading
+
+from starlette.responses import StreamingResponse
 import constants
 import infra
 import messages
-from principal import rabbit, state
-from fastapi import FastAPI, Request, Response, Depends
+from principal import rabbit, state, sse
+from fastapi import FastAPI, Query, Request, Response, Depends
 from contextlib import asynccontextmanager
 from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware
 
 
 def place_order(orders, channel):
     order_id = random.randint(1000, 9999)
     order = {"id": order_id, "products": orders}
+
+    sse.notify("pedido.criado", order)
 
     messages.publish(
         order,
@@ -90,6 +95,14 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 class ProductOrder(BaseModel):
     id: int
@@ -116,17 +129,20 @@ def get_products():
     return response.json()
 
 
-@app.get("/pedidos")
-def get_orders():
-    # TODO: notificações SSE
-    return state.orders_statuses
-
-
 @app.post("/pedidos", status_code=201)
 def create_order(order_list: list[ProductOrder], channel=Depends(get_channel)):
     orders = [order.model_dump() for order in order_list]
     created_order = place_order(orders, channel)
     return created_order
+
+
+@app.get("/notificacoes")
+async def notifications():
+    return StreamingResponse(
+        sse.stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache"},
+    )
 
 
 @app.delete("/pedidos/{id}")
@@ -153,11 +169,21 @@ def subscribePromotions(
     return
 
 
-# @app.delete("/promo")
-# def unsubscribePromotions(req):
-#     # TODO: pegar dados do body e implementar ms promo
-#     res = ...
-#     return res
+@app.delete("/promo/{email}", status_code=204)
+def unsubscribePromotions(
+    email: str,
+    categories: list[str] | None = Query(default=None),
+    channel=Depends(get_channel),
+):
+    # ?categories=A&categories=B cancela só essas; sem categories, cancela todas
+    messages.publish(
+        {"action": "unsubscribe", "email": email, "categories": categories or []},
+        channel,
+        rabbit.MS_NAME,
+        rabbit.keyring,
+        rabbit.EXCHANGE,
+        "interesse.promocao",
+    )
 
 
 if __name__ == "__main__":

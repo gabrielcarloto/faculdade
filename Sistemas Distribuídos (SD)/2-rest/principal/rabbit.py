@@ -5,7 +5,7 @@ import constants
 import crypto
 import infra
 import messages
-from principal import state
+from principal import sse, state
 
 
 MS_NAME = "principal"
@@ -44,7 +44,9 @@ def consumer_worker():
 
                 match method.routing_key:
                     case "pedido.estoque_ok":
-                        state.orders_statuses[order_id] = {"status": "Estoque disponível"}
+                        state.orders_statuses[order_id] = {
+                            "status": "Estoque disponível"
+                        }
                     case "pagamento.pendente":
                         print("link de pagamento: ", data["link"])
                         state.orders_statuses[order_id] = {
@@ -52,13 +54,17 @@ def consumer_worker():
                             "payment_link": data["link"],
                         }
                     case "pagamento.aprovado":
-                        state.orders_statuses[order_id] = {"status": "Pagamento aprovado"}
+                        state.orders_statuses[order_id] = {
+                            "status": "Pagamento aprovado"
+                        }
                     case "pedido.enviado":
                         state.orders_statuses[order_id] = {"status": "Enviado"}
                     case "estoque.indisponivel" | "pagamento.recusado":
                         state.orders_statuses[order_id] = {
                             "status": f"Excluido ({method.routing_key})"
                         }
+
+            sse.notify(method.routing_key, data)
 
             if method.routing_key in ("estoque.indisponivel", "pagamento.recusado"):
                 order = {"id": order_id}
