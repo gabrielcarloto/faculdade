@@ -1,4 +1,5 @@
 import json
+import os
 import threading
 import traceback
 from fastapi import FastAPI
@@ -15,12 +16,44 @@ QUEUE = constants.queue_for(MS_NAME)
 
 keyring = crypto.get_keyring(MS_NAME)
 
+ARQUIVO_ESTADO = "estoque/estoque.json"
+
 with open("catalogo.json", "r", encoding="utf-8") as f:
     catalogo = {p["id"]: p for p in json.load(f)}
 
-disponivel = {pid: p["estoque"] for pid, p in catalogo.items()}
 
-reservas: dict[int, dict[int, int]] = {}
+def carregar_estado():
+    try:
+        with open(ARQUIVO_ESTADO, "r", encoding="utf-8") as f:
+            estado = json.load(f)
+    except FileNotFoundError:
+        return {pid: p["estoque"] for pid, p in catalogo.items()}, {}
+
+    disponivel = {int(pid): qtd for pid, qtd in estado["disponivel"].items()}
+    reservas = {
+        int(pedido_id): {int(pid): qtd for pid, qtd in itens.items()}
+        for pedido_id, itens in estado["reservas"].items()
+    }
+
+    for pid, p in catalogo.items():
+        disponivel.setdefault(pid, p["estoque"])
+
+    return disponivel, reservas
+
+
+def salvar_estado():
+    temporario = ARQUIVO_ESTADO + ".tmp"
+
+    with open(temporario, "w", encoding="utf-8") as f:
+        json.dump({"disponivel": disponivel, "reservas": reservas}, f, indent=2)
+        f.flush()
+        os.fsync(f.fileno())
+
+    os.replace(temporario, ARQUIVO_ESTADO)
+
+
+disponivel, reservas = carregar_estado()
+salvar_estado()
 
 
 def imprimir_estoque():
@@ -65,8 +98,10 @@ def tratar_pedido_criado(channel, pedido):
 
     reservas[pedido_id] = solicitado
 
-    total = sum(catalogo[pid]["preco"] * qtd for pid, qtd in solicitado.items())
-    produtos = [{"id": pid, "quantity": qtd} for pid, qtd in solicitado.items()]
+    salvar_estado()
+
+    # total = sum(catalogo[pid]["preco"] * qtd for pid, qtd in solicitado.items())
+    # produtos = [{"id": pid, "quantity": qtd} for pid, qtd in solicitado.items()]
 
     print(f"[estoque] pedido {pedido_id}: reservado")
     imprimir_estoque()
@@ -92,6 +127,8 @@ def tratar_pedido_excluido(pedido):
 
     for pid, qtd in reserva.items():
         disponivel[pid] += qtd
+
+    salvar_estado()
 
     print(f"[estoque] pedido {pedido_id}: itens devolvidos")
     imprimir_estoque()
