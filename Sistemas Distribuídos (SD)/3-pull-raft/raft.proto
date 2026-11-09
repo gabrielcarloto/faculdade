@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package raft;
+
+message NodeMetadata {
+  int32 term = 1;
+  string sender_id = 2;
+}
+
+message RequestVoteRequest {
+  NodeMetadata metadata = 1;
+
+  int32 last_log_index = 2;
+  int32 last_log_term = 3;
+}
+
+message RequestVoteResponse {
+  NodeMetadata metadata = 1;
+
+  bool voted = 2;
+}
+
+message FetchRequestRequest {
+  NodeMetadata metadata = 1;
+
+  int32 last_log_index = 2;
+  int32 last_log_term = 3;
+}
+
+enum DataOperation {
+  SET = 1;
+  ADD = 2;
+  SUB = 3;
+}
+
+message LogEntry {
+  int64 index = 1;
+  int64 term = 2;
+  DataOperation operation = 3;
+  int64 value = 4;
+}
+
+message FetchRequestResponse {
+  NodeMetadata metadata = 1;
+
+  bool log_matches = 2;
+  repeated LogEntry entries = 3;
+  int32 commit_index = 4;
+}
+
+service Raft {
+  rpc RequestVote(RequestVoteRequest) returns (RequestVoteResponse);
+  rpc FetchRequest(FetchRequestRequest) returns (FetchRequestResponse);
+}
