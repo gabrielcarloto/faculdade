@@ -28,9 +28,10 @@ message FetchRequestRequest {
 }
 
 enum DataOperation {
-  SET = 1;
-  ADD = 2;
-  SUB = 3;
+  DATA_OPERATION_UNSPECIFIED = 0;
+  DATA_OPERATION_SET = 1;
+  DATA_OPERATION_ADD = 2;
+  DATA_OPERATION_SUB = 3;
 }
 
 message LogEntry {
