@@ -11,6 +11,9 @@ import raft_pb2_grpc
 NODES = 4
 MAJORITY = 3
 
+MIN_TIMOUT_SEC = 2
+MAX_TIMOUT_SEC = 5
+
 
 class Role(Enum):
     FOLLOWER = "follower"
@@ -80,6 +83,8 @@ class Node:
         self.stubs = {}
         self.init_stubs()
 
+    def start(self):
+        self.hablar("iniciando timers")
         self.reset_election_timer()
         self.reset_fetch_timer()
 
@@ -91,6 +96,7 @@ class Node:
         self.leader_id = self.node_id
         self.stop_election()
         self.stop_fetching()
+        self.hablar("virei líder")
 
         # TODO: notificar outros nodes e monitorar fetch requests
 
@@ -108,7 +114,10 @@ class Node:
         self.reset_election_timer()
         self.reset_fetch_timer()
 
+        self.hablar(f"virei seguidor de {node.sender_id}")
+
     def start_election(self):
+        self.hablar("iniciando eleição")
         self.current_term += 1
         self.role = Role.CANDIDATE
         self.voted_for = self.node_id
@@ -124,6 +133,8 @@ class Node:
         if self.role != Role.CANDIDATE or term != self.current_term:
             return
 
+        self.hablar(f"voto recebido de {peer_id}")
+
         self.votes_received.add(peer_id)
 
         if len(self.votes_received) >= MAJORITY:
@@ -132,19 +143,29 @@ class Node:
     def vote(
         self, candidate_id: str, term: int, last_log_index: int, last_log_term: int
     ):
+        last_index, last_term = self.get_last_index_term()
+
+        self.hablar(
+            f"{candidate_id} está pedindo votos com termo {term}, último log termo {last_log_term} e índice {last_log_index}"
+        )
+
+        self.hablar(
+            f"meu termo: {self.current_term}; log: termo {last_term}, índice {last_index}"
+        )
+
         if term < self.current_term:
             return False
 
         if term > self.current_term:
             self.update_term(term)
 
-        last_index, last_term = self.get_last_index_term()
-
         if (last_log_term, last_log_index) < (last_term, last_index):
             return False
 
         if self.voted_for not in (None, candidate_id):
             return False
+
+        self.hablar(f"votei em {candidate_id}")
 
         self.voted_for = candidate_id
         self.reset_election_timer()
@@ -153,6 +174,8 @@ class Node:
     def update_term(self, to: int):
         if to <= self.current_term:
             return
+
+        self.hablar(f"atualizando termo de {self.current_term} para {to}")
 
         self.current_term = to
         self.voted_for = None
@@ -183,10 +206,20 @@ class Node:
         return (last_log_index, last_log_term)
 
     def random_timeout(self):
-        return random.uniform(0.150, 0.300)
+        return random.uniform(MIN_TIMOUT_SEC, MAX_TIMOUT_SEC)
 
     def is_leader(self):
         return self.role == Role.LEADER
+
+    def hablar(self, str: str):
+        print(f"{self.node_id} ({self.readable_role()}): {str}")
+
+    def readable_role(self):
+        return {
+            Role.FOLLOWER: "follower",
+            Role.CANDIDATE: "candidate",
+            Role.LEADER: "leader",
+        }[self.role]
 
     # TIMERS
     def on_election_timeout(self):
