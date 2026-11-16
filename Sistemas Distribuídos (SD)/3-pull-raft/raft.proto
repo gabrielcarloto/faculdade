@@ -47,9 +47,32 @@ message FetchRequestResponse {
   bool log_matches = 2;
   repeated LogEntry entries = 3;
   int32 commit_index = 4;
+  bool is_leader = 5;
+}
+
+// CLIENTE
+message WriteRequest {
+  DataOperation operation = 1;
+  int64 value = 2;
+  bool simulate_crash = 3; // cenário 4B: o líder grava no log e cai antes de replicar
+}
+
+message WriteResponse {
+  bool success = 1;
+  string leader_id = 2;
+  string message = 3;
+}
+
+message ReadRequest {}
+
+message ReadResponse {
+  int64 value = 1;
 }
 
 service Raft {
   rpc RequestVote(RequestVoteRequest) returns (RequestVoteResponse);
   rpc FetchRequest(FetchRequestRequest) returns (FetchRequestResponse);
+
+  rpc Write(WriteRequest) returns (WriteResponse);
+  rpc Read(ReadRequest) returns (ReadResponse);
 }
