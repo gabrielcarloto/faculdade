@@ -19,6 +19,7 @@ MIN_TIMEOUT = 2
 MAX_TIMEOUT = 5
 HEARTBEAT_TIMEOUT = 3
 RPC_TIMEOUT = 0.5
+COMMIT_TIMEOUT = 3
 FETCH_INTERVAL = 0.1
 
 CHANNEL_OPTIONS = [
@@ -337,6 +338,52 @@ class Node:
             and self.log[new_commit].term == self.current_term
         ):
             self.commit_until(new_commit)
+
+    # CLIENTE
+    def client_read(self):
+        self.hablar(f"leitura: valor = {self.state}")
+        return self.state
+
+    def client_write(self, operation: LogOperation, value: int, simulate_crash: bool):
+        with self.lock:
+            if not self.is_leader():
+                return False, f"o nó {self.node_id} não é o líder"
+
+            active = self.count_active_nodes()
+            if active < MAJORITY:
+                message = f"sem quórum ({active} de {NODES} nós ativos)"
+                self.hablar(f"escrita recusada: {message}")
+                return False, f"escrita recusada: {message}"
+
+            self.log.append(LogEntry(self.current_term, operation, value))
+            self.save()
+
+            index = len(self.log) - 1
+            term = self.current_term
+
+            self.hablar(
+                f"gravou no log a entrada {index} ({operation.name} {value}), "
+                "esperando o quórum"
+            )
+
+            # é mais fácil simular uma queda assim do que tentar acertar o timing
+            # encerrando pelo terminal
+            if simulate_crash:
+                self.hablar("adiós, baby")
+                os._exit(1)
+
+        deadline = time.monotonic() + COMMIT_TIMEOUT
+        while time.monotonic() < deadline:
+            with self.lock:
+                if not self.is_leader() or self.current_term != term:
+                    return False, "deixou de ser o líder antes do commit"
+
+                if self.commit_index >= index:
+                    return True, f"entrada {index} comitada (termo {term})"
+
+            time.sleep(0.01)
+
+        return False, "não comitada: o quórum não confirmou a replicação a tempo"
 
     # UTILS
     def count_active_nodes(self):

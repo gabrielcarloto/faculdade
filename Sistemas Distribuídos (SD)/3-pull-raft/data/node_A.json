@@ -1,7 +1,93 @@
 {
-  "current_term": 10,
-  "voted_for": "D",
-  "log": [],
-  "commit_index": -1,
-  "state": 0
+  "current_term": 15,
+  "voted_for": null,
+  "log": [
+    {
+      "term": 12,
+      "operation": "ADD",
+      "value": 12
+    },
+    {
+      "term": 12,
+      "operation": "ADD",
+      "value": 12
+    },
+    {
+      "term": 12,
+      "operation": "ADD",
+      "value": 12
+    },
+    {
+      "term": 12,
+      "operation": "ADD",
+      "value": 12
+    },
+    {
+      "term": 12,
+      "operation": "SUB",
+      "value": 12
+    },
+    {
+      "term": 12,
+      "operation": "SUB",
+      "value": 12
+    },
+    {
+      "term": 12,
+      "operation": "SUB",
+      "value": 12
+    },
+    {
+      "term": 12,
+      "operation": "SUB",
+      "value": 12
+    },
+    {
+      "term": 13,
+      "operation": "ADD",
+      "value": 1
+    },
+    {
+      "term": 13,
+      "operation": "ADD",
+      "value": 1
+    },
+    {
+      "term": 13,
+      "operation": "ADD",
+      "value": 1
+    },
+    {
+      "term": 13,
+      "operation": "ADD",
+      "value": 1
+    },
+    {
+      "term": 14,
+      "operation": "SUB",
+      "value": 4
+    },
+    {
+      "term": 14,
+      "operation": "SET",
+      "value": 534789
+    },
+    {
+      "term": 15,
+      "operation": "SET",
+      "value": 1
+    },
+    {
+      "term": 15,
+      "operation": "ADD",
+      "value": 12
+    },
+    {
+      "term": 15,
+      "operation": "SUB",
+      "value": 1
+    }
+  ],
+  "commit_index": 16,
+  "state": 12
 }

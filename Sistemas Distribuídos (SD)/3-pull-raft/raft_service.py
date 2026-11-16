@@ -58,7 +58,7 @@ class RaftService(raft_pb2_grpc.RaftServicer):
             )
 
     def Write(self, request, context):
-        success, message = self.node.write(
+        success, message = self.node.client_write(
             operation=LogOperation(request.operation),
             value=request.value,
             simulate_crash=request.simulate_crash,
@@ -72,8 +72,7 @@ class RaftService(raft_pb2_grpc.RaftServicer):
 
     def Read(self, request, context):
         with self.node.lock:
-            return raft_pb2.ReadResponse(value=self.node.read())
-
+            return raft_pb2.ReadResponse(value=self.node.client_read())
 
 
 def start_server(node: Node, address: str):
