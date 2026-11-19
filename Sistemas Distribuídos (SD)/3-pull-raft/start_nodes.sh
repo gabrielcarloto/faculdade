@@ -4,13 +4,7 @@ set -euo pipefail
 PROJECT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 MAIN="$PROJECT_DIR/main.py"
 
-if [[ -n "${PYTHON:-}" ]]; then
-    PYTHON_BIN="$(command -v "$PYTHON")"
-elif [[ -x "$PROJECT_DIR/.venv/bin/python" ]]; then
-    PYTHON_BIN="$PROJECT_DIR/.venv/bin/python"
-else
-    PYTHON_BIN="$(command -v python3)"
-fi
+PYTHON_BIN="python3.14"
 
 if ! command -v ghostty >/dev/null 2>&1; then
     echo "Erro: Ghostty não encontrado."

@@ -263,6 +263,7 @@ class Node:
         self.become_follower(response.metadata)
 
         if self.get_last_index_term() != (
+            # NOTE: REQUEST. RE-REsponse..?  NÃO! REQUEST!
             request.last_log_index,
             request.last_log_term,
         ):
@@ -307,6 +308,7 @@ class Node:
             self.update_term(term)
 
         if not self.is_leader():
+            # is_leader, log_matches, entries
             return False, False, []
 
         was_active = peer.is_active()
